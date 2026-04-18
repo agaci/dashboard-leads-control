@@ -1,0 +1,3947 @@
+{
+  "version": "1.0",
+  "projeto": "YourBox Agent — Base de Conhecimento Completa",
+  "total": 100,
+  "situacoes": [
+    {
+      "id": "SIT-001",
+      "titulo": "O choque do preço do direto",
+      "categoria": "preco",
+      "frequencia": "muito_alta",
+      "sinais_deteccao": [
+        "lead pede transporte entre cidades distantes (>150km)",
+        "urgência expressa mas sem hora limite real",
+        "não menciona orçamento ou menciona valores muito baixos (<50€)",
+        "palavras-chave: 'direto', 'agora', 'já', 'quanto custa ir de X a Y'"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um transporte urgente de Lisboa para o Porto, quanto custa?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para uma viatura dedicada Lisboa→Porto ida e volta, o valor fica entre 220-280€. Mas antes de avançar — precisa mesmo de entrega hoje, ou serve amanhã de manhã?"
+        },
+        {
+          "papel": "lead",
+          "msg": "amanhã serve, é para uma empresa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo — temos o serviço parceiro com entrega amanhã às 13h por 18-25€ dependendo do peso. Quer que calcule o valor exato?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Qual é o prazo real — precisa hoje, ou serve amanhã de manhã?",
+        "É só ida ou precisa que o motorista espere e volte?"
+      ],
+      "logica_decisao": {
+        "se_prazo_hoje_obrigatorio": "calcular direto via API própria — apresentar como opção premium",
+        "se_prazo_flexivel_ate_24h": "calcular parceiro parceiro 13h — apresentar como opção recomendada",
+        "se_agregacao_disponivel": "verificar API logística — viatura YourBox no mesmo trajeto nas próximas 4h",
+        "apresentar_sempre_2_opcoes": "parceiro barato + YourBox com hora confirmada"
+      },
+      "script_resposta": {
+        "abertura": "Para viatura dedicada Lisboa→Porto ida e volta, o valor fica entre 220-280€. Mas antes — precisa hoje ou serve amanhã?",
+        "se_aceita_amanha": "Temos parceiro com entrega amanhã às 13h por 18-25€. Calculo o valor exato?",
+        "se_insiste_hoje": "Confirmo viatura dedicada. Motorista disponível em X minutos. Total: Y€. Avançamos?"
+      },
+      "escalamento_humano": [
+        "carga acima de 500kg",
+        "lead questiona preço mais de 2 vezes sem aceitar alternativa",
+        "destino internacional ou ilhas",
+        "cliente empresarial com potencial de contrato recorrente"
+      ],
+      "kpi_sucesso": "conversão para alternativa mais barata quando disponível"
+    },
+    {
+      "id": "SIT-002",
+      "titulo": "A viatura já faz esse trajeto",
+      "categoria": "agregacao",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "pedido com origem/destino dentro de raio de 50km de rota existente",
+        "hora do pedido compatível com saída de viatura programada (margem ±90min)",
+        "carga compatível com espaço disponível (<200kg, <2m³)"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um serviço urgente Lisboa→Setúbal às 10h"
+        },
+        {
+          "papel": "ai",
+          "msg": "Tenho uma boa notícia — temos viatura a fazer esse percurso às 10h30. Consigo incluir a sua carga por 35€ em vez dos 90€ normais. A entrega seria por volta das 11h15. Serve?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, ótimo!"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. O que vai transportar e qual o peso aproximado?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Qual a morada exata de recolha e entrega?",
+        "Tem flexibilidade de 1-2 horas na entrega?"
+      ],
+      "logica_decisao": {
+        "verificar_em_tempo_real": "API logística YourBox — viaturas em rota nas próximas 4h",
+        "criterios_agregacao": {
+          "desvio_maximo_km": 15,
+          "atraso_maximo_min": 20,
+          "peso_max_adicional_kg": 200
+        },
+        "se_agregacao_viavel": "reservar espaço e confirmar — desconto 40-60% vs direto",
+        "se_sem_agregacao": "oferecer direto ou parceiro 24h"
+      },
+      "script_resposta": {
+        "quando_disponivel": "Temos viatura a passar na sua zona em [X horas] — preço especial de [Y€] em vez de [Z€]. A entrega seria às [hora]. Serve?",
+        "quando_indisponivel": "Não tenho viatura nesse trajeto hoje, mas posso oferecer [alternativa]."
+      },
+      "escalamento_humano": [
+        "carga frágil ou de valor elevado",
+        "cliente exige hora exata incompatível com agregação",
+        "viatura já com capacidade máxima — decisão de logística"
+      ],
+      "kpi_sucesso": "percentagem de viagens com agregação vs viagens sem aproveitamento"
+    },
+    {
+      "id": "SIT-003",
+      "titulo": "Urgência real fora do horário",
+      "categoria": "urgente",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "hora do pedido entre 20h00 e 08h00",
+        "palavras-chave: 'linha de produção', 'paragem', 'urgentíssimo', 'imediato'",
+        "contexto industrial ou hospitalar",
+        "menção a perdas financeiras por hora de paragem"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "são 22h e tenho a linha de produção parada, preciso de uma peça em Aveiro urgente"
+        },
+        {
+          "papel": "ai",
+          "msg": "Recebi o pedido urgente. Estou a verificar disponibilidade agora — respondo em menos de 10 minutos."
+        },
+        {
+          "papel": "ai",
+          "msg": "Temos motorista disponível. Lisboa→Aveiro com recolha em 20 minutos, valor com suplemento noturno: 180€. Confirmo?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim confirmo, preciso já"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "O que precisa transportar e para onde exatamente?",
+        "Tem alguém disponível para entregar a carga ao motorista agora?",
+        "Qual o valor aproximado da peça? (para seguro)"
+      ],
+      "logica_decisao": {
+        "nivel_critico": "linha produção parada, equipamento médico — resposta <15min",
+        "nivel_alto": "urgente com prejuízo por hora — resposta <30min",
+        "suplemento_noturno_pct": 40,
+        "sem_driver_disponivel": "escalar para gestor de turno — nunca prometer e não cumprir"
+      },
+      "escalamento_humano": [
+        "sempre — serviços noturnos críticos requerem confirmação humana"
+      ],
+      "kpi_sucesso": "tempo médio de resposta <15min para urgências nocturnas"
+    },
+    {
+      "id": "SIT-004",
+      "titulo": "O cliente não sabe o que quer enviar",
+      "categoria": "qualificacao",
+      "frequencia": "muito_alta",
+      "sinais_deteccao": [
+        "descrição vaga: 'umas coisas', 'uns materiais', 'uma encomenda'",
+        "sem dados de peso ou dimensões",
+        "campos em branco ou 'não sei' no formulário"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "tenho uma coisa para enviar, não sei bem o peso nem as medidas"
+        },
+        {
+          "papel": "ai",
+          "msg": "Sem problema, vamos perceber juntos. O que vai transportar?"
+        },
+        {
+          "papel": "lead",
+          "msg": "umas caixas com material de escritório"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo. Cabe numa caixa de televisão ou é maior que isso?"
+        },
+        {
+          "papel": "lead",
+          "msg": "são umas 3 caixas tipo caixa de televisão"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. E consegue levantar sozinho ou precisa de ajuda?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "O que vai transportar?",
+        "Cabe numa caixa de sapatos, de televisão, ou é maior?",
+        "Consegue levantar sozinho ou precisa de ajuda?",
+        "(se necessário): É frágil ou pode ser empilhado?"
+      ],
+      "logica_decisao": {
+        "caixa_sapatos": "peso <2kg → moto ou ligeiro",
+        "caixa_televisao": "peso 5-20kg → ligeiro",
+        "maior_levantavel": "peso 20-80kg → carrinha",
+        "precisa_ajuda": "peso >80kg → verificar ajudante ou camioneta",
+        "peso_volumetrico": "(L×A×C cm) / 5000 — cobrar o maior entre real e volumétrico"
+      },
+      "escalamento_humano": [
+        "carga especial: animais vivos, materiais perigosos, obras de arte",
+        "cliente claramente em stress — preferível voz humana"
+      ],
+      "kpi_sucesso": "percentagem de leads qualificadas em menos de 4 perguntas"
+    },
+    {
+      "id": "SIT-005",
+      "titulo": "Comparação com concorrente mais barato",
+      "categoria": "preco",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "menção direta a concorrente: parceiro, parceiro, parceiro, parceiro, parceiro",
+        "frase tipo 'o X pediu-me Y€, vocês pedem mais'",
+        "resistência ao preço sem questionar o serviço"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a parceiro pediu-me 12€, vocês pedem 25€, porquê?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Percebo. O serviço parceiro a 12€ — sabe se tem hora de entrega confirmada ou é janela de 4-6 horas?"
+        },
+        {
+          "papel": "lead",
+          "msg": "não sei"
+        },
+        {
+          "papel": "ai",
+          "msg": "O nosso serviço a 25€ inclui hora confirmada, contacto direto com o motorista e resolução imediata se houver qualquer problema. Se preferir o preço mais baixo com janela alargada, posso apresentar-lhe o nosso serviço de 24h por 14€."
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "O serviço que lhe ofereceram — tem hora de entrega confirmada?",
+        "Inclui contacto direto ou é call center?",
+        "Já teve experiência anterior com esse parceiro?"
+      ],
+      "logica_decisao": {
+        "nunca_baixar_preco_imediatamente": true,
+        "diferenciais": [
+          "hora confirmada",
+          "contacto direto com driver",
+          "resolução em tempo real",
+          "7 dias incluindo fora de horas"
+        ],
+        "se_genuinamente_equivalente": "reconhecer e verificar margem — só para clientes com potencial recorrente",
+        "diferenca_ate_20pct": "a diferença é de X€ — com nós tem hora confirmada. Vale a diferença?",
+        "diferenca_acima_50pct": "provavelmente serviços muito diferentes — verificar o que inclui"
+      },
+      "escalamento_humano": [
+        "cliente com histórico de volume que está a ponderar mudar"
+      ],
+      "kpi_sucesso": "taxa de conversão após objeção de preço sem desconto"
+    },
+    {
+      "id": "SIT-006",
+      "titulo": "Envio para as ilhas — Madeira ou Açores",
+      "categoria": "parceiro",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "destino: Funchal, Ponta Delgada, Horta, Angra, qualquer ilha",
+        "menção a Madeira, Açores"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar uma caixa de 8kg para o Funchal"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para a Madeira temos serviço aéreo via parceiro. Tem as dimensões da caixa? E precisa urgente ou serve 48-72h?"
+        },
+        {
+          "papel": "lead",
+          "msg": "pode ser 48-72h"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo. Para 8kg, o valor base é X€ mais taxa insular e taxa de combustível aéreo (+30%). A confirmar com o próximo voo disponível. Calculo já?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Qual a ilha e cidade de destino exatos?",
+        "Peso e dimensões da carga?",
+        "Precisa urgente ou serve 48-72h?"
+      ],
+      "logica_decisao": {
+        "taxas_adicionais": [
+          "taxa insular",
+          "taxa combustível aéreo +30%",
+          "possível taxa de dimensão"
+        ],
+        "prazo_tipico": "24-72h dependendo do voo disponível",
+        "sempre_confirmar_com_parceiro": "antes de dar preço final"
+      },
+      "escalamento_humano": [
+        "confirmar sempre com parceiro antes de dar preço final para ilhas"
+      ],
+      "kpi_sucesso": "precisão do preço indicativo vs preço final do parceiro"
+    },
+    {
+      "id": "SIT-007",
+      "titulo": "Documentos urgentes para notário/tribunal",
+      "categoria": "urgente",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "palavras-chave: 'documentos', 'originais', 'assinar', 'notário', 'tribunal', 'prazo legal'",
+        "carga leve (<1kg) mas urgência extrema",
+        "destino específico: escritório, tribunal, conservatória"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar documentação original para um notário a 80km, tenho prazo de 2 horas"
+        },
+        {
+          "papel": "ai",
+          "msg": "2 horas para 80km — é viável. Veiculo preferencial: moto. Confirmação de entrega com assinatura incluída. Origem e destino exatos?"
+        },
+        {
+          "papel": "lead",
+          "msg": "saio do Saldanha, entrego em Cascais"
+        },
+        {
+          "papel": "ai",
+          "msg": "Saldanha→Cascais, ~30km. Moto disponível — chegada estimada em 45 minutos. Valor: 28€. Confirmo?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Qual o prazo exato de entrega?",
+        "Precisa de entrega a pessoa específica ou serve deixar na receção?",
+        "Precisa de confirmação de entrega com assinatura?"
+      ],
+      "logica_decisao": {
+        "veiculo_preferencial": "moto — mais rápida em tráfego urbano",
+        "confirmacao_entrega": "foto + assinatura digital obrigatória para documentos legais",
+        "calcular_margem_tempo": "sempre verificar viabilidade antes de confirmar"
+      },
+      "escalamento_humano": [
+        "documentos de valor legal muito elevado — confirmar seguro adicional"
+      ],
+      "kpi_sucesso": "percentagem de entregas de documentos dentro do prazo legal"
+    },
+    {
+      "id": "SIT-008",
+      "titulo": "Carga urgente mas conseguimos programar para 3 horas",
+      "categoria": "agregacao",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "lead usa palavra 'urgente' mas sem hora limite específica",
+        "ao questionar, revela margem de 2-4 horas",
+        "pedido de manhã com entrega pretendida 'hoje'"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um transporte urgente para hoje"
+        },
+        {
+          "papel": "ai",
+          "msg": "Percebo. Até que horas precisa que chegue?"
+        },
+        {
+          "papel": "lead",
+          "msg": "antes das 18h serve"
+        },
+        {
+          "papel": "ai",
+          "msg": "São 13h30 — temos margem. Tenho duas opções: viatura agora a 85€, ou viatura garantida às 15h30 a 40€. Qual prefere?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Até que horas precisa que chegue hoje?",
+        "Há alguém disponível para receber entre X e Y horas?"
+      ],
+      "logica_decisao": {
+        "reencadrar_urgencia": "muitos clientes dizem urgente mas aceitam 3-4h",
+        "apresentar_sempre_2_opcoes_com_precos": "cliente decide com informação",
+        "mensagem_chave": "não temos agora, mas em 3 horas temos solução a metade do preço"
+      },
+      "escalamento_humano": [
+        "lead recusa ambas as opções — possível negociação especial"
+      ],
+      "kpi_sucesso": "percentagem de leads 'urgentes' convertidas para opção programada"
+    },
+    {
+      "id": "SIT-009",
+      "titulo": "Lead desaparece após receber preço",
+      "categoria": "followup",
+      "frequencia": "muito_alta",
+      "sinais_deteccao": [
+        "lead disse 'vou pensar', 'depois ligo', 'vou ver'",
+        "sem resposta após 90 minutos de receber proposta",
+        "conversa parou no passo de apresentação de preço"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "ok obrigado, vou pensar"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro, sem pressão. O pedido fica reservado por 2 horas. Se precisar de ajustar alguma coisa é só dizer."
+        },
+        {
+          "papel": "ai",
+          "msg": "[2 horas depois] O seu pedido de transporte para [destino] ainda está disponível. Tem alguma dúvida sobre o preço ou o serviço?"
+        }
+      ],
+      "logica_decisao": {
+        "followup_1": {
+          "quando": "2 horas após último contacto",
+          "canal": "WhatsApp",
+          "mensagem": "O seu pedido ainda está disponível. Quer que avance ou tem alguma dúvida?"
+        },
+        "followup_2": {
+          "quando": "dia seguinte de manhã",
+          "canal": "WhatsApp ou email",
+          "mensagem": "Bom dia, ainda está a precisar do serviço de transporte?"
+        },
+        "fechar_lead": {
+          "quando": "sem resposta após followup 2",
+          "acao": "marcar como perdida — não incomodar mais"
+        }
+      },
+      "escalamento_humano": [
+        "cliente empresarial de potencial elevado — telefonema humano"
+      ],
+      "kpi_sucesso": "taxa de recuperação de leads silenciosas"
+    },
+    {
+      "id": "SIT-010",
+      "titulo": "Envio para Espanha — empresa precisa de fatura espanhola",
+      "categoria": "parceiro",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "destino: qualquer cidade espanhola",
+        "menção a filial ou escritório em Espanha",
+        "empresa portuguesa com operações transfronteiriças"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar para Madrid, e precisamos de fatura espanhola"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para Espanha usamos parceiro — têm capacidade de emitir fatura com NIF espanhol. Qual o NIF ES e peso da encomenda?"
+        },
+        {
+          "papel": "lead",
+          "msg": "NIF ES B12345678, são 5kg"
+        },
+        {
+          "papel": "ai",
+          "msg": "5kg para Madrid — serviço amanhã 13h, valor base 16,15€ + taxa combustível 30% = 21€. Confirmo com parceiro a fatura espanhola e dou resposta em 30 minutos. Avança?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "A fatura deve ir para empresa portuguesa ou espanhola?",
+        "NIF espanhol do destinatário?",
+        "Precisa amanhã ou serve 48h?"
+      ],
+      "logica_decisao": {
+        "parceiro": "parceiro Espanha Peninsular",
+        "taxa_combustivel": "+30% sempre",
+        "fatura_espanhola": "verificar com parceiro — comunicar prazo de resposta",
+        "tabela": "parceiro_2025 coluna Espanha Peninsular"
+      },
+      "escalamento_humano": [
+        "envio com documentação alfandegária especial",
+        "volume elevado — potencial contrato"
+      ],
+      "kpi_sucesso": "precisão do cálculo parceiro Espanha vs fatura final"
+    },
+    {
+      "id": "SIT-011",
+      "titulo": "Cliente subestima o peso volumétrico",
+      "categoria": "qualificacao",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "peso declarado baixo mas dimensões grandes",
+        "objetos típicos: caixas grandes, mobiliário, equipamento embalado",
+        "diferença >2x entre peso real declarado e volumétrico calculado"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "tenho uma caixa levezinha, tipo 3kg, mas é grande — 80x60x60cm"
+        },
+        {
+          "papel": "ai",
+          "msg": "Importante — a sua caixa de 80×60×60cm tem peso volumétrico de 57,6kg (80×60×60÷5000), mesmo pesando 3kg reais. As transportadoras cobram pelo espaço que ocupa. O preço correto é calculado para 57,6kg."
+        },
+        {
+          "papel": "lead",
+          "msg": "não sabia isso, faz sentido"
+        },
+        {
+          "papel": "ai",
+          "msg": "É uma regra do setor. Com esses dados, o serviço fica X€. Quer avançar?"
+        }
+      ],
+      "logica_decisao": {
+        "formula": "(L_cm × A_cm × C_cm) / 5000",
+        "regra": "cobrar o maior entre peso real e peso volumétrico",
+        "comunicar_antes_do_preco": "explicar o cálculo — evita disputas pós-serviço"
+      },
+      "escalamento_humano": [
+        "cliente recusa aceitar peso volumétrico — explicação mais detalhada"
+      ],
+      "kpi_sucesso": "percentagem de reclamações de preço por peso pós-serviço",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-012",
+      "titulo": "Equipamento médico / farmácia — máxima prioridade",
+      "categoria": "urgente",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "remetente ou destinatário: farmácia, clínica, hospital",
+        "conteúdo: medicamento, equipamento médico, análises",
+        "palavras-chave: 'utente à espera', 'doente', 'urgente médico'"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "sou da Farmácia Central, preciso de medicamento urgente da Farmácia Modelo a 12km, utente à espera"
+        },
+        {
+          "papel": "ai",
+          "msg": "Prioridade máxima. Moto disponível — chegada em 20 minutos. Valor fixo: 15€. Confirmo já?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim confirma"
+        },
+        {
+          "papel": "ai",
+          "msg": "Confirmado. Motorista a caminho. Receberá foto de entrega."
+        }
+      ],
+      "logica_decisao": {
+        "prioridade_maxima": true,
+        "sem_negociacao_de_preco": true,
+        "tempo_resposta_alvo_min": 2,
+        "veiculo": "moto ou ligeiro — o mais rápido disponível",
+        "verificar_cadeia_de_frio": "para medicamentos termolábeis"
+      },
+      "escalamento_humano": [
+        "sempre notificar logística imediatamente para priorizar"
+      ],
+      "kpi_sucesso": "tempo de resposta e entrega para serviços médicos",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-013",
+      "titulo": "Pedido às 23h para entrega amanhã cedo",
+      "categoria": "fora_horas",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "hora do pedido: 20h00 - 08h00",
+        "entrega pretendida antes das 9h ou 'primeira hora'",
+        "não é emergência — pode ser processado em background"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "são 23h, preciso de entrega amanhã antes das 9h"
+        },
+        {
+          "papel": "ai",
+          "msg": "Recebemos o pedido. Vamos confirmar disponibilidade e enviar proposta até às 8h de amanhã. Para entrega antes das 9h temos o serviço parceiro 8h30 — calculo já o preço?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim por favor"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para [origem→destino] com [peso], parceiro 8h30 = X€. Posso confirmar agora se pagar já. O serviço só parte após boa cobrança."
+        }
+      ],
+      "logica_decisao": {
+        "resposta_automatica_imediata": true,
+        "processar_em_background": "calcular preço, verificar parceiro parceiro 8h30, verificar driver disponível",
+        "alertar_driver_turno": "se urgência declarada",
+        "confirmacao_humana_manha": "BO valida às 8h se necessário"
+      },
+      "escalamento_humano": [
+        "urgência crítica declarada — SIT-003 tem prioridade"
+      ],
+      "kpi_sucesso": "pedidos noturnos respondidos antes das 8h do dia seguinte",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-014",
+      "titulo": "Cliente habitual pede desconto",
+      "categoria": "preco",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "cliente com histórico (>5 serviços na plataforma)",
+        "menção ao volume: 'já vos dei muito trabalho', 'sou cliente há anos'",
+        "pedido explícito de preço especial"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "já vos dei muito trabalho este mês, conseguem dar um desconto?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Valorizamos muito a sua fidelidade. Deixe-me verificar o seu volume este mês..."
+        },
+        {
+          "papel": "ai",
+          "msg": "Com 12 serviços em outubro, enquadra-se no nosso programa de cliente frequente com 5% de desconto automático a partir de agora. Aplico já neste pedido?"
+        }
+      ],
+      "logica_decisao": {
+        "verificar_historico": "serviços no mês corrente e últimos 3 meses",
+        "nao_dar_desconto_ad_hoc": true,
+        "acima_10_servicos_mes": "5% automático",
+        "acima_20_servicos_mes": "8% + gestor dedicado",
+        "cliente_estrategico": "escalar para gestão — negociar contrato"
+      },
+      "escalamento_humano": [
+        "cliente estratégico — negociação de contrato fora do agente"
+      ],
+      "kpi_sucesso": "retenção de clientes frequentes sem erosão de margem",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-015",
+      "titulo": "Envio internacional fora da Europa",
+      "categoria": "parceiro",
+      "frequencia": "baixa",
+      "sinais_deteccao": [
+        "destino: Brasil, Angola, Moçambique, EUA, país fora da UE",
+        "menção a exportação, envio intercontinental"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar uma encomenda para o Brasil"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para o Brasil trabalhamos com parceiro especializado (parceiro/parceiro). Preciso de alguns dados para pedir cotação: peso, dimensões, valor declarado e natureza da mercadoria (necessário para alfândega)."
+        },
+        {
+          "papel": "lead",
+          "msg": "são 2kg, livros, valor 50€"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. Livros têm isenção alfandegária parcial. Cotação em 2-4 horas. Deixo o seu contacto para o departamento?"
+        }
+      ],
+      "logica_decisao": {
+        "sem_tabela_fixa": true,
+        "solicitar_cotacao_parceiro": "parceiro, parceiro, parceiro",
+        "dados_necessarios": [
+          "destino exato",
+          "peso e dimensões",
+          "valor declarado",
+          "natureza da mercadoria"
+        ],
+        "documentacao_alfandegaria": "sempre informar que é obrigatória",
+        "prazo_cotacao": "2-4 horas em horário laboral"
+      },
+      "escalamento_humano": [
+        "sempre — requer cotação manual"
+      ],
+      "kpi_sucesso": "tempo de resposta com cotação vs expectativa do cliente",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-016",
+      "titulo": "Múltiplos volumes para mesmo destino — consolidação",
+      "categoria": "agregacao",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "mesmo cliente com múltiplos pedidos para mesmo destino em <48h",
+        "cliente menciona 'tenho mais coisas para enviar'",
+        "padrão de pedidos recorrentes para mesmo destinatário"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar mais 2 caixas para o mesmo cliente de ontem em Coimbra"
+        },
+        {
+          "papel": "ai",
+          "msg": "Reparei que ontem enviou 3 caixas para o mesmo destinatário em Coimbra. Se consolidarmos, o destinatário recebe tudo junto e poupa ~35%. Quer que organize assim?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, boa ideia"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo. Total de 5 caixas para Coimbra — despacho amanhã às 10h. O valor consolidado é 22€ em vez de 37€ separados. Confirmo?"
+        }
+      ],
+      "logica_decisao": {
+        "detetar_padrao": "verificar histórico — mesmo destinatário em <72h",
+        "proposta_proativa": "antes de processar os pedidos separados",
+        "beneficio_cliente": "poupança de 30-50% vs envios separados",
+        "beneficio_yourbox": "otimização de viagem"
+      },
+      "script_resposta": "Reparei que tem envios para [destino] esta semana. Consolidando numa só entrega poupa [X€]. Quer que organize assim?",
+      "escalamento_humano": [
+        "cliente recusa consolidação — processar normalmente sem insistir"
+      ],
+      "kpi_sucesso": "percentagem de envios múltiplos consolidados",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-017",
+      "titulo": "Peça de substituição para viatura avariada na estrada",
+      "categoria": "urgente",
+      "frequencia": "baixa",
+      "sinais_deteccao": [
+        "destino: km de autoestrada, posto de abastecimento",
+        "menção a 'viatura avariada', 'condutor parado na estrada'",
+        "coordenadas GPS em vez de morada"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "tenho um condutor parado na A1 ao km 142, preciso de levar uma peça da nossa oficina em Lisboa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Entendido — entrega em localização não convencional. Preciso da localização GPS exata e do número do condutor para o motorista o contactar à chegada. E o que é a peça — precisa de ferramentas para montar?"
+        },
+        {
+          "papel": "lead",
+          "msg": "não, é só a peça, ele monta, GPS: 38.9234,-9.1234"
+        },
+        {
+          "papel": "ai",
+          "msg": "Localização recebida. Motorista mais próximo a 15 minutos da oficina. Valor com suplemento de entrega em estrada: 65€. Confirmo?"
+        }
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?",
+        "Localização GPS exata do condutor",
+        "Número de telemóvel do condutor",
+        "O que é a peça e precisa de ferramentas?"
+      ],
+      "logica_decisao": {
+        "suplemento_localizacao_especial": "15-25€ para entregas em autoestrada/local atípico",
+        "contacto_direto_driver_destinatario": "obrigatório para encontrar a pessoa"
+      },
+      "escalamento_humano": [
+        "valor da carga acima de 2000€",
+        "localização sem cobertura de rede"
+      ],
+      "kpi_sucesso": "percentagem de entregas em localizações atípicas concluídas com sucesso"
+    },
+    {
+      "id": "SIT-018",
+      "titulo": "Pedido de sábado para entrega no mesmo dia",
+      "categoria": "fora_horas",
+      "frequencia": "media",
+      "sinais_deteccao": [
+        "dia do pedido: sábado ou domingo",
+        "entrega pretendida no mesmo dia",
+        "não é semana laboral"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "são 9h de sábado, preciso de entrega antes do meio-dia"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ao sábado temos disponibilidade reduzida mas cobrimos urgências. Para entrega antes das 12h temos motorista disponível — com suplemento de fim-de-semana de 30%. Origem e destino?"
+        },
+        {
+          "papel": "lead",
+          "msg": "Almada para Setúbal, são documentos"
+        },
+        {
+          "papel": "ai",
+          "msg": "Almada→Setúbal, ~30km, documentos. Valor: 32€ (inclui suplemento sábado). Moto disponível — chegada estimada 11h15. Confirmo?"
+        }
+      ],
+      "logica_decisao": {
+        "suplemento_fim_de_semana_pct": 30,
+        "parceiros_maioria_fechados": "ao fim-de-semana — só drivers YourBox ou urgências especiais",
+        "filtrar_automaticamente": "mostrar só opções disponíveis ao fim-de-semana"
+      },
+      "escalamento_humano": [
+        "confirmar disponibilidade de driver antes de confirmar ao cliente"
+      ],
+      "kpi_sucesso": "percentagem de pedidos de fim-de-semana com driver disponível",
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-019",
+      "titulo": "Adjudicação com fatura para terceiro",
+      "categoria": "qualificacao",
+      "frequencia": "alta",
+      "sinais_deteccao": [
+        "lead aceita o preço mas pede fatura para outra empresa",
+        "menção a filial, cliente da empresa, outra entidade"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "aceito, mas a fatura tem de ir para a empresa mãe, não para nós"
+        },
+        {
+          "papel": "ai",
+          "msg": "Sem problema. Preciso dos dados da empresa a faturar: NIF, nome completo e morada fiscal. E o email para envio da fatura?"
+        },
+        {
+          "papel": "lead",
+          "msg": "NIF 510000001, HoldingX Lda, Rua Y, Lisboa. Email: financeiro@holdingx.pt"
+        },
+        {
+          "papel": "ai",
+          "msg": "Registado. O serviço é lançado para [dados operacionais] e a fatura segue para HoldingX Lda. Confirmado?"
+        }
+      ],
+      "logica_decisao": {
+        "dados_obrigatorios_faturacao": [
+          "NIF",
+          "nome completo",
+          "morada fiscal",
+          "email"
+        ],
+        "registar_separadamente": "dados operacionais vs dados de faturação",
+        "verificar_antes_de_lancar": "confirmar dados fiscais corretos evita nota de crédito"
+      },
+      "kpi_sucesso": "percentagem de faturas emitidas sem necessidade de correção"
+    },
+    {
+      "id": "SIT-020",
+      "titulo": "Lead que não atende o telefone",
+      "categoria": "followup",
+      "frequencia": "muito_alta",
+      "sinais_deteccao": [
+        "BO tentou ligar 2-3 vezes sem resposta",
+        "lead submeteu formulário há menos de 10 minutos",
+        "pedido urgente sem resposta ao telefone"
+      ],
+      "dialogo_exemplo": [
+        {
+          "papel": "ai",
+          "msg": "Olá! Tentámos contactar para o seu pedido de transporte mas não conseguimos. Se preferir, pode responder diretamente aqui — tratamos de tudo por mensagem. O seu pedido está a aguardar confirmação."
+        },
+        {
+          "papel": "lead",
+          "msg": "desculpe estava em reunião, pode confirmar?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro! O seu pedido de [serviço] — confirmo já os detalhes e preço."
+        }
+      ],
+      "logica_decisao": {
+        "apos_2_tentativas_telefonicas": "enviar WhatsApp automático",
+        "mensagem": "Tentámos contactar para o seu pedido. Responda aqui ou ligue-nos.",
+        "followup_2": "após 2 horas sem resposta — repetir",
+        "fechar": "após 4 horas sem resposta — marcar como não contactável"
+      },
+      "kpi_sucesso": "percentagem de leads sem resposta ao telefone recuperadas por WhatsApp"
+    },
+    {
+      "id": "SIT-021",
+      "titulo": "Trigger WhatsApp PSERV — primeiro contacto frio",
+      "categoria": "qualificacao",
+      "frequencia": "muito_alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "PSERV"
+        },
+        {
+          "papel": "ai",
+          "msg": "Olá! Sou o assistente YourBox. Para lhe apresentar o melhor serviço e preço, preciso de algumas informações. Onde vai recolher a carga?"
+        },
+        {
+          "papel": "lead",
+          "msg": "Em Évora"
+        },
+        {
+          "papel": "ai",
+          "msg": "E onde entregar?"
+        },
+        {
+          "papel": "lead",
+          "msg": "No Cacém"
+        },
+        {
+          "papel": "ai",
+          "msg": "Percebido. É urgente — precisa hoje — ou pode ser amanhã?"
+        },
+        {
+          "papel": "lead",
+          "msg": "Pode ser amanhã, mas de manhã se possível"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo. Enquanto verifico as melhores opções, diga-me: o que vai transportar e qual o peso aproximado?"
+        }
+      ],
+      "logica_paralela": {
+        "em_background_simultaneo": [
+          "verificar drivers YourBox com rota Évora→Lisboa/Cacém amanhã de manhã",
+          "calcular preço parceiro parceiro 13h Évora→Cacém",
+          "calcular preço direto YourBox via API",
+          "preparar comparação de opções para apresentar ao cliente"
+        ],
+        "notificar_bo": "alerta de baixa urgência — BO tem 5 minutos para confirmar disponibilidade de driver"
+      },
+      "sinais_deteccao": [
+        "código PSERV no WhatsApp",
+        "primeira mensagem sem contexto"
+      ],
+      "escalamento_humano": [
+        "cliente não responde ao fluxo de qualificação após 3 tentativas"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-022",
+      "titulo": "Driver disponível confirma agregação — fluxo completo",
+      "categoria": "agregacao",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai",
+          "msg": "Tenho uma excelente notícia. Temos um motorista a passar por Évora amanhã às 8h30 a caminho de Lisboa. Consigo incluir a sua carga por 28€ (em vez dos 95€ normais). A entrega no Cacém seria por volta das 11h. Serve?"
+        },
+        {
+          "papel": "lead",
+          "msg": "Sim, óptimo! Que tem de fazer?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Preciso de confirmar alguns detalhes: a carga pesa mais ou menos quanto? E tem dimensões especiais?"
+        },
+        {
+          "papel": "lead",
+          "msg": "São duas caixas, tipo 10kg cada"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito, cabe sem problema. Vou confirmar já com o motorista e envio-lhe a confirmação em 2 minutos."
+        }
+      ],
+      "logica_decisao": {
+        "confirmar_com_bo": "mensagem urgente ao BO: 'Driver X rota Évora→Cacém amanhã 8h30 — lead quer agregar 20kg 2 caixas — confirmar disponibilidade espaço'",
+        "prazo_resposta_bo": "60 segundos",
+        "se_bo_confirma": "avançar para pagamento",
+        "se_bo_nega": "apresentar alternativa parceiro imediatamente sem explicar o motivo técnico"
+      },
+      "escalamento_humano": [
+        "BO não responde em 60s — escalar para gestor de turno"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-023",
+      "titulo": "Cliente pergunta preço antes de dar detalhes",
+      "categoria": "qualificacao",
+      "frequencia": "muito_alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quanto custa um transporte?"
+        },
+        {
+          "papel": "ai",
+          "msg": "O preço depende de alguns fatores — origem, destino, peso e urgência. Pode demorar 30 segundos a dar-me esses dados e calculo já?"
+        },
+        {
+          "papel": "lead",
+          "msg": "ok, preciso de levar umas caixas do Porto para Braga"
+        },
+        {
+          "papel": "ai",
+          "msg": "Porto para Braga, ótimo. Quantas caixas e peso aproximado?"
+        },
+        {
+          "papel": "lead",
+          "msg": "umas 5 caixas, talvez 30kg no total"
+        },
+        {
+          "papel": "ai",
+          "msg": "E precisa para hoje ou pode ser amanhã?"
+        },
+        {
+          "papel": "lead",
+          "msg": "hoje à tarde se possível"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para hoje à tarde tenho duas opções: parceiro com entrega até às 19h por 14,50€, ou motorista dedicado com hora confirmada por 45€. Qual prefere?"
+        }
+      ],
+      "sinais_deteccao": [
+        "primeira mensagem só com pergunta de preço sem dados"
+      ],
+      "logica_decisao": {
+        "nunca_dar_preco_sem_dados": true,
+        "maximo_perguntas_antes_preco": 3,
+        "apresentar_sempre_2_opcoes": "parceiro (barato) + YourBox (garantido)"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-024",
+      "titulo": "Palete completa — lead subestima o serviço necessário",
+      "categoria": "qualificacao",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar uma palete para Leiria"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro. A palete tem dimensões standard (120×80cm) ou é de dimensões especiais?"
+        },
+        {
+          "papel": "lead",
+          "msg": "é standard sim"
+        },
+        {
+          "papel": "ai",
+          "msg": "E o peso total aproximado?"
+        },
+        {
+          "papel": "lead",
+          "msg": "umas 400kg"
+        },
+        {
+          "papel": "ai",
+          "msg": "Importante: 400kg requer elevador de carga ou porta-paletes no destino. Existe esse equipamento em Leiria?"
+        },
+        {
+          "papel": "lead",
+          "msg": "ah, não sei..."
+        },
+        {
+          "papel": "ai",
+          "msg": "Sem problema — posso incluir motorista com porta-paletes manual. Fica com um suplemento de 15€. Prefere garantir ou verifica primeiro?"
+        }
+      ],
+      "sinais_deteccao": [
+        "menção a palete",
+        "peso declarado >200kg"
+      ],
+      "logica_decisao": {
+        "verificar_sempre_para_paletes": [
+          "equipamento de descarga no destino",
+          "acesso para veículo de carga",
+          "hora de recepção disponível"
+        ],
+        "suplementos_possiveis": [
+          "porta-paletes manual +15€",
+          "ajudante +25€",
+          "veículo com grua +60€"
+        ]
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-025",
+      "titulo": "Cliente quer rastrear a encomenda em tempo real",
+      "categoria": "pos_venda",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "já passaram 2 horas, quando chega?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Deixe-me verificar. O seu serviço #YB2847 está com o motorista João, que saiu da recolha às 14h32. A localização atual é Santarém, estimativa de chegada às 16h45. Quer que lhe envie o link de tracking?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim por favor"
+        },
+        {
+          "papel": "ai",
+          "msg": "Link enviado: [tracking.yourbox.pt/YB2847]. Receberá também uma mensagem quando o motorista estiver a 15 minutos do destino."
+        }
+      ],
+      "sinais_deteccao": [
+        "pergunta sobre localização",
+        "menção a número de serviço",
+        "quando chega"
+      ],
+      "logica_decisao": {
+        "consultar_plataforma_yourbox": "API de tracking em tempo real",
+        "se_atraso_detectado": "informar proativamente e dar nova estimativa",
+        "se_problema_detetado": "escalar imediatamente para BO"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-026",
+      "titulo": "Empresa de e-commerce com volume diário",
+      "categoria": "cliente_recorrente",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "temos uma loja online e precisamos de enviar 20-30 encomendas por dia"
+        },
+        {
+          "papel": "ai",
+          "msg": "Excelente volume. Para esse nível de serviço, o ideal é uma conta empresarial YourBox com tabela de preços personalizada e recolha diária programada. Posso ligar-lhe hoje para apresentar a proposta?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, boa ideia"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. Para preparar a melhor proposta, diga-me: qual é a zona de recolha e para que zonas entregam maioritariamente?"
+        }
+      ],
+      "sinais_deteccao": [
+        "menção a volume diário",
+        "loja online",
+        "e-commerce",
+        "fulfillment"
+      ],
+      "logica_decisao": {
+        "nao_dar_preco_spot": "volume justifica contrato — escalar para equipa comercial",
+        "acao": "agendar chamada comercial com gestor de contas",
+        "dados_a_recolher": [
+          "volume mensal estimado",
+          "zonas de entrega",
+          "dimensões médias",
+          "necessidade de recolha programada"
+        ]
+      },
+      "escalamento_humano": [
+        "sempre — potencial de contrato"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-027",
+      "titulo": "Mudança de morada — serviço de mudanças",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quero fazer uma mudança de apartamento"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para mudanças, precisamos de perceber o volume total. Quantas divisões tem o apartamento?"
+        },
+        {
+          "papel": "lead",
+          "msg": "T2, mas já tem pouco porque nos mudámos há pouco"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ok. Tem mobília grande — sofá, camas, roupeiros? Ou é maioritariamente caixas?"
+        },
+        {
+          "papel": "lead",
+          "msg": "tem camas e um sofá grande"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para mudanças com mobília precisamos de veículo de carga e pelo menos 2 pessoas. Pode dizer-me origem e destino para calcular?"
+        }
+      ],
+      "sinais_deteccao": [
+        "mudança",
+        "apartamento",
+        "casa",
+        "escritório — contexto de mudança"
+      ],
+      "logica_decisao": {
+        "servico_nao_standard": "mudanças requerem orçamento personalizado",
+        "variaveis": [
+          "andar com ou sem elevador",
+          "distância de carga/descarga",
+          "montagem/desmontagem de mobília",
+          "embalamento incluído"
+        ],
+        "parceiro_especializado": "verificar se YourBox faz ou subcontrata parceiro de mudanças"
+      },
+      "escalamento_humano": [
+        "sempre para mudanças completas — requer vistoria ou questionário extenso"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-028",
+      "titulo": "Carga frágil — vidro, arte, equipamento sensível",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar um quadro antigo valioso"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para obras de arte e objetos de valor, temos procedimentos especiais. Qual o valor estimado da peça?"
+        },
+        {
+          "papel": "lead",
+          "msg": "à volta de 8000€"
+        },
+        {
+          "papel": "ai",
+          "msg": "Nesse caso é obrigatório seguro de transporte. O nosso seguro standard cobre até 2000€ — para 8000€ precisamos de seguro adicional que ronda os 35-45€. Quer incluir?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim claro"
+        },
+        {
+          "papel": "ai",
+          "msg": "Bem. Preciso também de saber as dimensões embaladas e se já está protegido ou precisa de embalagem especial."
+        }
+      ],
+      "sinais_deteccao": [
+        "frágil",
+        "vidro",
+        "obra de arte",
+        "equipamento eletrónico caro",
+        "valor elevado declarado"
+      ],
+      "logica_decisao": {
+        "seguro_obrigatorio_acima": 2000,
+        "embalagem_especial": "verificar se cliente trata ou YourBox fornece",
+        "veiculo_preferencial": "ligeiro com suspensão suave — não carrinha de carga pesada",
+        "instrucoes_driver": "posição vertical obrigatória, sem empilhar"
+      },
+      "escalamento_humano": [
+        "valor acima de 10000€ — confirmar cobertura de seguro especial"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-029",
+      "titulo": "Temperatura controlada — alimentos, medicamentos",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar produtos alimentares frescos"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para produtos frescos precisamos de veículo refrigerado. Qual a temperatura necessária — entre 0-4°C ou 4-8°C?"
+        },
+        {
+          "papel": "lead",
+          "msg": "entre 2 e 4 graus"
+        },
+        {
+          "papel": "ai",
+          "msg": "Temos parceiro com câmara frigorífica para esse intervalo. Qual a quantidade e distância?"
+        }
+      ],
+      "sinais_deteccao": [
+        "fresco",
+        "refrigerado",
+        "frio",
+        "temperatura controlada",
+        "alimentos",
+        "vacinas",
+        "insulina"
+      ],
+      "logica_decisao": {
+        "nao_usar_driver_standard": true,
+        "parceiro_especializado": "verificar disponibilidade parceiro frio",
+        "documentacao_haccp": "pode ser necessária — perguntar ao cliente"
+      },
+      "escalamento_humano": [
+        "sempre — requer confirmação de veículo adequado"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-030",
+      "titulo": "Materiais perigosos — cliente não sabe que são ADR",
+      "categoria": "compliance",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar umas baterias de lítio"
+        },
+        {
+          "papel": "ai",
+          "msg": "Baterias de lítio são classificadas como mercadoria perigosa (ADR). Quantas unidades e qual a capacidade em Wh?"
+        },
+        {
+          "papel": "lead",
+          "msg": "são 10 baterias de portátil"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para pequenas quantidades de uso pessoal há isenções ADR. Mas para comercial precisamos de declaração e embalagem certificada. É uso pessoal ou comercial?"
+        }
+      ],
+      "sinais_deteccao": [
+        "baterias lítio",
+        "produtos químicos",
+        "tintas",
+        "gases",
+        "inflamável",
+        "corrosivo"
+      ],
+      "logica_decisao": {
+        "nao_aceitar_sem_verificacao": true,
+        "perguntas_obrigatorias": [
+          "quantidade",
+          "embalagem certificada?",
+          "uso pessoal ou comercial?"
+        ],
+        "recusar_se": "materiais explosivos, radioativos, ou sem documentação ADR"
+      },
+      "escalamento_humano": [
+        "sempre para mercadorias perigosas — decisão humana obrigatória"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-031",
+      "titulo": "Cliente quer cancelar serviço já adjudicado",
+      "categoria": "pos_venda",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de cancelar o serviço que pedi há bocado"
+        },
+        {
+          "papel": "ai",
+          "msg": "Qual o número do serviço ou o nome com que fez o pedido?"
+        },
+        {
+          "papel": "lead",
+          "msg": "YB2847"
+        },
+        {
+          "papel": "ai",
+          "msg": "O serviço YB2847 está com motorista em rota de recolha. O cancelamento agora tem custo de 15€ (deslocação já iniciada). Quer cancelar mesmo assim?"
+        },
+        {
+          "papel": "lead",
+          "msg": "não sabia, então prefiro não cancelar"
+        },
+        {
+          "papel": "ai",
+          "msg": "Entendido. O serviço segue em curso. Receberá confirmação de recolha em breve."
+        }
+      ],
+      "sinais_deteccao": [
+        "cancelar",
+        "desistir",
+        "não preciso mais",
+        "engano"
+      ],
+      "logica_decisao": {
+        "verificar_estado_servico": "plataforma YourBox — API",
+        "politica_cancelamento": {
+          "antes_de_aceite_driver": "gratuito",
+          "driver_em_rota_recolha": "taxa de 15€",
+          "apos_recolha": "não cancelável — só reencaminhamento"
+        }
+      },
+      "escalamento_humano": [
+        "cliente insatisfeito após taxa de cancelamento — BO para decisão"
+      ]
+    },
+    {
+      "id": "SIT-032",
+      "titulo": "Entrega falhada — destinatário ausente",
+      "categoria": "pos_venda",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai",
+          "msg": "AVISO: O motorista tentou entregar o serviço YB2847 mas não encontrou ninguém no destino. O que quer fazer?"
+        },
+        {
+          "papel": "lead",
+          "msg": "ai que chatice, não sei quando é que ele pode receber"
+        },
+        {
+          "papel": "ai",
+          "msg": "Temos 3 opções: 1) Reagendar para amanhã (custo de nova deslocação 8€), 2) Deixar num ponto de recolha próximo (grátis), 3) O motorista aguarda 15 minutos se o destinatário chegar já. Qual prefere?"
+        }
+      ],
+      "sinais_deteccao": [
+        "entrega falhada",
+        "ninguém em casa",
+        "destinatário ausente"
+      ],
+      "logica_decisao": {
+        "contactar_remetente_automaticamente": true,
+        "opcoes_resolucao": [
+          "reagendamento",
+          "ponto de recolha",
+          "aguardar 15min",
+          "devolver"
+        ],
+        "prazo_decisao": "30 minutos — motorista não pode esperar indefinidamente"
+      },
+      "escalamento_humano": [
+        "carga de valor elevado ou perecível — decisão urgente necessária"
+      ]
+    },
+    {
+      "id": "SIT-033",
+      "titulo": "Reclamação — carga danificada na entrega",
+      "categoria": "reclamacao",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a minha encomenda chegou danificada, uma caixa estava esmagada"
+        },
+        {
+          "papel": "ai",
+          "msg": "Lamento muito. Para iniciar o processo de reclamação preciso de: 1) fotos do dano, 2) número do serviço, 3) descrição do conteúdo danificado. Pode enviar agora?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, envio já"
+        },
+        {
+          "papel": "ai",
+          "msg": "Obrigado. Vou registar a reclamação e um responsável entrará em contacto em menos de 2 horas para resolver."
+        }
+      ],
+      "sinais_deteccao": [
+        "danificado",
+        "partido",
+        "estragado",
+        "reclamação",
+        "problema com entrega"
+      ],
+      "logica_decisao": {
+        "registar_imediatamente": true,
+        "recolher_evidencias": [
+          "fotos",
+          "número de serviço",
+          "descrição do dano",
+          "valor estimado"
+        ],
+        "escalar_sempre": "BO — reclamações não são resolvidas pelo agente autonomamente",
+        "prazo_resposta_bo": "2 horas"
+      },
+      "escalamento_humano": [
+        "sempre — reclamações requerem humano"
+      ]
+    },
+    {
+      "id": "SIT-034",
+      "titulo": "Lead quer serviço mas não tem forma de pagamento digital",
+      "categoria": "pagamento",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "não tenho cartão, como posso pagar?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Aceito pagamento por: MB Way, transferência bancária, ou referência Multibanco. Qual prefere?"
+        },
+        {
+          "papel": "lead",
+          "msg": "mb way"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. Após confirmar o serviço, enviamos pedido de pagamento MB Way para o seu número. O serviço inicia após confirmação do pagamento."
+        }
+      ],
+      "sinais_deteccao": [
+        "como pago",
+        "não tenho cartão",
+        "aceita dinheiro",
+        "forma de pagamento"
+      ],
+      "logica_decisao": {
+        "metodos_aceites": [
+          "MB Way",
+          "Multibanco referência",
+          "transferência bancária",
+          "cartão crédito/débito online"
+        ],
+        "nao_aceitar": [
+          "dinheiro ao motorista — risco operacional",
+          "pagamento após entrega para novos clientes"
+        ],
+        "excecao_pagamento_apos": "clientes empresariais com conta a prazo aprovada"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-035",
+      "titulo": "Pagamento feito mas não confirmado — serviço bloqueado",
+      "categoria": "pagamento",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "já paguei mas o serviço diz pendente"
+        },
+        {
+          "papel": "ai",
+          "msg": "Verificando... Vejo o pagamento iniciado mas ainda não confirmado pelo sistema bancário. MB Way costuma confirmar em 2-3 minutos. Já passaram quantos minutos?"
+        },
+        {
+          "papel": "lead",
+          "msg": "já passaram 10 minutos"
+        },
+        {
+          "papel": "ai",
+          "msg": "Nesse caso vou verificar manualmente. Pode enviar captura de ecrã da confirmação MB Way? Liberto o serviço imediatamente."
+        }
+      ],
+      "sinais_deteccao": [
+        "já paguei",
+        "pagamento pendente",
+        "transferi mas não avançou"
+      ],
+      "logica_decisao": {
+        "verificar_api_pagamento": true,
+        "se_confirmado_mas_nao_processado": "liberar serviço manualmente — notificar BO",
+        "se_nao_confirmado": "solicitar comprovativo e escalar para BO"
+      },
+      "escalamento_humano": [
+        "sempre que pagamento está em disputa"
+      ]
+    },
+    {
+      "id": "SIT-036",
+      "titulo": "Cliente empresarial quer pagamento a 30 dias",
+      "categoria": "pagamento",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "somos uma empresa, fazemos pagamento a 30 dias"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para crédito empresarial precisamos de uma análise prévia. Tem NIF e pode partilhar volume mensal estimado?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, NIF 512345678, fazemos à volta de 40 serviços por mês"
+        },
+        {
+          "papel": "ai",
+          "msg": "Com esse volume temos um processo de aprovação de conta a prazo que demora 24-48h. Quer que inicie? Entretanto posso processar os primeiros serviços contra pagamento imediato."
+        }
+      ],
+      "sinais_deteccao": [
+        "pagamento a 30 dias",
+        "crédito",
+        "fatura mensal",
+        "conta corrente"
+      ],
+      "logica_decisao": {
+        "verificar_historico": "se cliente já existe — verificar saldo e limite",
+        "novo_cliente": "processo de aprovação — escalar para financeiro",
+        "limite_minimo_volume": "20 serviços/mês para justificar conta a prazo"
+      },
+      "escalamento_humano": [
+        "sempre — aprovação de crédito é decisão financeira"
+      ]
+    },
+    {
+      "id": "SIT-037",
+      "titulo": "Driver reporta problema na recolha — carga não está pronta",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "estou no local de recolha mas a carga ainda não está embalada"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Compreendido. Vou contactar o remetente. Pode aguardar 15 minutos?"
+        },
+        {
+          "papel": "driver",
+          "msg": "tenho outra recolha às 14h30, só posso esperar até às 14h"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Contactando remetente agora. Se não resolver em 10min, reagendamos e o driver segue para próxima recolha."
+        }
+      ],
+      "sinais_deteccao": [
+        "carga não está pronta",
+        "ninguém no local",
+        "morada errada"
+      ],
+      "logica_decisao": {
+        "contactar_remetente_imediato": true,
+        "prazo_espera_driver": "15 minutos máximo",
+        "se_nao_resolve": "reagendar serviço e cobrar taxa de tentativa falhada"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-038",
+      "titulo": "Lead com urgência mas fora da área de cobertura",
+      "categoria": "cobertura",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um transporte urgente em Bragança para já"
+        },
+        {
+          "papel": "ai",
+          "msg": "Bragança está fora da nossa cobertura de serviços urgentes. Posso oferecer serviço de parceiro com entrega em 24h. Para urgência imediata posso tentar parceiro local — demora 30 minutos a confirmar disponibilidade. Quer que tente?"
+        }
+      ],
+      "sinais_deteccao": [
+        "zona fora de cobertura YourBox",
+        "localidades remotas do interior"
+      ],
+      "logica_decisao": {
+        "mapa_cobertura_urgente": "configurável — zonas onde YourBox tem drivers",
+        "fora_cobertura": "parceiro local ou serviço 24h",
+        "comunicar_honestamente": "nunca prometer algo que não se consegue cumprir"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-039",
+      "titulo": "Dois clientes pedem o mesmo driver em simultâneo",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai_interno",
+          "msg": "CONFLITO: Driver A foi reservado provisoriamente para SIT-039a (Lisboa→Setúbal) e SIT-039b (Lisboa→Almada) ao mesmo tempo"
+        },
+        {
+          "papel": "logistica",
+          "msg": "SIT-039b tem maior margem — confirmar 039b, oferecer alternativa a 039a"
+        }
+      ],
+      "logica_decisao": {
+        "criterio_prioridade": [
+          "margem financeira",
+          "cliente recorrente vs novo",
+          "urgência declarada"
+        ],
+        "ao_cliente_preterido": "comunicar imediatamente com alternativa pronta — nunca deixar sem resposta",
+        "tempo_maximo_resolucao_seg": 90
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-040",
+      "titulo": "Lead pede orçamento mas quer para daqui a 3 semanas",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um orçamento para um transporte Lisboa→Madrid em 3 semanas"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro. Para Lisboa→Madrid com que antecedência — é encomenda pontual ou vai repetir regularmente?"
+        },
+        {
+          "papel": "lead",
+          "msg": "é pontual, temos uma feira em Madrid"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para material de feira há especificidades — stand, equipamento expositivo? E vai precisar de devolução após a feira?"
+        }
+      ],
+      "sinais_deteccao": [
+        "orçamento para",
+        "daqui a X dias/semanas",
+        "evento",
+        "feira"
+      ],
+      "logica_decisao": {
+        "registar_como_oportunidade": true,
+        "follow_up_automatico": "3 dias antes da data para confirmar",
+        "servicos_especiais_feira": [
+          "montagem",
+          "devolução pós-evento",
+          "armazenagem temporária"
+        ]
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-041",
+      "titulo": "Cliente insiste em falar com humano",
+      "categoria": "escalamento",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quero falar com uma pessoa, não com um robot"
+        },
+        {
+          "papel": "ai",
+          "msg": "Compreendo. Posso ligar-lhe agora mesmo ou prefere que um colega entre em contacto por WhatsApp? Qual o melhor número?"
+        }
+      ],
+      "sinais_deteccao": [
+        "quero falar com alguém",
+        "não com robô",
+        "pessoa real",
+        "chefe",
+        "responsável"
+      ],
+      "logica_decisao": {
+        "nao_insistir_em_automatico": true,
+        "opcoes": [
+          "ligação imediata do BO",
+          "WhatsApp com humano",
+          "email"
+        ],
+        "registar_contacto_e_contexto": "passar histórico completo ao humano — cliente não repete informação"
+      },
+      "escalamento_humano": [
+        "sempre e imediatamente"
+      ]
+    },
+    {
+      "id": "SIT-042",
+      "titulo": "Lead que já foi cliente e voltou após mau serviço",
+      "categoria": "retencao",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "utilizei o vosso serviço há 2 meses e correu mal, mas vou tentar outra vez"
+        },
+        {
+          "papel": "ai",
+          "msg": "Obrigado por voltar. Pode partilhar o número do serviço ou o que correu mal? Quero garantir que não se repete."
+        },
+        {
+          "papel": "lead",
+          "msg": "a entrega atrasou 3 horas sem aviso"
+        },
+        {
+          "papel": "ai",
+          "msg": "Lamento muito. Neste serviço garanto acompanhamento pessoal com notificações de estado a cada etapa. Para compensar, posso oferecer 10% de desconto. Avançamos?"
+        }
+      ],
+      "sinais_deteccao": [
+        "da última vez correu mal",
+        "tive um problema",
+        "voltei a tentar"
+      ],
+      "logica_decisao": {
+        "verificar_historico": "consultar reclamações anteriores do cliente",
+        "oferta_compensacao": "desconto único de 10% — com aprovação automática se reclamação documentada",
+        "flag_acompanhamento_especial": "marcar serviço para notificações proativas ao cliente"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-043",
+      "titulo": "Morada de entrega com acesso difícil — centro histórico, rua estreita",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a morada de entrega é numa rua do Alfama, muito estreita"
+        },
+        {
+          "papel": "ai",
+          "msg": "Alfama tem várias ruas sem acesso para viaturas standard. Pode chegar a uma paragem de táxi ou praça próxima para o motorista fazer a última parte a pé? Ou tem acesso à Rua X?"
+        },
+        {
+          "papel": "lead",
+          "msg": "pode ser na praça sim"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. Registei a entrega na praça de Alfama. A carga pesa quanto? Para saber se precisa de carrinho de transporte."
+        }
+      ],
+      "sinais_deteccao": [
+        "Alfama",
+        "Mouraria",
+        "centro histórico",
+        "rua estreita",
+        "sem estacionamento",
+        "calçada"
+      ],
+      "logica_decisao": {
+        "suplemento_acesso_dificil": "5-10€ dependendo da distância a pé",
+        "instrucoes_especiais_driver": "registar no serviço — ponto de entrega alternativo",
+        "verificar_peso": "acima de 30kg a pé requer ajudante"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-044",
+      "titulo": "Transporte de animal de estimação",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar o meu cão do Porto para Lisboa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para transporte de animais temos condições específicas. O cão vai numa transportadora/jaula ou precisa de estar solto?"
+        },
+        {
+          "papel": "lead",
+          "msg": "vai numa transportadora, é um labrador grande"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para transportadora grande (>50cm) precisamos de confirmar disponibilidade de veículo com espaço adequado. O cão vai sozinho ou acompanhado?"
+        }
+      ],
+      "sinais_deteccao": [
+        "cão",
+        "gato",
+        "animal",
+        "pet",
+        "transportar animal"
+      ],
+      "logica_decisao": {
+        "verificar_driver_aceita_animais": true,
+        "documentacao": [
+          "boletim vacinação",
+          "identificação do animal"
+        ],
+        "restricoes": "sem animais em compartimento de carga fechado sem ventilação"
+      },
+      "escalamento_humano": [
+        "confirmar driver disponível e disposto a transportar animal"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-045",
+      "titulo": "Transporte urgente de chaves / acesso a imóvel",
+      "categoria": "urgente",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de levar umas chaves ao meu inquilino que ficou fechado fora"
+        },
+        {
+          "papel": "ai",
+          "msg": "Percebo a urgência. Origem e destino, por favor?"
+        },
+        {
+          "papel": "lead",
+          "msg": "eu estou no Saldanha e ele está em Benfica"
+        },
+        {
+          "papel": "ai",
+          "msg": "Saldanha→Benfica, ~4km. Temos moto disponível — chegada estimada em 15-20 minutos, 12€. Confirmo?"
+        }
+      ],
+      "sinais_deteccao": [
+        "chaves",
+        "fechado fora",
+        "acesso urgente",
+        "porteiro"
+      ],
+      "logica_decisao": {
+        "veiculo_otimo": "moto para curta distância urbana",
+        "prioridade": "alta — pessoa pode estar em situação de stress",
+        "confirmacao_entrega": "foto das chaves entregues"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-046",
+      "titulo": "Empresa logística que quer subcontratar YourBox",
+      "categoria": "b2b",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "somos uma empresa de logística e queremos usar a vossa rede para last mile"
+        },
+        {
+          "papel": "ai",
+          "msg": "Interessante. Qual o volume diário estimado e quais as zonas onde precisam de cobertura?"
+        }
+      ],
+      "sinais_deteccao": [
+        "subcontratar",
+        "parceria",
+        "last mile",
+        "rede de distribuição",
+        "transportadora parceira"
+      ],
+      "logica_decisao": {
+        "oportunidade_comercial": "grande potencial — escalar para gestão imediatamente",
+        "nao_dar_precos_spot": "requer negociação de acordo comercial",
+        "recolher": [
+          "volume",
+          "zonas",
+          "tipo de carga",
+          "nível de serviço necessário"
+        ]
+      },
+      "escalamento_humano": [
+        "sempre — nível de gestão"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-047",
+      "titulo": "Cliente em pânico — perdeu documentos importantes em trânsito",
+      "categoria": "incidente",
+      "frequencia": "muito_baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "o motorista entregou a caixa mas faltam documentos muito importantes que estavam lá dentro!!"
+        },
+        {
+          "papel": "ai",
+          "msg": "Lamento muito. Vou escalar isto agora mesmo para um responsável. Pode descrever os documentos e quando notou a falta?"
+        },
+        {
+          "papel": "lead",
+          "msg": "eram contratos originais assinados"
+        },
+        {
+          "papel": "ai",
+          "msg": "Compreendo a gravidade. Um responsável está a ser contactado agora — vai ligar-lhe em menos de 5 minutos. Não desligue o WhatsApp."
+        }
+      ],
+      "sinais_deteccao": [
+        "documentos perdidos",
+        "falta carga",
+        "algo desapareceu",
+        "não estava na caixa"
+      ],
+      "logica_decisao": {
+        "escalar_imediatamente": true,
+        "contactar_driver": "verificar se ficou na viatura",
+        "abrir_processo_investigacao": true,
+        "nunca_minimizar": "tratar sempre com máxima seriedade"
+      },
+      "escalamento_humano": [
+        "sempre e imediatamente — incidente potencialmente grave"
+      ]
+    },
+    {
+      "id": "SIT-048",
+      "titulo": "Pedido em nome de terceiro — empresa encomenda para cliente",
+      "categoria": "qualificacao",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar material para um cliente nosso em Coimbra"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro. Quem faz a entrega sou-lhe a si ou ao vosso cliente? E a fatura vai para a vossa empresa?"
+        },
+        {
+          "papel": "lead",
+          "msg": "fatura para nós, entrega no cliente"
+        },
+        {
+          "papel": "ai",
+          "msg": "Perfeito. Nome da empresa remetente, NIF, e dados do destinatário em Coimbra?"
+        }
+      ],
+      "sinais_deteccao": [
+        "para um cliente nosso",
+        "em nome da empresa",
+        "entrega a terceiro"
+      ],
+      "logica_decisao": {
+        "dados_obrigatorios": [
+          "remetente (quem paga)",
+          "destinatário (quem recebe)",
+          "ambos podem ser diferentes"
+        ],
+        "faturacao": "sempre ao remetente/pagador, não ao destinatário"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-049",
+      "titulo": "Lead muito idosa ou com dificuldades digitais",
+      "categoria": "acessibilidade",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "boa tarde filha. quero mandar uma coisa para o meu filho no porto"
+        },
+        {
+          "papel": "ai",
+          "msg": "Bom tarde! Com todo o gosto. O que quer enviar para o Porto?"
+        },
+        {
+          "papel": "lead",
+          "msg": "é uma caixinha com umas coisas da avó dele, roupa e assim"
+        },
+        {
+          "papel": "ai",
+          "msg": "Que carinho. Sabe mais ou menos o peso — é uma caixa leve que consegue levantar sozinha?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim sim é levezinha"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo. E a morada de onde vamos buscar?"
+        }
+      ],
+      "sinais_deteccao": [
+        "linguagem informal",
+        "referências familiares",
+        "descrições imprecisas mas afetivas"
+      ],
+      "logica_decisao": {
+        "tom": "mais caloroso, simples, sem termos técnicos",
+        "paciencia_extra": "perguntas simples, uma de cada vez",
+        "pagamento": "preferir MB Way ou referência Multibanco — mais familiar",
+        "confirmar_tudo": "repetir moradas e datas para confirmar — evitar erros"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-050",
+      "titulo": "Transporte de veículo / moto",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar uma moto avariada para a oficina"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para transporte de motos precisamos de reboque ou plataforma. Qual o peso da moto e onde está agora?"
+        }
+      ],
+      "sinais_deteccao": [
+        "moto",
+        "carro avariado",
+        "reboque",
+        "veículo parado"
+      ],
+      "logica_decisao": {
+        "servico_especializado": "parceiro de reboque",
+        "dados_necessarios": [
+          "marca/modelo",
+          "peso",
+          "localização exata",
+          "destino"
+        ],
+        "nao_usar_driver_standard": true
+      },
+      "escalamento_humano": [
+        "confirmar parceiro de reboque disponível"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-051",
+      "titulo": "Carga com dois destinatários — entrega em dois pontos",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "tenho uma carga que precisa de parar em dois sítios antes do destino final"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro, são possíveis paragens múltiplas. Pode dar-me as três moradas por ordem de visita?"
+        },
+        {
+          "papel": "lead",
+          "msg": "recolha em Lisboa, paragem em Santarém, entrega final em Coimbra"
+        },
+        {
+          "papel": "ai",
+          "msg": "Lisboa→Santarém→Coimbra. Total ~200km. Quanto é que fica em Santarém e quanto segue para Coimbra?"
+        }
+      ],
+      "sinais_deteccao": [
+        "dois destinos",
+        "paragem a caminho",
+        "várias entregas",
+        "multi-stop"
+      ],
+      "logica_decisao": {
+        "calculo_preco": "por km total + suplemento por paragem adicional",
+        "suplemento_paragem": "15-25€ por paragem adicional",
+        "verificar_api": "API própria suporta multi-stop?"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-052",
+      "titulo": "Urgência com prazo legal — processo judicial, notificação",
+      "categoria": "urgente",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de entregar uma notificação judicial até às 17h, são agora 15h30"
+        },
+        {
+          "papel": "ai",
+          "msg": "90 minutos. Qual o percurso?"
+        },
+        {
+          "papel": "lead",
+          "msg": "de Cascais para o Barreiro"
+        },
+        {
+          "papel": "ai",
+          "msg": "Cascais→Barreiro inclui travessia. Com tráfego são 45-60 minutos. Confirmo driver imediatamente — temos 30 minutos de margem. Avanço?"
+        }
+      ],
+      "sinais_deteccao": [
+        "prazo legal",
+        "tribunal",
+        "notificação judicial",
+        "hora limite com consequências legais"
+      ],
+      "logica_decisao": {
+        "calcular_margem_tempo": "sempre verificar viabilidade antes de confirmar",
+        "se_margem_insuficiente": "não confirmar — melhor recusar do que falhar prazo legal",
+        "confirmacao_entrega": "obrigatória com hora e assinatura"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-053",
+      "titulo": "Cliente indeciso entre urgente e económico — ajuda na decisão",
+      "categoria": "comercial",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "não sei se vale a pena pagar mais pelo urgente ou se espero até amanhã"
+        },
+        {
+          "papel": "ai",
+          "msg": "Deixe-me ajudar. O que acontece se a entrega for amanhã em vez de hoje?"
+        },
+        {
+          "papel": "lead",
+          "msg": "não é grave, é material para uma apresentação mas só é na quinta"
+        },
+        {
+          "papel": "ai",
+          "msg": "Hoje é segunda. Então amanhã às 13h chega com dois dias de antecedência. O serviço de amanhã custa 18€ vs 65€ de hoje. Faz muito mais sentido o de amanhã."
+        }
+      ],
+      "sinais_deteccao": [
+        "não sei se...",
+        "vale a pena",
+        "é urgente mesmo?",
+        "preciso hoje?"
+      ],
+      "logica_decisao": {
+        "fazer_a_pergunta_certa": "o que acontece se for amanhã?",
+        "calcular_diferenca_preco": "mostrar diferença em euros",
+        "recomendar_sem_pressao": "recomendar a opção mais racional — mesmo que seja a mais barata"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-054",
+      "titulo": "Lead com informação contraditória no formulário vs WhatsApp",
+      "categoria": "qualificacao",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai",
+          "msg": "Vi o seu pedido de Lisboa→Faro. No WhatsApp está a falar de Lisboa→Portimão. Qual é o destino correto?"
+        },
+        {
+          "papel": "lead",
+          "msg": "ah desculpe, enganei-me no formulário, é Portimão"
+        },
+        {
+          "papel": "ai",
+          "msg": "Sem problema. Portimão fica a mais 60km — o preço muda de 45€ para 58€. Confirma?"
+        }
+      ],
+      "sinais_deteccao": [
+        "dados do formulário não coincidem com conversa"
+      ],
+      "logica_decisao": {
+        "dar_prioridade_a": "informação mais recente (WhatsApp) vs formulário",
+        "sempre_confirmar": "antes de calcular preço final",
+        "atualizar_registo": "corrigir dados na plataforma"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-055",
+      "titulo": "Transporte de amostras para análise laboratorial",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar amostras biológicas para um laboratório em Lisboa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Amostras biológicas requerem embalagem e transporte certificados (P650). As amostras estão em embalagem primária estanque?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, estão em tubos fechados dentro de caixa isotérmica"
+        },
+        {
+          "papel": "ai",
+          "msg": "Certo. Preciso de confirmar se se tratam de substâncias da categoria A ou B — influencia o tipo de embalagem exterior exigida."
+        }
+      ],
+      "sinais_deteccao": [
+        "amostras",
+        "laboratorial",
+        "biológico",
+        "análises"
+      ],
+      "logica_decisao": {
+        "regulamentacao_p650": true,
+        "verificar_categoria_substancia": [
+          "A — mais restritiva",
+          "B — isenção parcial"
+        ],
+        "nao_aceitar_sem_embalagem_certificada": true
+      },
+      "escalamento_humano": [
+        "sempre — requer confirmação de conformidade"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-056",
+      "titulo": "Cliente que tentou outro prestador e foi falhado",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "tentei com a parceiro e não tinham disponível, tentei com a parceiro e disseram amanhã"
+        },
+        {
+          "papel": "ai",
+          "msg": "Percebo a frustração. Quando precisa exatamente?"
+        },
+        {
+          "papel": "lead",
+          "msg": "hoje até às 18h"
+        },
+        {
+          "papel": "ai",
+          "msg": "São 14h20. Para [origem→destino] consigo driver disponível com chegada estimada às 17h15. Confirmo já?"
+        }
+      ],
+      "sinais_deteccao": [
+        "tentei com X e não consegui",
+        "os outros não têm",
+        "já provei em vários lados"
+      ],
+      "logica_decisao": {
+        "nao_criticar_concorrentes": true,
+        "focar_em": "o que YourBox consegue fazer agora",
+        "urgencia_real": "cliente já perdeu tempo — resposta rápida e direta"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-057",
+      "titulo": "Recolha em aeroporto / chegada de voo",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de recolha no aeroporto de Lisboa às 16h30, chegada do voo TP123"
+        },
+        {
+          "papel": "ai",
+          "msg": "Recolha no aeroporto às 16h30. O passageiro tem bagagem de porão ou só de mão?"
+        },
+        {
+          "papel": "lead",
+          "msg": "tem 3 malas grandes"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para 3 malas grandes precisamos de veículo de 7 lugares ou monovolume. E o destino?"
+        }
+      ],
+      "sinais_deteccao": [
+        "aeroporto",
+        "chegada de voo",
+        "transfer",
+        "bagagem"
+      ],
+      "logica_decisao": {
+        "monitorizar_voo": "integração com API de tracking de voos para ajustar hora de recolha automaticamente",
+        "suplemento_aeroporto": "taxa de parqueamento/espera",
+        "veiculo_adequado": "conforme número de passageiros e bagagem"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-058",
+      "titulo": "Encomenda com prazo de validade — FIFO crítico",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "são produtos com prazo de validade a expirar em 48h — extremamente urgente"
+        },
+        {
+          "papel": "ai",
+          "msg": "Compreendido. Para garantir a cadeia de responsabilidade, preciso que declare o prazo de validade no envio. Qual a natureza do produto?"
+        }
+      ],
+      "sinais_deteccao": [
+        "prazo de validade",
+        "perecível",
+        "data de validade",
+        "expira"
+      ],
+      "logica_decisao": {
+        "registar_prazo_validade_no_servico": true,
+        "prioridade_maxima": true,
+        "seguro_especial": "produto perecível pode ter cobertura específica"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-059",
+      "titulo": "Lead que pede desconto por reclamar antes do serviço",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "se me derem desconto faço já o pedido"
+        },
+        {
+          "papel": "ai",
+          "msg": "Entendo. É cliente YourBox pela primeira vez?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para novos clientes temos desconto de boas-vindas de 5% no primeiro pedido. Posso aplicar agora. Quer avançar?"
+        }
+      ],
+      "sinais_deteccao": [
+        "se der desconto",
+        "baixa o preço",
+        "consigo mais barato"
+      ],
+      "logica_decisao": {
+        "desconto_primeiro_pedido": "5% — aplicação automática para novos clientes",
+        "nao_criar_precedente": "desconto estruturado, não negociação ad hoc",
+        "limite_desconto_agente": "5% máximo sem aprovação humana"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-060",
+      "titulo": "Transporte noturno programado — factory-to-factory",
+      "categoria": "industrial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "precisamos de transporte todas as noites entre as nossas duas fábricas"
+        },
+        {
+          "papel": "ai",
+          "msg": "Transporte regular noturno. Qual a frequência — todos os dias, dias úteis, ou conforme necessidade?"
+        },
+        {
+          "papel": "lead",
+          "msg": "segunda a sexta, às 23h"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para rotina fixa temos contratos de serviço regular com preço mensal. Volume por viagem?"
+        }
+      ],
+      "sinais_deteccao": [
+        "todas as noites",
+        "regularmente",
+        "contrato",
+        "frequência fixa"
+      ],
+      "logica_decisao": {
+        "escalar_para_comercial": true,
+        "proposta_contrato": "preço fixo mensal vs spot",
+        "gestor_dedicado": "para rotas regulares — ponto de contacto único"
+      },
+      "escalamento_humano": [
+        "sempre — contratos requerem análise comercial"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-061",
+      "titulo": "Cliente pergunta sobre seguro — não incluído por defeito",
+      "categoria": "comercial",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "e se a encomenda se perder ou danificar, estão segurados?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Boa pergunta. O nosso seguro base cobre até 300€ sem custo adicional. Para valores superiores temos seguro adicional. Qual o valor aproximado do que vai enviar?"
+        },
+        {
+          "papel": "lead",
+          "msg": "uns 800€"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para 800€ recomendo o seguro adicional — custa 8€ e cobre o valor total. Quer incluir?"
+        }
+      ],
+      "sinais_deteccao": [
+        "seguro",
+        "se se perder",
+        "responsabilidade",
+        "avaria"
+      ],
+      "logica_decisao": {
+        "cobertura_base": 300,
+        "seguro_adicional_preco": "1% do valor declarado, mínimo 5€",
+        "recomendar_sempre_para_valor_acima": 300,
+        "nunca_garantir_sem_seguro": "só o seguro garante — o serviço base tem limite"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-062",
+      "titulo": "Driver com avaria — substituição em rota",
+      "categoria": "operacional",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "tive furo na autoestrada, estou imobilizado no km 85 da A1"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Driver X imobilizado A1 km85. Verificando: 1) Driver mais próximo para assumir carga, 2) Prazo atual de entrega comprometido? Contactar cliente agora."
+        },
+        {
+          "papel": "ai_cliente",
+          "msg": "Informação importante: o motorista do seu serviço teve um contratempo na estrada. Estamos a enviar substituição — atraso estimado de 45 minutos. Pedimos desculpa pelo inconveniente."
+        }
+      ],
+      "sinais_deteccao": [
+        "avaria",
+        "furo",
+        "acidente",
+        "imobilizado"
+      ],
+      "logica_decisao": {
+        "prioridade_1": "garantir segurança do driver",
+        "prioridade_2": "encontrar substituição",
+        "prioridade_3": "comunicar ao cliente proativamente — não esperar que pergunte",
+        "compensacao": "desconto ou voucher por atraso causado por nós"
+      }
+    },
+    {
+      "id": "SIT-063",
+      "titulo": "Pedido para dia que é feriado nacional",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de entrega no dia 25 de Abril"
+        },
+        {
+          "papel": "ai",
+          "msg": "25 de Abril é feriado nacional. Temos disponibilidade mas com suplemento de feriado de 30%. Prefere antecipar para o dia 24 sem suplemento, ou confirma para o dia 25?"
+        }
+      ],
+      "sinais_deteccao": [
+        "data é feriado nacional ou municipal"
+      ],
+      "logica_decisao": {
+        "calendario_feriados": "configurável — nacionais + municipais principais",
+        "suplemento_feriado_pct": 30,
+        "oferecer_alternativa": "dia útil anterior sem suplemento",
+        "alguns_parceiros": "podem não operar em feriados — verificar"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-064",
+      "titulo": "Colega do remetente faz o pedido — autorizações",
+      "categoria": "compliance",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "estou a fazer este pedido em nome da minha empresa, a fatura vai para a empresa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro. Qual o NIF da empresa e o seu nome e cargo para o pedido?"
+        },
+        {
+          "papel": "lead",
+          "msg": "NIF 509876543, chamo-me Ana Silva, sou assistente de direção"
+        },
+        {
+          "papel": "ai",
+          "msg": "Registado. Ana, a fatura segue para a empresa com NIF 509876543. O pagamento vai ser por referência Multibanco ou MB Way da empresa?"
+        }
+      ],
+      "sinais_deteccao": [
+        "em nome da empresa",
+        "a fatura vai para a empresa",
+        "sou o assistente de"
+      ],
+      "logica_decisao": {
+        "registar_nome_do_operador": "quem fez o pedido vs a quem fatura",
+        "verificar_cliente_existente": "empresa já tem conta? — facilita processo",
+        "dados_faturacao": "NIF, morada, email de faturação"
+      }
+    },
+    {
+      "id": "SIT-065",
+      "titulo": "Produto proibido — lead não sabe que não pode enviar",
+      "categoria": "compliance",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quero enviar uma pistola de airsoft para um amigo"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para réplicas de armas há restrições específicas. É airsoft com licença ou decorativa? E qual o país de destino?"
+        },
+        {
+          "papel": "lead",
+          "msg": "é de brinquedo mesmo, para Portugal"
+        },
+        {
+          "papel": "ai",
+          "msg": "Réplicas de brinquedo sem mecanismo funcional podem ser enviadas. Confirma que não tem mecanismo de disparo funcional? Para segurança da embalagem recomendo declarar o conteúdo claramente."
+        }
+      ],
+      "sinais_deteccao": [
+        "arma",
+        "faca",
+        "explosivo",
+        "produto controlado",
+        "substância"
+      ],
+      "logica_decisao": {
+        "lista_proibidos_absolutos": [
+          "explosivos",
+          "armas de fogo reais",
+          "drogas",
+          "materiais radioativos"
+        ],
+        "lista_condicionados": [
+          "réplicas",
+          "ADR",
+          "medicamentos controlados"
+        ],
+        "sempre_verificar": "antes de aceitar — responsabilidade legal"
+      },
+      "escalamento_humano": [
+        "qualquer dúvida sobre conteúdo proibido — decisão humana"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-066",
+      "titulo": "Lead que quer fatura com descrição específica (fraude fiscal)",
+      "categoria": "compliance",
+      "frequencia": "muito_baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "pode por na fatura 'consultoria' em vez de transporte?"
+        },
+        {
+          "papel": "ai",
+          "msg": "As nossas faturas descrevem sempre o serviço real prestado — transporte de mercadorias — por questões legais e fiscais. Não é possível alterar a descrição do serviço. Posso ajudar com mais alguma coisa?"
+        }
+      ],
+      "sinais_deteccao": [
+        "pode pôr outra coisa na fatura",
+        "descrição diferente",
+        "em vez de transporte"
+      ],
+      "logica_decisao": {
+        "recusar_sempre": true,
+        "nao_julgar_cliente": "resposta neutra e firme",
+        "registar_internamente": "flag de tentativa de alteração de fatura"
+      }
+    },
+    {
+      "id": "SIT-067",
+      "titulo": "Transporte de material de construção — obra",
+      "categoria": "industrial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de levar tijolos e cimento de um armazém para uma obra"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para material de construção pesado precisamos de saber o peso total e se existe empilhador ou grua no destino para descarregar."
+        },
+        {
+          "papel": "lead",
+          "msg": "são umas 2 toneladas, na obra há pessoal mas não há grua"
+        },
+        {
+          "papel": "ai",
+          "msg": "2 toneladas sem grua significa descarga manual. Precisamos de veículo de carga pesada e provavelmente 2 ajudantes. Tem hora limite para entrega na obra?"
+        }
+      ],
+      "sinais_deteccao": [
+        "obra",
+        "construção",
+        "armazém",
+        "cimento",
+        "tijolos",
+        "material pesado"
+      ],
+      "logica_decisao": {
+        "veiculo_necessario": "conforme peso — ligeiro, 3.5T, ou pesado",
+        "ajudante_obrigatorio": ">500kg sem equipamento de descarga",
+        "acesso_obra": "verificar largura de entrada, tipo de pavimento"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-068",
+      "titulo": "Envio de laptop / equipamento informático corporativo",
+      "categoria": "b2b",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de enviar um laptop da empresa para um colaborador em teletrabalho em Viseu"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para equipamento informático recomendo seguro adicional. Valor do laptop?"
+        },
+        {
+          "papel": "lead",
+          "msg": "uns 1200€"
+        },
+        {
+          "papel": "ai",
+          "msg": "Seguro de 1200€ custa 12€ adicional. Incluo? E a embalagem é original ou precisa de embalagem de proteção?"
+        }
+      ],
+      "sinais_deteccao": [
+        "laptop",
+        "computador",
+        "equipamento informático",
+        "telemóvel empresa"
+      ],
+      "logica_decisao": {
+        "sempre_sugerir_seguro": "equipamento informático tem alto valor e fragilidade",
+        "embalagem_adequada": "verificar se está na caixa original ou precisa de proteção extra",
+        "assinatura_obrigatoria": "confirmação de entrega com assinatura para equipamento corporativo"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-069",
+      "titulo": "Cliente pergunta se pode acompanhar a carga (ride-along)",
+      "categoria": "qualificacao",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "posso ir no carro com o motorista para acompanhar a carga?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Os nossos veículos de carga não transportam passageiros por questões de seguro. Se precisar de deslocação com a sua carga, posso combinar transporte de passageiro separado em simultâneo. Ou serve para si chegar ao destino depois?"
+        }
+      ],
+      "sinais_deteccao": [
+        "posso ir também",
+        "acompanhar",
+        "ir com o motorista"
+      ],
+      "logica_decisao": {
+        "nao_permitido_por_seguro": true,
+        "alternativa": "transporte de passageiro em paralelo — taxa adicional"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-070",
+      "titulo": "Pedido com instruções de entrega muito específicas",
+      "categoria": "qualificacao",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a entrega tem que ser feita ao Sr. António, não pode deixar com outra pessoa, tem que ser entre 14h e 15h, tocar à campainha do lado direito"
+        },
+        {
+          "papel": "ai",
+          "msg": "Registado. Entrega exclusivamente ao Sr. António, entre 14h00 e 15h00, campainha direita. O driver será informado de todas estas instruções. Se o Sr. António não estiver disponível nessa janela, como quer que procedamos?"
+        }
+      ],
+      "sinais_deteccao": [
+        "só pode deixar com",
+        "tem que ser entre X e Y horas",
+        "instruções específicas"
+      ],
+      "logica_decisao": {
+        "registar_instrucoes_no_servico": true,
+        "confirmar_janela_horaria": "garantir que driver consegue cumprir",
+        "plano_b_obrigatorio": "o que fazer se o destinatário não estiver?"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-071",
+      "titulo": "Serviço de retorno — buscar e trazer",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso que o motorista vá buscar uma coisa e traga para mim"
+        },
+        {
+          "papel": "ai",
+          "msg": "Entendido — recolha e entrega no mesmo destino, ou recolha no ponto A e entrega em ponto B diferente do remetente?"
+        },
+        {
+          "papel": "lead",
+          "msg": "vai ao armazém em Loures buscar e traz aqui para o escritório no Marquês"
+        },
+        {
+          "papel": "ai",
+          "msg": "Loures→Marquês de Pombal. Só recolha e entrega, ou o driver tem que esperar no armazém enquanto preparam a carga?"
+        }
+      ],
+      "sinais_deteccao": [
+        "vai buscar e traz",
+        "recolha para mim",
+        "buscar e trazer"
+      ],
+      "logica_decisao": {
+        "confirmar_se_espera": "tempo de espera é faturado",
+        "taxa_espera": "configurável por minuto após X minutos de cortesia"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-072",
+      "titulo": "Remetente e destinatário falam línguas diferentes — cliente estrangeiro",
+      "categoria": "acessibilidade",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "hello, I need to send a package from Lisbon to Porto"
+        },
+        {
+          "papel": "ai",
+          "msg": "Hello! I can help you with that. What are you sending and what's the approximate weight?"
+        }
+      ],
+      "sinais_deteccao": [
+        "mensagem em inglês",
+        "espanhol",
+        "francês",
+        "outra língua"
+      ],
+      "logica_decisao": {
+        "detetar_lingua_automaticamente": true,
+        "responder_na_mesma_lingua": true,
+        "linguas_suportadas": [
+          "português",
+          "inglês",
+          "espanhol — mínimo"
+        ],
+        "para_outras_linguas": "inglês como fallback"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-073",
+      "titulo": "Lead que compara muitas opções sem decidir — paralisia de análise",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "e se fosse amanhã às 10h em vez das 13h? qual seria o preço? e se fosse depois de amanhã?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Vejo que está a comparar opções — deixe-me mostrar as três de uma vez para facilitar a decisão."
+        },
+        {
+          "papel": "ai",
+          "msg": "Amanhã 10h: 22€ | Amanhã 13h: 14€ | Depois de amanhã: 11€. Para quando tem realmente que chegar?"
+        }
+      ],
+      "sinais_deteccao": [
+        "e se fosse",
+        "e se mudasse",
+        "quanto seria se",
+        "várias hipóteses"
+      ],
+      "logica_decisao": {
+        "apresentar_tabela_comparativa": "mostrar todas opções de uma vez",
+        "fazer_a_pergunta_decisiva": "para quando tem REALMENTE que chegar?",
+        "nao_gerar_infinitas_combinacoes": "máximo 3 opções por apresentação"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-074",
+      "titulo": "Driver faz check-in na recolha — carga diferente do declarado",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "estou na recolha, o cliente diz que são 5 paletes mas o pedido dizia 2"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Diferença de carga detetada. Verificando capacidade do veículo... O veículo atual aguenta 5 paletes? E o cliente confirma o erro no pedido?"
+        },
+        {
+          "papel": "driver",
+          "msg": "sim aguenta mas vai ficar mais pesado"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Calcular suplemento por excesso de carga e informar o remetente do custo adicional antes de carregar."
+        }
+      ],
+      "sinais_deteccao": [
+        "carga diferente",
+        "mais do que o pedido",
+        "volume superior ao declarado"
+      ],
+      "logica_decisao": {
+        "nao_carregar_sem_confirmacao_de_preco": true,
+        "calcular_suplemento": "diferença de peso/volume × tabela",
+        "confirmar_cliente_antes": "cliente autoriza custo adicional?"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-075",
+      "titulo": "Pedido de informação sem intenção de compra — concorrente ou curioso",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quais são os vossos preços para um trajeto de 500km?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Os preços dependem do tipo de serviço, peso e urgência. Para 500km com carga standard até 100kg, estamos entre 180-280€. Tem um pedido concreto que posso calcular com precisão?"
+        }
+      ],
+      "sinais_deteccao": [
+        "pergunta genérica de preços",
+        "sem dados específicos",
+        "só a ver"
+      ],
+      "logica_decisao": {
+        "dar_gama_de_precos": "suficiente para qualificar sem revelar tabela completa",
+        "tentar_qualificar": "tem pedido concreto?",
+        "se_so_pesquisa": "registar contacto para follow-up futuro"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-076",
+      "titulo": "Fatura emitida com erro — cliente pede correção",
+      "categoria": "pos_venda",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a fatura tem o NIF errado, está com o NIF antigo da empresa"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para corrigir a fatura precisamos de anular e reemitir. Qual é o NIF correto e nome da empresa?"
+        },
+        {
+          "papel": "lead",
+          "msg": "NIF 510000001, YourClient Lda"
+        },
+        {
+          "papel": "ai",
+          "msg": "Vou encaminhar para o departamento financeiro. Nova fatura emitida em 2 horas úteis por email. Confirma o email de faturação?"
+        }
+      ],
+      "sinais_deteccao": [
+        "fatura errada",
+        "NIF errado",
+        "morada errada na fatura",
+        "preciso de nota de crédito"
+      ],
+      "escalamento_humano": [
+        "sempre — faturação é processo financeiro"
+      ]
+    },
+    {
+      "id": "SIT-077",
+      "titulo": "Solicitação de prova de entrega passada",
+      "categoria": "pos_venda",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de comprovativo de entrega do serviço de há 3 semanas, para fatura ao cliente"
+        },
+        {
+          "papel": "ai",
+          "msg": "Qual o número do serviço ou data e percurso aproximado?"
+        },
+        {
+          "papel": "lead",
+          "msg": "foi no dia 22 de março, Lisboa Cascais"
+        },
+        {
+          "papel": "ai",
+          "msg": "Localizei o serviço YB2234 de 22/03. Envio o comprovativo de entrega com assinatura para o seu email em 5 minutos."
+        }
+      ],
+      "sinais_deteccao": [
+        "comprovativo de entrega",
+        "prova de entrega",
+        "confirmação de que chegou"
+      ],
+      "logica_decisao": {
+        "consultar_plataforma": "histórico de serviços + foto/assinatura de entrega",
+        "enviar_por_email_ou_whatsapp": "conforme preferência do cliente",
+        "prazo": "5 minutos se em horário laboral"
+      }
+    },
+    {
+      "id": "SIT-078",
+      "titulo": "Cliente quer negociar preço de forma agressiva",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "34€ é muito caro, dou-vos 15€ e não mais"
+        },
+        {
+          "papel": "ai",
+          "msg": "Compreendo que o orçamento é importante. A 15€ não consigo garantir motorista dedicado com hora confirmada — seria um serviço de 24h com parceiro. Cobre as suas necessidades ou a hora de entrega é crítica?"
+        },
+        {
+          "papel": "lead",
+          "msg": "precisa de ser hoje"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para hoje, o mínimo com viatura disponível é 28€. Posso aplicar o desconto de primeiro cliente (5%) e fica 26,60€. É o melhor que consigo manter com qualidade de serviço."
+        }
+      ],
+      "sinais_deteccao": [
+        "é muito caro",
+        "dou X€ e não mais",
+        "desconto agressivo"
+      ],
+      "logica_decisao": {
+        "nao_ceder_abaixo_do_custo": true,
+        "oferecer_alternativa_de_menor_custo": "serviço diferente, não desconto no mesmo serviço",
+        "limite_desconto_agente": "5% sem aprovação",
+        "acima_de_5pct": "escalar para BO"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-079",
+      "titulo": "Integração com plataforma do cliente — pedidos automáticos",
+      "categoria": "b2b",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "usamos o SAP, seria possível integrar para que os pedidos de transporte saíssem automaticamente?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Temos API REST para integração com sistemas de gestão. Para SAP temos conector específico. Quer que um técnico entre em contacto para apresentar as possibilidades?"
+        }
+      ],
+      "sinais_deteccao": [
+        "integração",
+        "API",
+        "SAP",
+        "sistema automático",
+        "ERP"
+      ],
+      "logica_decisao": {
+        "escalar_para_tecnico": true,
+        "api_yourbox": "documentação disponível — verificar versão atual",
+        "potencial_contrato": "integração = cliente de longo prazo"
+      },
+      "escalamento_humano": [
+        "sempre — requer equipa técnica"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-080",
+      "titulo": "Pedido repetido por engano — lead fez duplo pedido",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai",
+          "msg": "Detetei dois pedidos idênticos criados nos últimos 5 minutos (mesma origem, destino e carga). Foi intencional ou foi duplicado por engano?"
+        },
+        {
+          "papel": "lead",
+          "msg": "ai foi sem querer, cliquei duas vezes"
+        },
+        {
+          "papel": "ai",
+          "msg": "Cancelei o pedido duplicado sem custo. Só o YB3301 segue em curso. Confirma?"
+        }
+      ],
+      "sinais_deteccao": [
+        "dois pedidos iguais",
+        "duplicado",
+        "cliquei duas vezes"
+      ],
+      "logica_decisao": {
+        "detetar_automaticamente": "comparar pedidos do mesmo cliente em janela de 10 minutos",
+        "alertar_antes_de_cobrar": "confirmar com cliente antes de processar dois pagamentos",
+        "cancelamento_automatico_gratuito": "duplicados óbvios — sem taxa"
+      }
+    },
+    {
+      "id": "SIT-081",
+      "titulo": "Pico de procura — todos os drivers ocupados",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "ai_interno",
+          "msg": "ALERTA: Capacidade YourBox em Lisboa a 95%. 8 pedidos urgentes sem driver disponível."
+        },
+        {
+          "papel": "ai_cliente",
+          "msg": "Neste momento temos disponibilidade reduzida para serviços urgentes em Lisboa. Posso confirmar serviço via parceiro com entrega em 3-4 horas, ou YourBox direto em 2 horas com motorista que fica disponível às 15h. Qual prefere?"
+        }
+      ],
+      "sinais_deteccao": [
+        "sistema deteta saturação de capacidade"
+      ],
+      "logica_decisao": {
+        "alertar_bo_em_tempo_real": true,
+        "nao_prometer_o_que_nao_ha": true,
+        "opcoes_em_pico": [
+          "parceiro imediato",
+          "YourBox com hora confirmada mais tarde",
+          "lista de espera com prioridade"
+        ],
+        "ativar_drivers_reserva": "notificar drivers off duty de oportunidade extra"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-082",
+      "titulo": "Lead que quer ser driver — recrutamento espontâneo",
+      "categoria": "rh",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "olá, queria candidatar-me para ser estafeta/driver vosso"
+        },
+        {
+          "papel": "ai",
+          "msg": "Obrigado pelo interesse. Temos processo de recrutamento de drivers. Pode deixar o seu nome, zona onde opera e viatura disponível? Um responsável entrará em contacto."
+        }
+      ],
+      "sinais_deteccao": [
+        "quero ser driver",
+        "candidatura",
+        "tenho viatura",
+        "quero trabalhar"
+      ],
+      "logica_decisao": {
+        "recolher_dados_basicos": [
+          "nome",
+          "zona de operação",
+          "tipo de viatura",
+          "disponibilidade horária"
+        ],
+        "escalar_para_rh": true,
+        "nao_dar_detalhes_de_remuneracao": "processo formal de recrutamento"
+      },
+      "escalamento_humano": [
+        "sempre — RH"
+      ]
+    },
+    {
+      "id": "SIT-083",
+      "titulo": "Serviço de last mile para parceiro logístico",
+      "categoria": "b2b",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "somos a parceiro e temos encomendas para entregar hoje em Lisboa que não temos capacidade"
+        },
+        {
+          "papel": "ai",
+          "msg": "Quantas encomendas e qual a janela de entrega? E o pagamento é por encomenda ou por jornada?"
+        }
+      ],
+      "sinais_deteccao": [
+        "somos a X transportadora",
+        "overflow de capacidade",
+        "subcontratação de last mile"
+      ],
+      "logica_decisao": {
+        "escalar_comercial_imediato": true,
+        "oportunidade_pontual_vs_recorrente": "perceber se é esporádico ou pode ser regular",
+        "pricing_especial": "tarifa de parceiro difere de tarifa de cliente final"
+      },
+      "escalamento_humano": [
+        "sempre — nível de gestão"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-084",
+      "titulo": "Entrega com tentativa de suborno ao driver",
+      "categoria": "compliance",
+      "frequencia": "muito_baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "o destinatário quer pagar-me diretamente em dinheiro para eu deixar a carga sem a registar"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "NÃO ACEITAR. Driver instruído a recusar. Registar ocorrência. Continuar processo normal. BO informado."
+        }
+      ],
+      "sinais_deteccao": [
+        "pagar ao driver",
+        "sem registar",
+        "dinheiro direto"
+      ],
+      "logica_decisao": {
+        "politica_zero_tolerancia": true,
+        "registar_tentativa": true,
+        "proteger_driver": "driver tem suporte total se recusar",
+        "informar_cliente_remetente": "sobre a ocorrência no destino"
+      }
+    },
+    {
+      "id": "SIT-085",
+      "titulo": "Pedido com dados de contacto incorretos — não consegue contactar destinatário",
+      "categoria": "operacional",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "o número do destinatário está errado, ninguém atende e o endereço não existe"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "A contactar remetente agora. Tem contacto alternativo do destinatário?"
+        },
+        {
+          "papel": "lead",
+          "msg": "sim, o telemóvel dela é 9XXXXXXXX"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "Passar novo contacto ao driver. Reagendamento automático se não resolver em 20 min."
+        }
+      ],
+      "sinais_deteccao": [
+        "número errado",
+        "morada não existe",
+        "não atende"
+      ],
+      "logica_decisao": {
+        "contactar_remetente_imediato": true,
+        "prazo_resolucao": "20 minutos",
+        "opcoes": [
+          "novo contacto",
+          "nova morada",
+          "reagendamento",
+          "devolver ao remetente"
+        ]
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-086",
+      "titulo": "Cliente pede fatura antes de pagar — empresa com PO",
+      "categoria": "pagamento",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "precisamos de fatura pró-forma primeiro para obtermos autorização interna de compra (PO)"
+        },
+        {
+          "papel": "ai",
+          "msg": "Entendido — processo comum em empresas. Emito fatura pró-forma com validade de 5 dias úteis. NIF e dados de faturação?"
+        }
+      ],
+      "sinais_deteccao": [
+        "fatura pro forma",
+        "PO",
+        "purchase order",
+        "autorização interna",
+        "aprovação de compra"
+      ],
+      "logica_decisao": {
+        "emitir_pro_forma": "antes do pagamento — só para empresas",
+        "validade_pro_forma": "5 dias úteis",
+        "nao_iniciar_servico": "sem pagamento confirmado — mesmo com pro forma"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-087",
+      "titulo": "Transporte de objetos de grande formato — mobiliário, sofás",
+      "categoria": "servico_especial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de transportar um sofá de 3 lugares"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para sofás precisamos de saber as dimensões para garantir que cabe na viatura. Tem as medidas? Ou é sofá standard de 3 lugares (aprox. 220×90×90cm)?"
+        },
+        {
+          "papel": "lead",
+          "msg": "é standard sim"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para esse tamanho precisamos de carrinha de carga ou furgão. Fica num 1º andar? E há elevador?"
+        }
+      ],
+      "sinais_deteccao": [
+        "sofá",
+        "mobiliário",
+        "grande formato",
+        "não cabe numa caixa"
+      ],
+      "logica_decisao": {
+        "verificar_dimensoes": "algumas carrinhas não comportam sofás grandes",
+        "subida_escadas": "suplemento por andar sem elevador",
+        "desmontagem": "sofá desmontável? — pode reduzir dificuldade"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-088",
+      "titulo": "Pedido de serviço com datas ambíguas — 'para a semana'",
+      "categoria": "qualificacao",
+      "frequencia": "alta",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "preciso de um transporte para a semana"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para 'a semana' — tem dia específico em mente, ou é flexível durante a semana? E precisa de manhã ou tarde?"
+        },
+        {
+          "papel": "lead",
+          "msg": "prefiro quarta ou quinta de manhã"
+        },
+        {
+          "papel": "ai",
+          "msg": "Quarta e quinta estão disponíveis. Quarta de manhã fica 18€, quinta 16€ (menos procura). Alguma preferência?"
+        }
+      ],
+      "sinais_deteccao": [
+        "para a semana",
+        "qualquer dia",
+        "quando puder",
+        "sem data específica"
+      ],
+      "logica_decisao": {
+        "sempre_confirmar_data_especifica": "nunca deixar em aberto",
+        "mostrar_pricing_por_dia": "pode haver diferença de procura",
+        "confirmar_janela_horaria": "manhã/tarde/hora específica?"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-089",
+      "titulo": "Solicitação de orçamento para evento — montagem/desmontagem",
+      "categoria": "servico_especial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "precisamos de transporte e apoio para montar uma exposição temporária no Porto"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para eventos com montagem precisamos de perceber o volume total, tipo de material e se precisam de equipa de montagem ou só transporte. Quantas peças e qual o prazo?"
+        }
+      ],
+      "sinais_deteccao": [
+        "evento",
+        "exposição",
+        "montagem",
+        "desmontagem",
+        "stand"
+      ],
+      "logica_decisao": {
+        "servico_composto": "transporte + mão de obra + possivelmente armazenagem",
+        "orcamento_personalizado": true,
+        "prazo_orcamento": "2-4 horas para proposta completa"
+      },
+      "escalamento_humano": [
+        "sempre — eventos requerem planeamento específico"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-090",
+      "titulo": "Cliente com conta bloqueada por dívida anterior",
+      "categoria": "financeiro",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "quero fazer um pedido"
+        },
+        {
+          "papel": "ai_interno",
+          "msg": "ALERTA: Cliente NIF 509xxx tem fatura em atraso de 145€ há 45 dias. Conta bloqueada para novos serviços."
+        },
+        {
+          "papel": "ai",
+          "msg": "Verifiquei a sua conta e existe uma fatura por regularizar. Para retomar o serviço precisamos de liquidar o valor em aberto. Posso enviar os detalhes para regularização?"
+        }
+      ],
+      "sinais_deteccao": [
+        "cliente identificado com dívida no sistema"
+      ],
+      "logica_decisao": {
+        "verificar_conta_automaticamente": "antes de aceitar qualquer novo pedido",
+        "nao_aceitar_novos_servicos_com_divida": true,
+        "processo_regularizacao": "enviar link de pagamento da dívida"
+      },
+      "escalamento_humano": [
+        "cliente contesta o valor em dívida"
+      ]
+    },
+    {
+      "id": "SIT-091",
+      "titulo": "Mudança de morada do destinatário após serviço iniciado",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "o destinatário mudou de escritório, a morada nova é Rua Y"
+        },
+        {
+          "papel": "ai",
+          "msg": "Verificando onde está o motorista... O serviço ainda está em recolha. Consigo alterar a morada de entrega sem custo adicional se a diferença for até 5km. A nova morada fica a que distância da original?"
+        }
+      ],
+      "sinais_deteccao": [
+        "mudou a morada",
+        "entrega noutro sítio",
+        "endereço diferente"
+      ],
+      "logica_decisao": {
+        "se_ainda_em_recolha": "alterar gratuitamente até 5km diferença",
+        "se_em_rota": "calcular desvio e cobrar suplemento",
+        "se_ja_entregou": "não é possível alterar — novo serviço"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-092",
+      "titulo": "Pedido de teste de serviço — potencial cliente enterprise",
+      "categoria": "comercial",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "somos uma empresa de retalho e queremos testar o vosso serviço antes de fechar contrato"
+        },
+        {
+          "papel": "ai",
+          "msg": "Para empresas que querem avaliar o nosso serviço, disponibilizamos um período de teste com acompanhamento dedicado. Qual o volume que tencionam testar e em que zonas?"
+        }
+      ],
+      "sinais_deteccao": [
+        "quero testar",
+        "antes de decidir",
+        "piloto",
+        "avaliação de fornecedor"
+      ],
+      "logica_decisao": {
+        "oferecer_periodo_piloto": "condições especiais para 5-10 serviços de teste",
+        "acompanhamento_dedicado": "gestor de conta durante o piloto",
+        "objetivo": "converter em contrato após piloto bem-sucedido"
+      },
+      "escalamento_humano": [
+        "sempre — oportunidade comercial importante"
+      ],
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-093",
+      "titulo": "Entrega em zona de obras — acesso condicionado",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "a rua está cortada por obras, não consigo chegar à morada"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "A contactar destinatário para ponto de entrega alternativo. Enquanto isso, driver pode aguardar na entrada da zona de obras máximo 10 minutos."
+        }
+      ],
+      "sinais_deteccao": [
+        "obras",
+        "rua cortada",
+        "desvio",
+        "acesso vedado"
+      ],
+      "logica_decisao": {
+        "contactar_destinatario": "ponto alternativo a curta distância",
+        "base_de_dados_obras": "integração com API de tráfego para prevenção — verificar viabilidade",
+        "sem_custo_adicional": "se resolvido em <15 min"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-094",
+      "titulo": "Cliente quer serviço mas está fora do país — coordenação remota",
+      "categoria": "b2b",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "estou em Londres mas preciso de um transporte urgente em Lisboa hoje, pode ser?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro, conseguimos gerir tudo remotamente. A recolha é em que morada de Lisboa e quem entrega a carga ao motorista?"
+        }
+      ],
+      "sinais_deteccao": [
+        "estou fora",
+        "não estou em Portugal",
+        "a fazer isto remotamente"
+      ],
+      "logica_decisao": {
+        "confirmar_quem_entrega_carga_ao_driver": "o cliente não está presente — alguém tem de ser",
+        "confirmacoes_digitais": "fotos de recolha e entrega enviadas ao cliente por WhatsApp",
+        "fuso_horario": "confirmar se cliente percebe hora local"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-095",
+      "titulo": "Parceiro satura — YourBox como alternativa de emergência para parceiro",
+      "categoria": "operacional",
+      "frequencia": "baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "parceiro_mrw",
+          "msg": "não temos capacidade hoje para os vossos volumes — 40 serviços sem cobertura"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "ALERTA: parceiro sem capacidade. Ativar plano B: 1) Identificar quais dos 40 são urgentes, 2) Alocar drivers YourBox aos urgentes, 3) Redistribuir não-urgentes por parceiro/parceiro, 4) Informar clientes afetados proativamente."
+        }
+      ],
+      "sinais_deteccao": [
+        "parceiro informa indisponibilidade",
+        "capacidade excedida em parceiro"
+      ],
+      "logica_decisao": {
+        "plano_contingencia_parceiro": "sempre ter 2 parceiros alternativos por tipo de serviço",
+        "priorizar_urgentes": "drivers YourBox para os críticos",
+        "comunicar_proativamente": "não esperar que clientes reclamem"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-096",
+      "titulo": "Lead pede desconto por indicação — referral",
+      "categoria": "comercial",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "o João da empresa X disse que trabalham connosco e que daria desconto por ele me ter enviado"
+        },
+        {
+          "papel": "ai",
+          "msg": "Ótimo, obrigado por mencionar. Temos programa de referência — 5% de desconto no primeiro pedido para quem vem por indicação. Confirmo o nome do João para creditar a referência?"
+        }
+      ],
+      "sinais_deteccao": [
+        "o X disse",
+        "fui indicado por",
+        "referência de",
+        "disse que teriam desconto"
+      ],
+      "logica_decisao": {
+        "verificar_programa_referral": "está ativo?",
+        "creditar_ao_referenciador": "João recebe benefício por trazer novo cliente",
+        "desconto_referido": "5% no primeiro pedido",
+        "registar_referencia": "campo no sistema para tracking de conversões"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-097",
+      "titulo": "Carga com restrição de horário de entrega — zona residencial",
+      "categoria": "operacional",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "a entrega é num condomínio que não aceita entregas depois das 20h nem ao sábado"
+        },
+        {
+          "papel": "ai",
+          "msg": "Registado. Restrição de entrega: dias úteis até às 20h. O serviço está programado para amanhã às 17h30 — cumpre a restrição. Se houver atraso que aproxime das 20h, o motorista será avisado para reagendar automaticamente."
+        }
+      ],
+      "sinais_deteccao": [
+        "não aceita entregas depois das",
+        "condomínio fechado ao sábado",
+        "porteiro só até X horas"
+      ],
+      "logica_decisao": {
+        "registar_restricao_no_servico": true,
+        "alerta_automatico_ao_driver": "se estimativa ultrapassar limite",
+        "buffer_de_seguranca": "não agendar para menos de 1h antes do limite"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-098",
+      "titulo": "Pedido de serviço recorrente — criar modelo/template",
+      "categoria": "cliente_recorrente",
+      "frequencia": "media",
+      "dialogo_exemplo": [
+        {
+          "papel": "lead",
+          "msg": "fazemos sempre o mesmo percurso, toda a segunda-feira às 9h, posso ter um template?"
+        },
+        {
+          "papel": "ai",
+          "msg": "Claro, posso criar um serviço recorrente. Confirmo os detalhes: toda segunda-feira às 9h, [origem→destino], [tipo de carga]. Pagamento automático ou confirma cada semana?"
+        }
+      ],
+      "sinais_deteccao": [
+        "sempre o mesmo",
+        "toda a semana",
+        "regularmente",
+        "posso guardar",
+        "template"
+      ],
+      "logica_decisao": {
+        "criar_servico_recorrente_na_plataforma": true,
+        "pagamento_automatico_opcional": "cartão guardado ou fatura mensal",
+        "flexibilidade": "cliente pode pausar ou cancelar semana específica"
+      },
+      "perguntas_qualificacao": [
+        "Qual o peso total aproximado da carga?",
+        "Quais as dimensões (comprimento × largura × altura em cm)?"
+      ]
+    },
+    {
+      "id": "SIT-099",
+      "titulo": "Acidente do driver em serviço — protocolo de crise",
+      "categoria": "crise",
+      "frequencia": "muito_baixa",
+      "dialogo_exemplo": [
+        {
+          "papel": "driver",
+          "msg": "tive um acidente, estou bem mas o carro ficou danificado e a carga também pode estar afetada"
+        },
+        {
+          "papel": "ai_bo",
+          "msg": "PROTOCOLO DE CRISE ATIVADO: 1) Confirmar que driver está fisicamente bem — chamar emergência se necessário. 2) NÃO mover a carga sem documentar com fotos. 3) Contactar seguro. 4) Informar cliente/remetente. 5) Enviar driver de substituição se necessário."
+        }
+      ],
+      "sinais_deteccao": [
+        "acidente",
+        "colisão",
+        "embati",
+        "carro danificado"
+      ],
+      "logica_decisao": {
+        "prioridade_1": "segurança humana — emergência médica se necessário",
+        "prioridade_2": "documentar dano antes de mexer em qualquer coisa",
+        "prioridade_3": "acionar seguro",
+        "prioridade_4": "resolver logística da carga",
+        "comunicar_cliente": "sempre proativamente, nunca esperar"
+      },
+      "escalamento_humano": [
+        "sempre e imediatamente — gestão deve ser informada"
+      ]
+    },
+    {
+      "id": "SIT-100",
+      "titulo": "Dashboard BO — nova situação identificada pelo humano",
+      "categoria": "sistema",
+      "frequencia": "constante",
+      "descricao": "O BO identifica uma situação nova que o agente não sabe tratar. Através do dashboard, cria uma nova entrada, descreve o gatilho, a estratégia e o resultado esperado. O agente é atualizado e começa a aplicar esse conhecimento.",
+      "campos_dashboard": {
+        "titulo": "Nome da situação",
+        "categoria": "dropdown configurável",
+        "sinais_deteccao": "lista de frases ou keywords que ativam",
+        "perguntas_qualificacao": "sequência de perguntas a fazer",
+        "logica_decisao": "se X então Y — editor visual ou JSON",
+        "script_resposta": "mensagens pré-formatadas editáveis",
+        "escalamento": "quando passar para humano",
+        "ativo": "toggle on/off",
+        "versao": "histórico de edições com data e autor",
+        "testavel": "botão para simular a situação antes de ativar"
+      },
+      "principio": "O sistema nunca é fechado. Cada situação nova aprendida pelo humano aumenta a inteligência do agente. O treino é contínuo e colaborativo.",
+      "escalamento_humano": [
+        "N/A — esta situação É o mecanismo de aprendizagem humana"
+      ]
+    }
+  ]
+}

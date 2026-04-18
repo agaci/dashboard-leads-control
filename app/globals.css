@@ -1,26 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ── Design tokens — comgo flat system ───────────────────── */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background:        240 23% 96%;
+  --foreground:        235 21% 21%;
+  --card:              0 0% 100%;
+  --primary:           13 100% 65%;
+  --primary-fg:        0 0% 100%;
+  --muted:             240 10% 91%;
+  --muted-fg:          235 15% 46%;
+  --border:            240 10% 88%;
+  --radius:            0.75rem;
+
+  /* Legacy aliases — mantidos para inline styles nos TSX */
+  --neu-bg:            hsl(var(--background));
+  --neu-fg:            hsl(var(--foreground));
+  --neu-muted:         hsl(var(--muted-fg));
+  --neu-accent:        hsl(var(--primary));
+  --neu-accent-fg:     hsl(var(--primary-fg));
+  --neu-border:        hsl(var(--border));
+
+  /* Shadows neumórficas → zeradas (compat) */
+  --shadow-light:     none;
+  --shadow-dark:      none;
+  --shadow-light-sm:  none;
+  --shadow-dark-sm:   0 1px 3px rgba(0,0,0,0.12);
+  --shadow-in-light:  none;
+  --shadow-in-dark:   none;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --font-sans:        "Nunito", system-ui, sans-serif;
+  --font-display:     "Space Grotesk", sans-serif;
+
+  /* ── YourBox design system ── */
+  --color-yb-navy:   #1a2332;
+  --color-yb-cyan:   #00bcd4;
+  --color-yb-yellow: #ffc107;
+  --color-yb-bg:     #f5f6fa;
+  --color-yb-card:   #ffffff;
+  --color-yb-border: #dde1e8;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ── Base ─────────────────────────────────────────────────── */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-family: "Nunito", system-ui, sans-serif;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: "Space Grotesk", sans-serif;
+}
+
+/* ── Notificações ─────────────────────────────────────────── */
+@keyframes notifBlink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.2; transform: scale(0.7); }
+}
+
+/* ── Flat utility classes (mesmos nomes, novo visual) ─────── */
+@layer utilities {
+  .neu-bg { background: hsl(var(--background)); }
+
+  /* Card branco com sombra subtil */
+  .neu-raised {
+    background: hsl(var(--card));
+    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px hsl(var(--border));
+  }
+  .neu-raised-sm {
+    background: hsl(var(--card));
+    box-shadow: 0 1px 2px rgba(0,0,0,0.06), 0 0 0 1px hsl(var(--border));
+  }
+
+  /* Estado activo / pressionado */
+  .neu-pressed {
+    background: hsl(var(--muted));
+    box-shadow: none;
+  }
+
+  /* Compat — não usados activamente */
+  .neu-convex { background: hsl(var(--card)); }
+  .neu-concave { background: hsl(var(--muted)); }
+
+  /* Botão primário laranja */
+  .neu-btn-primary {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-fg));
+    box-shadow: 0 2px 8px hsl(var(--primary) / 35%);
+    transition: opacity .15s, box-shadow .15s;
+  }
+  .neu-btn-primary:hover  { opacity: .92; }
+  .neu-btn-primary:active { opacity: .85; box-shadow: none; }
+
+  /* Pills / filtros */
+  .neu-pill {
+    background: transparent;
+    border: 1.5px solid hsl(var(--border));
+    transition: all .15s;
+  }
+  .neu-pill:hover { border-color: hsl(var(--primary)); color: hsl(var(--primary)); }
+
+  .neu-pill-active {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-fg));
+    border: 1.5px solid hsl(var(--primary));
+  }
+
+  /* Input */
+  .neu-input {
+    background: hsl(var(--card));
+    border: 1.5px solid hsl(var(--border));
+    transition: border-color .15s;
+    outline: none;
+  }
+  .neu-input:focus {
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsl(var(--primary) / 15%);
+  }
 }

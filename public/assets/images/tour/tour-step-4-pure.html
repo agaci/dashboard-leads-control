@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour Step 4 - Cálculo de Tarifa</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: #000;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .mockup-container {
+            width: 900px;
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+            border: 1px solid rgba(190, 214, 47, 0.3);
+            border-radius: 20px;
+            padding: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .mockup-title {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .mockup-content {
+            background: #37474F;
+            border-radius: 0 0 12px 12px;
+            min-height: 550px;
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #4CAF50, #8BC34A);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 50px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(76, 175, 80, 0.4);
+            animation: checkBounce 0.5s ease-out;
+        }
+
+        @keyframes checkBounce {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+
+        .tariff-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .tariff-subtitle {
+            font-size: 14px;
+            color: #B0BEC5;
+            margin-bottom: 30px;
+        }
+
+        /* Price Card */
+        .price-card {
+            width: 100%;
+            max-width: 500px;
+            background: linear-gradient(135deg, #bed62f, #9fba24);
+            border-radius: 20px;
+            padding: 30px;
+            text-align: center;
+            box-shadow: 0 15px 40px rgba(190, 214, 47, 0.4);
+            margin-bottom: 25px;
+        }
+
+        .price-label {
+            font-size: 13px;
+            color: rgba(0, 0, 0, 0.7);
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .price-value {
+            font-size: 56px;
+            font-weight: 900;
+            color: #1a1a1a;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+        }
+
+        .price-currency {
+            font-size: 32px;
+        }
+
+        .price-note {
+            font-size: 12px;
+            color: rgba(0, 0, 0, 0.6);
+        }
+
+        /* Breakdown */
+        .breakdown-card {
+            width: 100%;
+            max-width: 500px;
+            background: #263238;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 25px;
+        }
+
+        .breakdown-title {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breakdown-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .breakdown-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .breakdown-item:last-child {
+            border-bottom: none;
+            padding-top: 15px;
+            margin-top: 5px;
+            border-top: 2px solid rgba(190, 214, 47, 0.3);
+        }
+
+        .breakdown-label {
+            font-size: 14px;
+            color: #B0BEC5;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .breakdown-value {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .breakdown-item:last-child .breakdown-label {
+            color: #bed62f;
+            font-weight: 700;
+        }
+
+        .breakdown-item:last-child .breakdown-value {
+            color: #bed62f;
+            font-size: 20px;
+        }
+
+        /* Service Summary */
+        .service-summary {
+            width: 100%;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+
+        .summary-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+        }
+
+        .summary-icon {
+            font-size: 24px;
+        }
+
+        .summary-info {
+            flex: 1;
+        }
+
+        .summary-label {
+            font-size: 11px;
+            color: #78909C;
+            margin-bottom: 3px;
+        }
+
+        .summary-text {
+            font-size: 14px;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Action Buttons */
+        .action-buttons {
+            width: 100%;
+            max-width: 500px;
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            flex: 1;
+            padding: 16px;
+            border-radius: 12px;
+            border: none;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-confirm {
+            background: #bed62f;
+            color: #1a1a1a;
+        }
+
+        .btn-confirm:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(190, 214, 47, 0.4);
+        }
+
+        .btn-edit {
+            background: transparent;
+            color: white;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn-edit:hover {
+            border-color: #bed62f;
+            background: rgba(190, 214, 47, 0.1);
+        }
+
+        /* Badges */
+        .badge {
+            display: inline-block;
+            background: rgba(255, 152, 0, 0.2);
+            color: #FF9800;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <div class="mockup-header">
+            <div class="mockup-dots">
+                <div class="mockup-dot"></div>
+                <div class="mockup-dot"></div>
+                <div class="mockup-dot"></div>
+            </div>
+            <div class="mockup-title">Cálculo de Tarifa</div>
+        </div>
+        <div class="mockup-content">
+            <div class="success-icon">✓</div>
+            
+            <div class="tariff-title">Tarifa Calculada</div>
+            <div class="tariff-subtitle">Serviço pronto a ser confirmado</div>
+
+            <!-- Price Card -->
+            <div class="price-card">
+                <div class="price-label">VALOR TOTAL</div>
+                <div class="price-value">
+                    <span class="price-currency">€</span>
+                    <span>22.50</span>
+                </div>
+                <div class="price-note">✨ IVA incluído • Preço fixo garantido</div>
+            </div>
+
+            <!-- Breakdown -->
+            <div class="breakdown-card">
+                <div class="breakdown-title">
+                    📊 Detalhes da Tarifa
+                </div>
+                <div class="breakdown-list">
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <span>📏</span>
+                            <span>Base (32.5 km)</span>
+                        </div>
+                        <div class="breakdown-value">€ 15.00</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <span>⚡</span>
+                            <span>Urgência 1h</span>
+                        </div>
+                        <div class="breakdown-value">€ 5.00</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <span>🚗</span>
+                            <span>Viatura (Carro)</span>
+                        </div>
+                        <div class="breakdown-value">€ 3.00</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            <span>📸</span>
+                            <span>Extras</span>
+                        </div>
+                        <div class="breakdown-value">€ 2.00</div>
+                    </div>
+                    <div class="breakdown-item">
+                        <div class="breakdown-label">
+                            💰 TOTAL
+                        </div>
+                        <div class="breakdown-value">€ 22.50</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Service Summary -->
+            <div class="service-summary">
+                <div class="summary-row">
+                    <div class="summary-icon">📍</div>
+                    <div class="summary-info">
+                        <div class="summary-label">ROTA</div>
+                        <div class="summary-text">Lisboa → Cascais → Sintra</div>
+                    </div>
+                </div>
+                <div class="summary-row">
+                    <div class="summary-icon">⏱️</div>
+                    <div class="summary-info">
+                        <div class="summary-label">TEMPO ESTIMADO</div>
+                        <div class="summary-text">45 minutos <span class="badge">EXPRESS</span></div>
+                    </div>
+                </div>
+                <div class="summary-row">
+                    <div class="summary-icon">🚗</div>
+                    <div class="summary-info">
+                        <div class="summary-label">SERVIÇO</div>
+                        <div class="summary-text">Carro • Urgência 1h • Com extras</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button class="btn btn-edit">
+                    ✏️ Editar
+                </button>
+                <button class="btn btn-confirm">
+                    ✔ Confirmar Serviço
+                </button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

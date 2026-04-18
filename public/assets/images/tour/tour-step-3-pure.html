@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tour Step 3 - Configurar Serviço</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+        }
+
+        body {
+            background: #000;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+
+        .mockup-container {
+            width: 900px;
+            background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+            border: 1px solid rgba(190, 214, 47, 0.3);
+            border-radius: 20px;
+            padding: 8px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.8);
+        }
+
+        .mockup-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px 12px 0 0;
+        }
+
+        .mockup-dots {
+            display: flex;
+            gap: 8px;
+        }
+
+        .mockup-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .mockup-title {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .mockup-content {
+            background: #37474F;
+            border-radius: 0 0 12px 12px;
+            min-height: 550px;
+            padding: 30px;
+        }
+
+        .config-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .config-title {
+            font-size: 28px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 8px;
+        }
+
+        .config-subtitle {
+            font-size: 14px;
+            color: #B0BEC5;
+        }
+
+        .section {
+            margin-bottom: 35px;
+        }
+
+        .section-label {
+            font-size: 13px;
+            color: #B0BEC5;
+            font-weight: 600;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Vehicle Cards */
+        .vehicle-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .vehicle-card {
+            background: #263238;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .vehicle-card:hover {
+            border-color: #bed62f;
+            transform: translateY(-5px);
+        }
+
+        .vehicle-card.selected {
+            background: #bed62f;
+            border-color: #bed62f;
+        }
+
+        .vehicle-card.selected .vehicle-icon {
+            transform: scale(1.2);
+        }
+
+        .vehicle-card.selected .vehicle-name,
+        .vehicle-card.selected .vehicle-capacity {
+            color: #1a1a1a;
+        }
+
+        .vehicle-icon {
+            font-size: 48px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .vehicle-name {
+            font-size: 16px;
+            font-weight: 700;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .vehicle-capacity {
+            font-size: 12px;
+            color: #78909C;
+        }
+
+        /* Urgency Options */
+        .urgency-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+        }
+
+        .urgency-card {
+            background: #263238;
+            border: 2px solid transparent;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .urgency-card:hover {
+            border-color: #bed62f;
+            transform: translateY(-5px);
+        }
+
+        .urgency-card.selected {
+            background: linear-gradient(135deg, #FF9800, #FF5722);
+            border-color: #FF5722;
+        }
+
+        .urgency-badge {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #FF5722;
+            color: white;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 10px;
+        }
+
+        .urgency-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .urgency-time {
+            font-size: 18px;
+            font-weight: 900;
+            color: white;
+            margin-bottom: 5px;
+        }
+
+        .urgency-price {
+            font-size: 13px;
+            color: #78909C;
+        }
+
+        .urgency-card.selected .urgency-price {
+            color: white;
+        }
+
+        /* Additional Options */
+        .options-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .option-item {
+            background: #263238;
+            padding: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .option-label {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: white;
+            font-size: 14px;
+        }
+
+        .toggle {
+            width: 50px;
+            height: 26px;
+            background: #455A64;
+            border-radius: 13px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .toggle.active {
+            background: #bed62f;
+        }
+
+        .toggle::after {
+            content: '';
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            transition: all 0.3s;
+        }
+
+        .toggle.active::after {
+            left: 27px;
+        }
+
+        /* Action Button */
+        .btn-calculate {
+            width: 100%;
+            background: #bed62f;
+            color: #1a1a1a;
+            padding: 18px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 900;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 25px;
+        }
+
+        .btn-calculate:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(190, 214, 47, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="mockup-container">
+        <div class="mockup-header">
+            <div class="mockup-dots">
+                <div class="mockup-dot"></div>
+                <div class="mockup-dot"></div>
+                <div class="mockup-dot"></div>
+            </div>
+            <div class="mockup-title">Configurar Serviço</div>
+        </div>
+        <div class="mockup-content">
+            <div class="config-header">
+                <div class="config-title">⚙️ Definições do Serviço</div>
+                <div class="config-subtitle">Escolha o tipo de viatura e urgência</div>
+            </div>
+
+            <!-- Vehicle Selection -->
+            <div class="section">
+                <div class="section-label">🚗 Tipo de Viatura</div>
+                <div class="vehicle-grid">
+                    <div class="vehicle-card">
+                        <div class="vehicle-icon">🏍️</div>
+                        <div class="vehicle-name">Moto</div>
+                        <div class="vehicle-capacity">até 2kg</div>
+                    </div>
+                    <div class="vehicle-card selected">
+                        <div class="vehicle-icon">🚗</div>
+                        <div class="vehicle-name">Carro</div>
+                        <div class="vehicle-capacity">até 50kg</div>
+                    </div>
+                    <div class="vehicle-card">
+                        <div class="vehicle-icon">🚚</div>
+                        <div class="vehicle-name">Furgão</div>
+                        <div class="vehicle-capacity">até 300kg</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Urgency Selection -->
+            <div class="section">
+                <div class="section-label">⏱️ Urgência</div>
+                <div class="urgency-grid">
+                    <div class="urgency-card selected">
+                        <div class="urgency-badge">POPULAR</div>
+                        <div class="urgency-icon">⚡</div>
+                        <div class="urgency-time">1 Hora</div>
+                        <div class="urgency-price">desde €8.50</div>
+                    </div>
+                    <div class="urgency-card">
+                        <div class="urgency-icon">🚀</div>
+                        <div class="urgency-time">4 Horas</div>
+                        <div class="urgency-price">desde €6.00</div>
+                    </div>
+                    <div class="urgency-card">
+                        <div class="urgency-icon">📦</div>
+                        <div class="urgency-time">24 Horas</div>
+                        <div class="urgency-price">desde €4.50</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Options -->
+            <div class="section">
+                <div class="section-label">➕ Opções Adicionais</div>
+                <div class="options-list">
+                    <div class="option-item">
+                        <div class="option-label">
+                            <span>🔄</span>
+                            <span>Retorno do estafeta</span>
+                        </div>
+                        <div class="toggle"></div>
+                    </div>
+                    <div class="option-item">
+                        <div class="option-label">
+                            <span>📝</span>
+                            <span>Assinatura obrigatória</span>
+                        </div>
+                        <div class="toggle active"></div>
+                    </div>
+                    <div class="option-item">
+                        <div class="option-label">
+                            <span>📸</span>
+                            <span>Foto de confirmação</span>
+                        </div>
+                        <div class="toggle active"></div>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-calculate">
+                💰 CALCULAR TARIFA FINAL
+            </button>
+        </div>
+    </div>
+</body>
+</html>

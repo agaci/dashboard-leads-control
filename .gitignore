@@ -39,3 +39,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Legacy — não fazem parte da app Next.js
+docs/
+site_YB/
+YourBox_Base_Conhecimento_100.docx
+yourbox_situacoes_100.json
+
+# Env
+.env*
+!.env.example

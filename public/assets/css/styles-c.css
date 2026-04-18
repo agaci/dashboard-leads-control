@@ -1,0 +1,232 @@
+/**
+ * VARIANTE B - CSS ADICIONAL
+ * Adicionar DEPOIS dos estilos existentes
+ * Apenas estilos NOVOS, não sobrescreve nada
+ */
+
+/* Steps navigation */
+.form-step {
+    display: none;
+}
+
+.form-step.active {
+    display: block;
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Service Scope Alert - Step 1 */
+.service-scope-alert {
+    background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+    border-left: 4px solid #2196f3;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: #1565c0;
+}
+
+.service-scope-alert strong {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.95rem;
+}
+
+.service-scope-alert small {
+    color: #555;
+    font-size: 0.85rem;
+}
+
+/* Price Disclaimer - Step 2 */
+.price-disclaimer {
+    background: #fff3cd;
+    border-left: 4px solid #ffc107;
+    padding: 0.8rem;
+    border-radius: 5px;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: #856404;
+    text-align: left;
+}
+
+.price-disclaimer strong {
+    color: #1a1a1a;
+    display: block;
+    margin-bottom: 0.3rem;
+}
+
+.price-disclaimer small {
+    font-size: 0.8rem;
+    opacity: 0.9;
+}
+
+/* CTA Split - 2 botões lado a lado */
+.cta-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin: 2rem 0;
+}
+
+.cta-option {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+/* Badges */
+.cta-badge {
+    position: absolute;
+    top: -12px;
+    background: #00C851;
+    color: white;
+    padding: 0.3rem 1rem;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(0, 200, 81, 0.3);
+    white-space: nowrap;
+}
+
+.cta-badge-urgent {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    animation: urgentPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes urgentPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.08); }
+}
+
+/* Botões CTA */
+.btn-cta {
+    width: 100%;
+    padding: 1.2rem 1.5rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+    margin-top: 1rem;
+}
+
+.btn-cta:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+}
+
+.btn-cta-primary {
+    background: linear-gradient(135deg, #bed62f 0%, #a8c020 100%);
+    color: #1a1a1a;
+}
+
+.btn-cta-secondary {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+}
+
+/* Descrições */
+.cta-description {
+    font-size: 0.85rem;
+    color: #666;
+    margin: 0;
+    text-align: center;
+}
+
+.cta-description strong {
+    color: #ff6b6b;
+}
+
+/* Botão Voltar */
+.btn-back {
+    background: transparent;
+    color: #666;
+    border: 2px solid #ddd;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 1rem;
+    width: 100%;
+}
+
+.btn-back:hover {
+    background: #f5f5f5;
+    border-color: #bbb;
+}
+
+/* Callback Form Elements */
+.callback-header {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.callback-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    animation: ring 2s ease-in-out infinite;
+}
+
+@keyframes ring {
+    0%, 100% { transform: rotate(0deg); }
+    10%, 30% { transform: rotate(-15deg); }
+    20%, 40% { transform: rotate(15deg); }
+}
+
+.urgency-badge {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53);
+    color: white;
+    padding: 0.8rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-weight: 600;
+    box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+}
+
+.btn-urgent {
+    background: linear-gradient(135deg, #ff6b6b, #ff8e53) !important;
+    color: white !important;
+    animation: urgentGlow 2s ease-in-out infinite;
+}
+
+@keyframes urgentGlow {
+    0%, 100% { box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4); }
+    50% { box-shadow: 0 10px 35px rgba(255, 107, 107, 0.6); }
+}
+
+/* Responsive - Mobile */
+@media (max-width: 768px) {
+    .cta-split {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+    
+    .cta-option {
+        margin-top: 0.5rem;
+    }
+}
+
+.price-prefix {
+    font-size: 0.5em;
+    font-weight: normal;
+    opacity: 0.7;
+}
