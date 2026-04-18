@@ -50,6 +50,7 @@ export interface PartnerPriceResult {
   serviceLabel: string;
   serviceLabelShort: string;
   deliveryWindow: string;
+  deliveryDescription?: string;
   basePrice: number;         // raw cost (cost to YourBox)
   markup: number;            // multiplier applied
   finalPrice: number;        // basePrice * markup (what customer pays)
