@@ -41,7 +41,7 @@ export default function ParceirosPage() {
       body: JSON.stringify({ active: !tariff.active }),
     });
     fetchTariffs();
-    if (selected?._id === tariff._id) setSelected({ ...selected, active: !selected.active });
+    if (selected?._id === tariff._id) setSelected((prev) => prev ? { ...prev, active: !prev.active } : null);
   }
 
   const partners = [...new Set(tariffs.map((t) => t.partner))];
