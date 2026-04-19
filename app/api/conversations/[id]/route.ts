@@ -6,6 +6,23 @@ function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
+// PATCH — actualizar step manualmente (BO)
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    const oid = toOid(id);
+    if (!oid) return Response.json({ error: 'ID inválido' }, { status: 400 });
+    const { step } = await req.json();
+    const allowed = ['CLOSED', 'LEAD_REGISTERED', 'ESCALATED_TO_HUMAN'];
+    if (!allowed.includes(step)) return Response.json({ error: 'Step inválido' }, { status: 400 });
+    const db = await getDb();
+    await db.collection('conversations').updateOne({ _id: oid }, { $set: { step, updatedAt: new Date().toISOString() } });
+    return Response.json({ success: true });
+  } catch (err: any) {
+    return Response.json({ error: err.message }, { status: 500 });
+  }
+}
+
 // GET — conversa completa com histórico
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {

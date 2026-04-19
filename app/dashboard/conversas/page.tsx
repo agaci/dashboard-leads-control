@@ -138,6 +138,17 @@ export default function ConversasPage() {
 
   const canReply = selected && !['LEAD_REGISTERED', 'CLOSED'].includes(selected.step);
 
+  async function setStep(step: ConvStep) {
+    if (!selected?._id) return;
+    await fetch(`/api/conversations/${selected._id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ step }),
+    });
+    await fetchSelected(selected._id);
+    fetchList();
+  }
+
   return (
     <div className="flex h-full neu-bg">
       {/* ── Lista de conversas ──────────────────────────────── */}
@@ -237,8 +248,26 @@ export default function ConversasPage() {
                   )}
                 </div>
               </div>
-              <div className="text-xs text-[--neu-muted]">
-                {selected.history?.length ?? 0} mensagens · {formatTime(selected.createdAt)}
+              <div className="flex items-center gap-2">
+                {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
+                  <>
+                    <button
+                      onClick={() => setStep('LEAD_REGISTERED')}
+                      className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all"
+                    >
+                      ✓ Resolvida
+                    </button>
+                    <button
+                      onClick={() => setStep('CLOSED')}
+                      className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
+                    >
+                      ✕ Fechar
+                    </button>
+                  </>
+                )}
+                <span className="text-xs text-[--neu-muted]">
+                  {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
+                </span>
               </div>
             </div>
 
