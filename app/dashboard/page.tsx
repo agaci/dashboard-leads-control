@@ -554,9 +554,13 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
       <div style={cardS}>
         <p style={sectionTitle}>Mensagem Sistema</p>
         <div style={{ fontSize: 12, color: '#555' }}>
-          {lead.message.split('\n').map((line, i) => (
-            <p key={i} style={{ margin: '0 0 5px 0', lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
-          ))}
+          {lead.message
+            .split(/\n|<br\s*\/?>/i)
+            .map((line) => line.trim())
+            .filter((line) => line.length > 0)
+            .map((line, i) => (
+              <p key={i} style={{ margin: '0 0 8px 0', lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: line }} />
+            ))}
         </div>
       </div>
     </div>
