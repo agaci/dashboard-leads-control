@@ -553,15 +553,11 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
       {/* Mensagem sistema */}
       <div style={cardS}>
         <p style={sectionTitle}>Mensagem Sistema</p>
-        <div style={{ fontSize: 12, color: '#555' }}>
-          {lead.message
-            .split(/\n|<br\s*\/?>/i)
-            .map((line) => line.trim())
-            .filter((line) => line.length > 0)
-            .map((line, i) => (
-              <p key={i} style={{ margin: '0 0 8px 0', lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: line }} />
-            ))}
-        </div>
+        <div
+          className="sys-msg"
+          style={{ fontSize: 12, color: '#555' }}
+          dangerouslySetInnerHTML={{ __html: lead.message.replace(/line-height\s*:\s*[\d.]+\s*;?/gi, 'line-height:1.8;').replace(/<p/gi, '<p style="margin:0 0 7px 0"') }}
+        />
       </div>
     </div>
   );
