@@ -118,10 +118,10 @@ export default function RelatoriosPage() {
 
         {/* KPIs */}
         <div className="flex gap-3 mb-4 flex-wrap">
-          <KPI label="Leads este mês" value={String(kpis.leadsMonth)} sub={growthLabel} color={CYAN} icon="🎯" />
-          <KPI label="Total leads" value={String(kpis.leadsAllTime)} sub="desde o início" icon="📋" />
-          <KPI label="Taxa conversão" value={`${kpis.conversionRate}%`} sub="simulações → confirmadas" color={kpis.conversionRate >= 20 ? '#22c55e' : '#f59e0b'} icon="📈" />
-          <KPI label="Receita estimada" value={`€${kpis.totalRevMonth.toFixed(0)}`} sub={`Média: €${kpis.avgLeadValue.toFixed(0)}/lead`} color="#22c55e" icon="💰" />
+          <KPI label="Leads este mês" value={String(kpis.leadsMonth)} sub={growthLabel} color={CYAN} icon="" />
+          <KPI label="Total leads" value={String(kpis.leadsAllTime)} sub="desde o início" icon="" />
+          <KPI label="Taxa conversão" value={`${kpis.conversionRate}%`} sub="simulações → confirmadas" color={kpis.conversionRate >= 20 ? '#22c55e' : '#f59e0b'} icon="" />
+          <KPI label="Receita estimada" value={`€${kpis.totalRevMonth.toFixed(0)}`} sub={`Média: €${kpis.avgLeadValue.toFixed(0)}/lead`} color="#22c55e" icon="" />
         </div>
 
         {/* Gráfico leads por dia */}
