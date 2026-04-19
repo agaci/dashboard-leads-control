@@ -764,6 +764,7 @@ type AggHint = {
   detourPickupKm: number;
   detourDeliveryKm: number;
   bearingDiff: number;
+  isReturnTrip: boolean;
   driver: { name: string; phone: string } | null;
   driverLocationStale: boolean;
 };
