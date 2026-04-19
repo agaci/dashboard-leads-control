@@ -19,6 +19,7 @@ import {
   normalizeUrgencia,
 } from '@/lib/agent/botResponder';
 import { matchSituacao, matchTriggerCode } from '@/lib/agent/matcher';
+import { findAggregationHints } from '@/lib/agent/aggregation';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { calcAllActiveTariffs, parseWeight } from '@/lib/agent/partnerPricing';
@@ -70,9 +71,25 @@ export async function POST(request: NextRequest) {
         dataUpdate.origem = mensagem;
         break;
 
-      case 'COLLECTING_DESTINO':
+      case 'COLLECTING_DESTINO': {
         dataUpdate.destino = mensagem;
+        // Disparar análise de agregação em background — não bloqueia a resposta ao lead
+        const origemParaAgg = conv.data.origem;
+        const destinoParaAgg = mensagem;
+        if (origemParaAgg) {
+          findAggregationHints(origemParaAgg, destinoParaAgg)
+            .then(async ({ hints }) => {
+              if (hints.length === 0) return;
+              const db = await getDb();
+              await db.collection('conversations').updateOne(
+                { telemovel },
+                { $set: { aggHints: hints, aggHintsAt: new Date(), aggHintsSeen: false } },
+              );
+            })
+            .catch(() => {});
+        }
         break;
+      }
 
       case 'COLLECTING_URGENCIA': {
         const u = normalizeUrgencia(mensagem);

@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
-import { useNotifications } from '@/lib/useNotifications';
+import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
 
@@ -130,10 +130,18 @@ function Tag({ label, type }: { label: string; type: string }) {
 export default function DashboardPage() {
   const [tab, setTab] = useState<NavTab>('leads');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
+  const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
+  const [aggBlink, setAggBlink] = useState(false);
+  const toastCounter = useRef(0);
 
   useNotifications((alert) => {
     if (alert.type === 'escalation') setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'lead')       setBadges((b) => ({ ...b, leads: true }));
+    if (alert.type === 'aggHint') {
+      const id = ++toastCounter.current;
+      setAggToasts((ts) => [...ts, { ...alert, id, expiresAt: Date.now() + 30000 }]);
+      setAggBlink(true);
+    }
   });
 
   const [leads, setLeads] = useState<Lead[]>([]);
@@ -170,6 +178,28 @@ export default function DashboardPage() {
     setBadges((b) => ({ ...b, [t]: false }));
   }
 
+  function dismissAggToast(id: number) {
+    setAggToasts((ts) => {
+      const toast = ts.find((t) => t.id === id);
+      if (toast?.convId) {
+        fetch(`/api/conversations/${toast.convId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ aggHintsSeen: true }),
+        }).catch(() => {});
+      }
+      const remaining = ts.filter((t) => t.id !== id);
+      if (remaining.length === 0) setAggBlink(false);
+      return remaining;
+    });
+  }
+
+  function goToConversas() {
+    switchTab('inbox');
+    setAggBlink(false);
+    setAggToasts([]);
+  }
+
   return (
     <AppShell
       activeTab={tab}
@@ -177,7 +207,10 @@ export default function DashboardPage() {
       leadsCount={total}
       alertsCount={badges.conversas ? 1 : 0}
       inboxBadge={badges.leads ? 1 : 0}
+      aggBlink={aggBlink}
     >
+      {/* Toasts de hipótese de agregação */}
+      <AggToastStack toasts={aggToasts} onDismiss={dismissAggToast} onGoToChat={goToConversas} />
       {/* ── Leads ── */}
       {tab === 'leads' && (
         <>
@@ -392,6 +425,144 @@ export default function DashboardPage() {
   );
 }
 
+// ── Agg Toast Stack ───────────────────────────────────────────────────────────
+
+function AggToastStack({
+  toasts,
+  onDismiss,
+  onGoToChat,
+}: {
+  toasts: (AggHintAlert & { id: number; expiresAt: number })[];
+  onDismiss: (id: number) => void;
+  onGoToChat: () => void;
+}) {
+  // Auto-expirar
+  useEffect(() => {
+    if (toasts.length === 0) return;
+    const id = setInterval(() => {
+      const now = Date.now();
+      toasts.filter((t) => t.expiresAt <= now).forEach((t) => onDismiss(t.id));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [toasts, onDismiss]);
+
+  if (toasts.length === 0) return null;
+
+  return (
+    <>
+      <style>{`
+        @keyframes slideInRight {
+          from { transform: translateX(110%); opacity: 0; }
+          to   { transform: translateX(0);   opacity: 1; }
+        }
+        @keyframes toastPulse {
+          0%, 100% { box-shadow: 0 4px 24px rgba(255,193,7,0.25); }
+          50%       { box-shadow: 0 4px 32px rgba(255,193,7,0.55); }
+        }
+      `}</style>
+      <div style={{
+        position: 'fixed', right: 16, bottom: 16,
+        display: 'flex', flexDirection: 'column-reverse', gap: 10,
+        zIndex: 9999, pointerEvents: 'none',
+      }}>
+        {toasts.map((t, i) => {
+          const timeLeft = Math.max(0, t.expiresAt - Date.now());
+          const progress = (timeLeft / 30000) * 100;
+
+          return (
+            <div
+              key={t.id}
+              style={{
+                width: 360, background: '#1a2332',
+                border: '1.5px solid #ffc107',
+                borderRadius: 12, overflow: 'hidden',
+                animation: 'slideInRight 0.35s cubic-bezier(0.34,1.56,0.64,1), toastPulse 2s ease-in-out infinite',
+                pointerEvents: 'all',
+                opacity: 1 - i * 0.08,
+              }}
+            >
+              {/* Barra de progresso */}
+              <div style={{ height: 3, background: '#2d3748', position: 'relative' }}>
+                <div style={{
+                  position: 'absolute', top: 0, left: 0, height: '100%',
+                  width: `${progress}%`, background: '#ffc107',
+                  transition: 'width 1s linear',
+                }} />
+              </div>
+
+              <div style={{ padding: '12px 14px' }}>
+                {/* Header */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <span style={{
+                    fontSize: 9, fontWeight: 800, letterSpacing: '0.12em',
+                    textTransform: 'uppercase', color: '#1a2332',
+                    background: '#ffc107', padding: '3px 7px', borderRadius: 4,
+                    flexShrink: 0,
+                  }}>AGREGAÇÃO</span>
+                  <span style={{ fontSize: 12, fontWeight: 700, color: '#ffc107' }}>
+                    {t.hintCount} hipótese{t.hintCount > 1 ? 's' : ''} · {t.topScore}% compat.
+                  </span>
+                  {(t as any).isReturnTrip && (
+                    <span style={{ fontSize: 10, color: '#94a3b8', whiteSpace: 'nowrap' }}>↩ volta</span>
+                  )}
+                  <button
+                    onClick={() => onDismiss(t.id)}
+                    style={{
+                      marginLeft: 'auto', background: 'none', border: 'none',
+                      color: 'rgba(255,255,255,0.4)', fontSize: 16, cursor: 'pointer',
+                      padding: '0 2px', lineHeight: 1, flexShrink: 0,
+                    }}
+                  >×</button>
+                </div>
+
+                {/* Referência + rota */}
+                <div style={{ marginBottom: 8 }}>
+                  <span style={{
+                    fontSize: 11, fontWeight: 700, color: '#fff',
+                    background: 'rgba(255,193,7,0.15)', border: '1px solid rgba(255,193,7,0.4)',
+                    padding: '2px 8px', borderRadius: 6, marginRight: 8,
+                  }}>{t.refCode}</span>
+                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>
+                    {t.origem.split(',')[0]} → {t.destino.split(',')[0]}
+                  </span>
+                </div>
+
+                {/* Driver */}
+                {t.topDriver ? (
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.55)', margin: '0 0 10px' }}>
+                    Motorista disponível: <b style={{ color: '#fff' }}>{t.topDriver.name}</b>
+                    {t.topDriver.phone && (
+                      <span style={{ color: '#ffc107', marginLeft: 6 }}>{t.topDriver.phone}</span>
+                    )}
+                  </p>
+                ) : (
+                  <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic', margin: '0 0 10px' }}>
+                    Motorista ainda não atribuído
+                  </p>
+                )}
+
+                {/* Acção */}
+                <button
+                  onClick={onGoToChat}
+                  style={{
+                    width: '100%', padding: '7px 0',
+                    background: '#ffc107', color: '#1a2332',
+                    border: 'none', borderRadius: 7,
+                    fontSize: 12, fontWeight: 800, cursor: 'pointer',
+                    letterSpacing: '0.03em',
+                  }}
+                >
+                  Ir ao chat {t.refCode}
+                </button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </>
+  );
+}
+
 // ── Coming Soon ───────────────────────────────────────────────────────────────
 
 const COMING_SOON_META: Record<string, { label: string; icon: string; desc: string }> = {
@@ -564,6 +735,11 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
         </div>
       )}
 
+      {/* Hipóteses de agregação */}
+      {lead.messageType === 'newLead' && d.origem && d.destino && (
+        <AggregationHints origem={d.origem} destino={d.destino} />
+      )}
+
       {/* Mensagem sistema */}
       <div style={cardS}>
         <p style={sectionTitle}>Mensagem Sistema</p>
@@ -573,6 +749,130 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
           dangerouslySetInnerHTML={{ __html: lead.message.replace(/line-height\s*:\s*[\d.]+\s*;?/gi, 'line-height:1.8;').replace(/<p/gi, '<p style="margin:0 0 7px 0"') }}
         />
       </div>
+    </div>
+  );
+}
+
+// ── Aggregation Hints ─────────────────────────────────────────────────────────
+
+type AggHint = {
+  serviceId: string;
+  score: number;
+  serviceTime: string | null;
+  pickup: string | null;
+  delivery: string | null;
+  detourPickupKm: number;
+  detourDeliveryKm: number;
+  bearingDiff: number;
+  driver: { name: string; phone: string } | null;
+  driverLocationStale: boolean;
+};
+
+function AggregationHints({ origem, destino }: { origem: string; destino: string }) {
+  const [hints, setHints] = useState<AggHint[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+
+  async function load() {
+    if (hints !== null) { setOpen((o) => !o); return; }
+    setLoading(true); setOpen(true);
+    try {
+      const res = await fetch(`/api/aggregation-hints?origem=${encodeURIComponent(origem)}&destino=${encodeURIComponent(destino)}`);
+      const data = await res.json();
+      setHints(data.success ? data.hints : []);
+    } catch {
+      setHints([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  const sectionTitle: React.CSSProperties = {
+    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+    letterSpacing: '0.07em', color: '#aaa', marginBottom: 10,
+  };
+
+  const cardS: React.CSSProperties = {
+    background: '#fff', borderRadius: 10, border: `1px solid ${BORDER}`,
+    padding: '14px 18px', marginBottom: 10,
+  };
+
+  const hasHints = hints !== null && hints.length > 0;
+
+  return (
+    <div style={cardS}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: open ? 12 : 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <p style={{ ...sectionTitle, margin: 0 }}>Hipóteses de Agregação</p>
+          {hints !== null && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
+              background: hasHints ? '#fff8e1' : '#f5f5f5',
+              color: hasHints ? '#e65100' : '#aaa',
+              border: `1px solid ${hasHints ? '#ffe082' : '#e0e0e0'}`,
+            }}>
+              {hasHints ? `${hints.length} encontrada${hints.length > 1 ? 's' : ''}` : 'nenhuma'}
+            </span>
+          )}
+        </div>
+        <button
+          onClick={load}
+          style={{
+            fontSize: 11, color: CYAN, border: `1px solid ${CYAN}`,
+            borderRadius: 6, padding: '3px 10px', background: '#fff', cursor: 'pointer',
+          }}
+        >
+          {loading ? 'A analisar...' : hints === null ? 'Analisar' : open ? 'Fechar' : 'Ver'}
+        </button>
+      </div>
+
+      {open && (
+        <>
+          {loading && <p style={{ fontSize: 12, color: '#aaa' }}>A procurar serviços em rota compatível...</p>}
+          {!loading && hints?.length === 0 && (
+            <p style={{ fontSize: 12, color: '#aaa' }}>Sem serviços activos com rota compatível nas próximas 4 horas.</p>
+          )}
+          {!loading && hints && hints.length > 0 && hints.map((h) => (
+            <div key={h.serviceId} style={{
+              background: '#fffbeb', border: '1px solid #ffe082',
+              borderRadius: 8, padding: '10px 14px', marginBottom: 8,
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                <span style={{
+                  fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
+                  textTransform: 'uppercase', color: '#e65100',
+                  background: '#fff8e1', border: '1px solid #ffe082',
+                  padding: '2px 6px', borderRadius: 4,
+                }}>{h.isReturnTrip ? 'VOLTA' : 'HIPÓTESE'}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: '#e65100' }}>
+                  Compatibilidade {h.score}%
+                </span>
+                {h.serviceTime && (
+                  <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>
+                    {h.serviceTime.slice(11, 16)}
+                  </span>
+                )}
+              </div>
+              <div style={{ fontSize: 11, color: '#555', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 16px' }}>
+                {h.pickup && <span>Recolha: <b>{h.pickup.split(',')[0]}</b></span>}
+                {h.delivery && <span>Entrega: <b>{h.delivery.split(',')[0]}</b></span>}
+                <span>Desvio recolha: <b>{h.detourPickupKm} km</b></span>
+                <span>Desvio entrega: <b>{h.detourDeliveryKm} km</b></span>
+              </div>
+              {h.driver ? (
+                <div style={{ marginTop: 6, fontSize: 11, color: '#555' }}>
+                  Motorista: <b style={{ color: NAVY }}>{h.driver.name}</b>
+                  {h.driver.phone && <span style={{ color: CYAN, marginLeft: 8 }}>{h.driver.phone}</span>}
+                </div>
+              ) : (
+                <div style={{ marginTop: 6, fontSize: 11, color: '#aaa', fontStyle: 'italic' }}>
+                  Motorista ainda não atribuído
+                </div>
+              )}
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }

@@ -6,9 +6,10 @@
 (function () {
   'use strict';
 
-  const API_BASE = 'http://localhost:3000'; // --- IGNORE --- URL do backend Next.js (ajustar para producao)
-  //const API_BASE = 'https://leads.comgo.pt';
+  //const API_BASE = 'http://localhost:3000'; // dev local
+  const API_BASE = 'https://leads.comgo.pt'; // producao
   const POLL_INTERVAL = 3000; // ms
+  const TYPING_SPEED_MS = 11; // ms por caracter (typewriter)
 
   let chatState = {
     conversationId: null,
@@ -17,9 +18,9 @@
     polling: null,
     lastMsgCount: 0,
     sending: false,
+    typing: false, // true enquanto animação typewriter está a correr
   };
 
-  // Gerar sessionId fresco a cada conversa (evita reutilizar estado antigo)
   function newSessionId() {
     return 'web_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
   }
@@ -33,27 +34,73 @@
       .replace(/\n/g, '<br>');
   }
 
-  // Adicionar bolha de mensagem ao chat
+  // Adicionar bolha de mensagem instantânea
   function appendBubble(role, text) {
     const area = document.getElementById('ybChatMessages');
     if (!area) return;
-
     const wrap = document.createElement('div');
     wrap.className = 'yb-msg yb-msg--' + role;
-
     const bubble = document.createElement('div');
     bubble.className = 'yb-bubble';
     bubble.innerHTML = mdToHtml(text);
-
     wrap.appendChild(bubble);
     area.appendChild(wrap);
     area.scrollTop = area.scrollHeight;
   }
 
-  // Mostrar indicador "a escrever..."
-  function showTyping() {
+  // Adicionar bolha do bot com efeito typewriter
+  function appendBubbleTyped(text, onDone) {
     const area = document.getElementById('ybChatMessages');
     if (!area) return;
+
+    const wrap = document.createElement('div');
+    wrap.className = 'yb-msg yb-msg--bot';
+    const bubble = document.createElement('div');
+    bubble.className = 'yb-bubble';
+    bubble.textContent = '';
+    wrap.appendChild(bubble);
+    area.appendChild(wrap);
+    area.scrollTop = area.scrollHeight;
+
+    chatState.typing = true;
+
+    let i = 0;
+    let accumulated = '';
+
+    function typeNext() {
+      if (i >= text.length) {
+        // Terminou — aplicar HTML com formatação
+        bubble.innerHTML = mdToHtml(text);
+        area.scrollTop = area.scrollHeight;
+        chatState.typing = false;
+        if (onDone) onDone();
+        return;
+      }
+
+      // Avançar por blocos de 1-2 caracteres para ser mais fluido
+      const chunk = text.slice(i, i + (Math.random() > 0.7 ? 2 : 1));
+      accumulated += chunk;
+      i += chunk.length;
+
+      bubble.textContent = accumulated;
+
+      // Scroll suave — só a cada 5 chars para não ser pesado
+      if (i % 5 === 0 || i >= text.length) {
+        area.scrollTop = area.scrollHeight;
+      }
+
+      // Variação ligeira de velocidade para parecer natural
+      const delay = TYPING_SPEED_MS + (Math.random() > 0.85 ? 30 : 0);
+      setTimeout(typeNext, delay);
+    }
+
+    typeNext();
+  }
+
+  // Indicador "a escrever..."
+  function showTyping() {
+    const area = document.getElementById('ybChatMessages');
+    if (!area || document.getElementById('ybTyping')) return;
     const el = document.createElement('div');
     el.id = 'ybTyping';
     el.className = 'yb-msg yb-msg--bot';
@@ -67,7 +114,7 @@
     if (el) el.remove();
   }
 
-  // Mostrar botoes de resposta rapida
+  // Botões de resposta rápida — só aparecem após typewriter terminar
   function showQuickReplies(replies) {
     const container = document.getElementById('ybQuickReplies');
     if (!container || !replies || !replies.length) return;
@@ -84,7 +131,6 @@
     });
   }
 
-  // Bloquear/desbloquear input
   function setInputDisabled(disabled) {
     const input = document.getElementById('ybChatInput');
     const btn = document.getElementById('ybChatSend');
@@ -92,18 +138,15 @@
     if (btn) btn.disabled = disabled;
   }
 
-  // Mostrar estado final (lead registada / escalada)
   function showFinalState(step) {
-    document.getElementById('ybQuickReplies').innerHTML = '';
+    var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
 
     if (step === 'ESCALATED_TO_HUMAN') {
-      // Manter input e polling — utilizador pode escrever ao agente humano
       if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A falar com um agente. Pode continuar a escrever aqui.</p>';
       return;
     }
 
-    // Nos outros estados finais: bloquear input e parar polling
     setInputDisabled(true);
     stopPolling();
     if (!footer) return;
@@ -114,7 +157,7 @@
     }
   }
 
-  // Polling — verificar novas mensagens
+  // Polling — só acrescenta mensagens novas (não limpa o DOM)
   function startPolling() {
     stopPolling();
     chatState.polling = setInterval(pollMessages, POLL_INTERVAL);
@@ -128,24 +171,36 @@
   }
 
   async function pollMessages() {
-    if (!chatState.conversationId) return;
+    if (!chatState.conversationId || chatState.sending || chatState.typing) return;
     try {
       const res = await fetch(API_BASE + '/api/conversations/' + chatState.conversationId);
       const data = await res.json();
       if (!data.success) return;
+
       const conv = data.conversation;
       const msgs = conv.history || [];
-      // Sincronizar mensagens novas
+
       if (msgs.length > chatState.lastMsgCount) {
-        const area = document.getElementById('ybChatMessages');
-        if (area) area.innerHTML = '';
-        msgs.forEach(function (m) {
-          var role = m.role === 'lead' ? 'lead' : 'bot';
-          appendBubble(role, m.text);
-        });
+        const newMsgs = msgs.slice(chatState.lastMsgCount);
         chatState.lastMsgCount = msgs.length;
+
+        // Enfileirar mensagens novas para não se sobreporem
+        let chain = Promise.resolve();
+        newMsgs.forEach(function (m) {
+          chain = chain.then(function () {
+            return new Promise(function (resolve) {
+              var role = m.role === 'lead' ? 'lead' : 'bot';
+              if (role === 'bot') {
+                appendBubbleTyped(m.text, resolve);
+              } else {
+                appendBubble('lead', m.text);
+                resolve();
+              }
+            });
+          });
+        });
       }
-      // Verificar estado final
+
       const done = ['LEAD_REGISTERED', 'CLOSED', 'ESCALATED_TO_HUMAN'];
       if (done.includes(conv.step)) {
         showFinalState(conv.step);
@@ -155,13 +210,13 @@
 
   // Enviar mensagem
   async function sendMessage(text) {
-    if (!text || !text.trim() || chatState.sending) return;
+    if (!text || !text.trim() || chatState.sending || chatState.typing) return;
     if (!chatState.conversationId) return;
 
     const msg = text.trim();
     chatState.sending = true;
     setInputDisabled(true);
-    document.getElementById('ybQuickReplies').innerHTML = '';
+    var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
 
     appendBubble('lead', msg);
     showTyping();
@@ -181,18 +236,21 @@
       }
 
       if (data.message) {
-        appendBubble('bot', data.message);
         chatState.lastMsgCount += 2;
-      }
-
-      if (data.quickReplies && data.quickReplies.length) {
-        showQuickReplies(data.quickReplies);
-      }
-
-      const done = ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED'];
-      if (done.includes(data.step)) {
-        showFinalState(data.step);
-        return;
+        appendBubbleTyped(data.message, function () {
+          // Quick replies só aparecem após o bot "terminar de escrever"
+          if (data.quickReplies && data.quickReplies.length) {
+            showQuickReplies(data.quickReplies);
+          }
+          const done = ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED'];
+          if (done.includes(data.step)) {
+            showFinalState(data.step);
+          }
+        });
+      } else {
+        if (data.quickReplies && data.quickReplies.length) showQuickReplies(data.quickReplies);
+        const done = ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED'];
+        if (done.includes(data.step)) showFinalState(data.step);
       }
     } catch (e) {
       removeTyping();
@@ -205,22 +263,18 @@
     }
   }
 
-  // Iniciar conversa — chamado apos obter resultado da API de simulacao
+  // Iniciar conversa
   window.ybChat = {
     start: async function (formData) {
-      // formData: { origem, destino, viatura, urgencia, priceData }
       const sessionId = newSessionId();
       chatState.sessionId = sessionId;
 
       const chatSection = document.getElementById('ybChatSection');
-      if (chatSection) {
-        chatSection.style.display = 'block';
-      }
+      if (chatSection) chatSection.style.display = 'block';
 
-      // Limpar mensagens anteriores
       const area = document.getElementById('ybChatMessages');
       if (area) area.innerHTML = '';
-      document.getElementById('ybQuickReplies').innerHTML = '';
+      var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
 
       showTyping();
 
@@ -237,7 +291,6 @@
           }),
         });
         const data = await res.json();
-        console.log('[YB Chat] /start response:', data);
         removeTyping();
 
         if (!data.success) {
@@ -250,23 +303,25 @@
         chatState.step = data.step;
         chatState.lastMsgCount = 1;
 
-        appendBubble('bot', data.message);
+        appendBubbleTyped(data.message, function () {
+          if (data.quickReplies && data.quickReplies.length) {
+            showQuickReplies(data.quickReplies);
+          }
+          setInputDisabled(false);
+          document.getElementById('ybChatInput') && document.getElementById('ybChatInput').focus();
+        });
 
-        if (data.quickReplies && data.quickReplies.length) {
-          showQuickReplies(data.quickReplies);
-        }
-
-        setInputDisabled(false);
-        document.getElementById('ybChatInput')?.focus();
         startPolling();
       } catch (e) {
+        console.error('[YB Chat] start error:', e);
         removeTyping();
-        appendBubble('bot', 'Erro de ligacao ao assistente. Por favor tente novamente.');
+        appendBubble('bot', 'Não foi possível ligar ao assistente. Verifique a sua ligação e tente novamente.');
+        setInputDisabled(false);
       }
     },
   };
 
-  // Inicializar listeners do chat quando DOM estiver pronto
+  // Inicializar listeners
   function initChatListeners() {
     const input = document.getElementById('ybChatInput');
     const btn = document.getElementById('ybChatSend');
@@ -280,8 +335,8 @@
     }
     if (btn) {
       btn.addEventListener('click', function () {
-        const input = document.getElementById('ybChatInput');
-        if (input) sendMessage(input.value);
+        var inp = document.getElementById('ybChatInput');
+        if (inp) sendMessage(inp.value);
       });
     }
   }

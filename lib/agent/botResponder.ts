@@ -13,7 +13,7 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
     text: 'E o local de *entrega*?',
   },
   COLLECTING_VIATURA: {
-    text: 'Que tipo de transporte precisa?\n\n*Moto* — até 20 kg\n*Furgão Classe 1* — até 150 kg\n*Furgão Classe 2* — acima de 150 kg',
+    text: 'Que tipo de transporte precisa?\n\n*Moto* — até 2 kg\n*Furgão Classe 1* — até 150 kg\n*Furgão Classe 2* — acima de 150 kg',
     quickReplies: ['Moto', 'Furgão Classe 1', 'Furgão Classe 2'],
   },
   COLLECTING_URGENCIA: {

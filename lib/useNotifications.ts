@@ -1,52 +1,29 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
+import { playLeadSound, playEscalationSound, playAggSound } from './soundManager';
 
-type NotifCounts = { escalations: number; leads: number };
-type NotifAlert = { type: 'escalation' | 'lead' };
+export type AggHintAlert = {
+  type: 'aggHint';
+  convId: string;
+  refCode: string;
+  telemovel: string;
+  origem: string;
+  destino: string;
+  hintCount: number;
+  topScore: number;
+  topDriver: { name: string; phone: string } | null;
+};
 
-// ── Sons via Web Audio API ───────────────────────────────────────────────────
+export type NotifAlert =
+  | { type: 'escalation' | 'lead' }
+  | AggHintAlert;
 
-function getAudioCtx(): AudioContext | null {
-  if (typeof window === 'undefined') return null;
-  return new (window.AudioContext ?? (window as any).webkitAudioContext)();
-}
-
-function playEscalationSound() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  // Dois bips urgentes
-  [0, 0.25].forEach((delay) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'square';
-    osc.frequency.value = 880;
-    gain.gain.setValueAtTime(0.15, ctx.currentTime + delay);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.18);
-    osc.start(ctx.currentTime + delay);
-    osc.stop(ctx.currentTime + delay + 0.2);
-  });
-}
-
-function playLeadSound() {
-  const ctx = getAudioCtx();
-  if (!ctx) return;
-  // Acorde ascendente agradável
-  [523, 659, 784].forEach((freq, i) => {
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'sine';
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(0.12, ctx.currentTime + i * 0.12);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.12 + 0.35);
-    osc.start(ctx.currentTime + i * 0.12);
-    osc.stop(ctx.currentTime + i * 0.12 + 0.4);
-  });
-}
+type NotifResponse = {
+  escalations: number;
+  leads: number;
+  aggHints: Omit<AggHintAlert, 'type'>[];
+};
 
 // ── Hook principal ───────────────────────────────────────────────────────────
 
@@ -61,7 +38,7 @@ export function useNotifications(
   const poll = useCallback(async () => {
     try {
       const res = await fetch(`/api/notifications?since=${sinceRef.current.toISOString()}`);
-      const data: NotifCounts = await res.json();
+      const data: NotifResponse = await res.json();
       const now = new Date();
 
       if (data.escalations > 0) {
@@ -71,6 +48,10 @@ export function useNotifications(
       if (data.leads > 0) {
         playLeadSound();
         onAlertRef.current({ type: 'lead' });
+      }
+      for (const hint of data.aggHints ?? []) {
+        playAggSound();
+        onAlertRef.current({ type: 'aggHint', ...hint });
       }
 
       sinceRef.current = now;

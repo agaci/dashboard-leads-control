@@ -9,6 +9,7 @@ interface AppShellProps {
   leadsCount?: number;
   alertsCount?: number;
   inboxBadge?: number;
+  aggBlink?: boolean;
 }
 
 export default function AppShell({
@@ -18,6 +19,7 @@ export default function AppShell({
   leadsCount,
   alertsCount,
   inboxBadge,
+  aggBlink,
 }: AppShellProps) {
   return (
     <div
@@ -27,6 +29,7 @@ export default function AppShell({
         overflow: 'hidden',
         fontFamily: 'Nunito, system-ui, sans-serif',
         background: '#f5f6fa',
+        position: 'relative',
       }}
     >
       <NavSidebar
@@ -35,6 +38,7 @@ export default function AppShell({
         leadsCount={leadsCount}
         alertsCount={alertsCount}
         inboxBadge={inboxBadge}
+        aggBlink={aggBlink}
       />
       <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
         {children}

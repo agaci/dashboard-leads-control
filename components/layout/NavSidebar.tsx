@@ -1,5 +1,8 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound } from '@/lib/soundManager';
+
 export type NavTab =
   | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios'
@@ -11,6 +14,7 @@ interface NavSidebarProps {
   leadsCount?: number;
   alertsCount?: number;
   inboxBadge?: number;
+  aggBlink?: boolean;
 }
 
 // ── SVG icons (17×17, stroke currentColor) ───────────────────────────────────
@@ -161,6 +165,105 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
   );
 }
 
+// ── Sound Control ────────────────────────────────────────────────────────────
+
+const VOL_STEPS = [0, 0.3, 0.65, 1];
+
+function SoundButton() {
+  const [vol, setVol] = useState(0.5);
+  const [showSlider, setShowSlider] = useState(false);
+
+  useEffect(() => {
+    setVol(getVolume());
+    const handler = (e: Event) => setVol((e as CustomEvent).detail);
+    window.addEventListener('ybvolumechange', handler);
+    return () => window.removeEventListener('ybvolumechange', handler);
+  }, []);
+
+  function cycleVolume() {
+    const idx = VOL_STEPS.findIndex((v) => v >= vol - 0.01);
+    const next = VOL_STEPS[(idx + 1) % VOL_STEPS.length];
+    setVolume(next);
+    setVol(next);
+    if (next > 0) {
+      // tocar preview do som actual para confirmar nível
+      setTimeout(() => playLeadSound(), 50);
+    }
+  }
+
+  const icon =
+    vol === 0 ? '🔇'
+    : vol <= 0.3 ? '🔈'
+    : vol <= 0.65 ? '🔉'
+    : '🔊';
+
+  const volPct = Math.round(vol * 100);
+
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <button
+        onClick={cycleVolume}
+        onContextMenu={(e) => { e.preventDefault(); setShowSlider((s) => !s); }}
+        title={`Som: ${volPct}% — clique para ciclar, clique-direito para controlo fino`}
+        style={{
+          width: 44, height: 32, borderRadius: 8, border: 'none',
+          background: 'transparent', cursor: 'pointer',
+          fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: vol === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)',
+          transition: 'color 0.2s',
+        }}
+      >
+        {icon}
+      </button>
+
+      {showSlider && (
+        <div style={{
+          position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+          background: '#1a2332', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 10, padding: '10px 12px', width: 140, zIndex: 200,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        }}>
+          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: '0 0 6px', textAlign: 'center' }}>
+            Volume — {volPct}%
+          </p>
+          <input
+            type="range" min={0} max={100} step={5}
+            value={volPct}
+            onChange={(e) => { const v = parseInt(e.target.value) / 100; setVolume(v); setVol(v); }}
+            onMouseUp={() => { if (vol > 0) playLeadSound(); }}
+            style={{ width: '100%', accentColor: '#00bcd4' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 4 }}>
+            {[
+              { label: 'Lead', fn: playLeadSound },
+              { label: 'Urgente', fn: playEscalationSound },
+              { label: 'Agreg.', fn: playAggSound },
+            ].map(({ label, fn }) => (
+              <button key={label} onClick={fn}
+                style={{
+                  flex: 1, fontSize: 9, padding: '4px 2px', borderRadius: 5,
+                  border: '1px solid rgba(255,255,255,0.12)',
+                  background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)',
+                  cursor: 'pointer',
+                }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => setShowSlider(false)}
+            style={{
+              marginTop: 8, width: '100%', fontSize: 10, padding: '4px',
+              borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+            }}>fechar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Divider ───────────────────────────────────────────────────────────────────
 
 function Divider() {
@@ -177,6 +280,7 @@ export default function NavSidebar({
   leadsCount = 41,
   alertsCount = 53,
   inboxBadge = 7,
+  aggBlink = false,
 }: NavSidebarProps) {
   return (
     <nav
@@ -189,8 +293,31 @@ export default function NavSidebar({
         userSelect: 'none',
       }}
     >
+      {/* CSS para animações */}
+      <style>{`
+        @keyframes aggPulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.4; transform: scale(1.35); }
+        }
+        @keyframes aggRing {
+          0% { box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
+          70% { box-shadow: 0 0 0 8px rgba(255,193,7,0); }
+          100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+        }
+      `}</style>
+      {/* Indicador de agregação — pulsa âmbar quando há hipóteses não vistas */}
+      {aggBlink && (
+        <div style={{
+          position: 'absolute', top: 8, left: 8,
+          width: 10, height: 10, borderRadius: '50%',
+          background: '#ffc107',
+          animation: 'aggPulse 1s ease-in-out infinite, aggRing 1.5s ease-out infinite',
+          zIndex: 10,
+        }} />
+      )}
+
       {/* Logo */}
-      <div style={{ marginBottom: 16, width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ marginBottom: 26, width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" alt="YourBox" style={{ width: 48, height: 'auto', display: 'block' }} />
       </div>
@@ -229,6 +356,8 @@ export default function NavSidebar({
           {alertsCount}
         </span>
       </div>
+
+      <SoundButton />
 
       <Divider />
 
