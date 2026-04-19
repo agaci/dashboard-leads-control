@@ -11,9 +11,10 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
 
     const filter: Record<string, unknown> = { companyProvider: 'Yourbox' };
-    if (type === 'leads')       filter.messageType = 'newLead';
-    else if (type === 'sims')   filter.messageType = { $in: ['preLeadSimulation', 'clientSimulation'] };
-    else                        filter.messageType = { $in: ['newLead', 'preLeadSimulation', 'clientSimulation'] };
+    if (type === 'leads')        filter.messageType = 'newLead';
+    else if (type === 'sims')    filter.messageType = { $in: ['preLeadSimulation', 'clientSimulation'] };
+    else if (type === 'urgente') { filter.messageType = 'newLead'; filter['leadData.urgencia'] = '1 Hora'; }
+    else                         filter.messageType = { $in: ['newLead', 'preLeadSimulation', 'clientSimulation'] };
 
     const [docs, total] = await Promise.all([
       db.collection('messages')

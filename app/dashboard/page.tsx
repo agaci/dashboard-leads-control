@@ -138,7 +138,7 @@ export default function DashboardPage() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'leads' | 'sims'>('all');
+  const [filter, setFilter] = useState<'all' | 'leads' | 'sims' | 'urgente'>('all');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
   const LIMIT = 20;
@@ -215,7 +215,7 @@ export default function DashboardPage() {
                   return (
                     <button
                       key={f}
-                      onClick={() => setFilter(f === 'urgente' ? 'all' : f as any)}
+                      onClick={() => setFilter(f as any)}
                       style={{
                         padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer',
                         border: `1px solid ${active ? CYAN : BORDER}`,
