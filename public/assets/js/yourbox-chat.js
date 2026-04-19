@@ -6,8 +6,8 @@
 (function () {
   'use strict';
 
-  // Apontar para o servidor Next.js local (alterar em producao)
-  const API_BASE = 'http://localhost:3000';
+  const API_BASE = 'http://localhost:3000'; // --- IGNORE --- URL do backend Next.js (ajustar para producao)
+  //const API_BASE = 'https://leads.comgo.pt';
   const POLL_INTERVAL = 3000; // ms
 
   let chatState = {
