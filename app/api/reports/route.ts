@@ -32,7 +32,7 @@ export async function GET() {
       // Leads por dia (últimos 30 dias)
       db.collection('messages').aggregate([
         { $match: { companyProvider: 'Yourbox', messageType: 'newLead', timeStamp: { $gte: startOf30Days } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$timeStamp', timezone: 'Europe/Lisbon' } }, count: { $sum: 1 } } },
+        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$timeStamp' } }, count: { $sum: 1 } } },
         { $sort: { _id: 1 } },
       ]).toArray(),
       // Leads por fonte
@@ -120,6 +120,6 @@ export async function GET() {
       },
     });
   } catch (err: any) {
-    return Response.json({ error: err.message }, { status: 500 });
+    return Response.json({ success: false, error: err.message, stack: err.stack?.slice(0, 300) }, { status: 500 });
   }
 }
