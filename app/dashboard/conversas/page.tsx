@@ -121,6 +121,10 @@ export default function ConversasPage() {
     fetchList();
   }
 
+  function refCode(id: string) {
+    return '#' + id.slice(-5).toUpperCase();
+  }
+
   function formatTime(ts: string) {
     return new Date(ts).toLocaleString('pt-PT', {
       timeZone: 'Europe/Lisbon',
@@ -188,7 +192,7 @@ export default function ConversasPage() {
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-sm font-semibold" style={{ color: 'var(--neu-fg)' }}>
-                    {conv.data?.nome ?? conv.telemovel}
+                    {conv.data?.nome ?? refCode(conv._id)}
                   </span>
                   <span className="text-xs text-[--neu-muted]">{formatTime(conv.updatedAt)}</span>
                 </div>
@@ -228,11 +232,9 @@ export default function ConversasPage() {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold" style={{ color: 'var(--neu-fg)' }}>
-                    {selected.data?.nome ?? selected.telemovel}
+                    {selected.data?.nome ?? refCode(selected._id)}
                   </span>
-                  {selected.data?.nome && (
-                    <span className="text-sm text-[--neu-muted]">{selected.telemovel}</span>
-                  )}
+                  <span className="text-xs text-[--neu-muted] font-mono">{refCode(selected._id)}</span>
                   <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stepColor(selected.step)}`}>
                     {STEP_LABEL[selected.step]}
                   </span>
