@@ -553,7 +553,11 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
       {/* Mensagem sistema */}
       <div style={cardS}>
         <p style={sectionTitle}>Mensagem Sistema</p>
-        <div style={{ fontSize: 12, color: '#555', lineHeight: 2 }} dangerouslySetInnerHTML={{ __html: lead.message }} />
+        <div style={{ fontSize: 12, color: '#555' }}>
+          {lead.message.split('\n').map((line, i) => (
+            <p key={i} style={{ margin: '0 0 5px 0', lineHeight: 1.7 }} dangerouslySetInnerHTML={{ __html: line || '&nbsp;' }} />
+          ))}
+        </div>
       </div>
     </div>
   );
