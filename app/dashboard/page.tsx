@@ -5,6 +5,7 @@ import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
+import RelatoriosPage from './relatorios/page';
 import { useNotifications } from '@/lib/useNotifications';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
@@ -370,7 +371,13 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {(tab === 'clientes' || tab === 'relatorios') && (
+      {tab === 'relatorios' && (
+        <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <RelatoriosPage />
+        </div>
+      )}
+
+      {tab === 'clientes' && (
         <ComingSoon tab={tab} />
       )}
 
