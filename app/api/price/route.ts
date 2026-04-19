@@ -360,7 +360,8 @@ export async function GET(request: NextRequest) {
   const priceResult = calculatePrice(fixResult, { type, precedence }, settings);
 
   const priceCalculated = priceResult.maxPrice;
-  const discount        = priceCalculated * 0.1;
+  const discountRate    = settings.discountPercent ?? 0.1;
+  const discount        = priceCalculated * discountRate;
   const priceWithDiscount = priceCalculated - discount;
 
   // Roteamento

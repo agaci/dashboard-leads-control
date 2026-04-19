@@ -63,7 +63,8 @@ export async function POST(request: NextRequest) {
 
           const priceResult = calculatePrice(fixResult, { type, precedence }, settings);
           const priceCalculated = priceResult.maxPrice;
-          const discount = priceCalculated * 0.1;
+          const discountRate = settings.discountPercent ?? 0.1;
+          const discount = priceCalculated * discountRate;
           const priceWithDiscount = priceCalculated - discount;
 
           Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal });
