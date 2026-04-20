@@ -40,6 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# Chat widget — ficheiro gerido fora do repo
+public/assets/js/yourbox-chat.js
+
 # Legacy — não fazem parte da app Next.js
 docs/
 site_YB/
