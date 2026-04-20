@@ -6,7 +6,7 @@ import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound 
 export type NavTab =
   | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
-  | 'routing';
+  | 'routing' | 'config';
 
 interface NavSidebarProps {
   activeTab: NavTab;
@@ -374,10 +374,9 @@ export default function NavSidebar({
 
       <Divider />
 
-      {/* Bottom: Perfil + Config */}
+      {/* Bottom: Perfil */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
-        <NavItem id="routing" label="Perfil"  icon={<IcoPerfil />}  active={false} onClick={() => {}} />
-        <NavItem id="routing" label="Config"  icon={<IcoConfig />}  active={activeTab === 'routing'} onClick={() => onTabChange('routing')} />
+        <NavItem id="config" label="Perfil" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
       </div>
     </nav>
   );

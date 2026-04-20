@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react';
 import { signIn } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 function LoginForm() {
   const router = useRouter();
@@ -36,11 +37,9 @@ function LoginForm() {
 
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, borderRadius: 10, background: 'hsl(13 100% 65%)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, color: '#fff', fontSize: 14 }}>YB</div>
-            <span style={{ fontWeight: 700, fontSize: 20, color: 'hsl(235 21% 21%)' }}>YourBox</span>
-          </div>
-          <p style={{ color: 'hsl(235 15% 46%)', fontSize: 14, marginTop: 6 }}>Dashboard interno</p>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo_original_simples.png" alt="YourBox" style={{ height: 48, width: 'auto', display: 'block', margin: '0 auto 10px' }} />
+          <span style={{ fontWeight: 700, fontSize: 18, color: 'hsl(235 21% 21%)' }}>dashboard <span style={{ color: 'hsl(13 100% 65%)' }}>LEADS</span></span>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -88,6 +87,13 @@ function LoginForm() {
           >
             {loading ? 'A entrar...' : 'Entrar'}
           </button>
+
+          <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#888' }}>
+            Ainda não tens conta?{' '}
+            <Link href="/signup" style={{ color: 'hsl(13 100% 65%)', fontWeight: 600, textDecoration: 'none' }}>
+              Criar conta
+            </Link>
+          </p>
         </form>
       </div>
     </div>

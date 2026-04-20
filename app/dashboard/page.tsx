@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSession, signOut } from 'next-auth/react';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import ConhecimentoPage from './conhecimento/page';
@@ -430,6 +431,12 @@ export default function DashboardPage() {
           </div>
         </div>
       )}
+
+      {tab === 'config' && (
+        <div style={{ flex: 1, overflowY: 'auto', height: '100%' }}>
+          <ConfigPage />
+        </div>
+      )}
     </AppShell>
   );
 }
@@ -732,6 +739,264 @@ function AgregacoesPage({ onGoToConv }: { onGoToConv: (convId: string) => void }
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+// ── Config / Gestão de utilizadores ──────────────────────────────────────────
+
+const ROLE_LABEL: Record<string, string> = {
+  administrator:       'Admin',
+  Operator:            'Operador',
+  commissionOperator:  'Comissão',
+};
+const ROLE_COLOR: Record<string, [string, string]> = {
+  administrator:      ['#1a2332', '#fff'],
+  Operator:           ['#e3f2fd', '#1565c0'],
+  commissionOperator: ['#f3e5f5', '#6a1b9a'],
+};
+
+type DashUser = {
+  _id: string;
+  name: string;
+  email: string;
+  role: string;
+  active: boolean;
+  createdAt: string;
+};
+
+function ConfigPage() {
+  const { data: session } = useSession();
+  const selfRole = (session?.user as any)?.role ?? '';
+  const selfId   = (session?.user as any)?.id   ?? '';
+  const isAdmin  = selfRole === 'administrator';
+
+  const [users, setUsers]         = useState<DashUser[]>([]);
+  const [loading, setLoading]     = useState(true);
+  const [editId, setEditId]       = useState<string | null>(null);
+  const [showCreate, setShowCreate] = useState(false);
+
+  // Form criar
+  const [newName, setNewName]     = useState('');
+  const [newEmail, setNewEmail]   = useState('');
+  const [newPass, setNewPass]     = useState('');
+  const [newRole, setNewRole]     = useState('Operator');
+
+  // Form editar password própria
+  const [myPass, setMyPass]       = useState('');
+  const [myPassMsg, setMyPassMsg] = useState('');
+
+  const fetchUsers = useCallback(async () => {
+    if (!isAdmin) return;
+    const res = await fetch('/api/users');
+    const d = await res.json();
+    if (d.success) setUsers(d.users);
+    setLoading(false);
+  }, [isAdmin]);
+
+  useEffect(() => { fetchUsers(); }, [fetchUsers]);
+
+  async function toggleActive(u: DashUser) {
+    await fetch(`/api/users/${u._id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active: !u.active }),
+    });
+    fetchUsers();
+  }
+
+  async function changeRole(u: DashUser, role: string) {
+    await fetch(`/api/users/${u._id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role }),
+    });
+    setEditId(null);
+    fetchUsers();
+  }
+
+  async function createUser() {
+    if (!newEmail || !newPass) return;
+    const res = await fetch('/api/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newName, email: newEmail, password: newPass, role: newRole }),
+    });
+    const d = await res.json();
+    if (d.success) {
+      setNewName(''); setNewEmail(''); setNewPass(''); setNewRole('Operator');
+      setShowCreate(false);
+      fetchUsers();
+    }
+  }
+
+  async function saveMyPassword() {
+    if (myPass.length < 6) { setMyPassMsg('Mínimo 6 caracteres'); return; }
+    const res = await fetch(`/api/users/${selfId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: myPass }),
+    });
+    const d = await res.json();
+    setMyPassMsg(d.success ? 'Password alterada.' : (d.error ?? 'Erro'));
+    if (d.success) setMyPass('');
+  }
+
+  const inputStyle: React.CSSProperties = {
+    padding: '7px 10px', borderRadius: 7, border: '1.5px solid #e0e0e0',
+    fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
+    color: NAVY, outline: 'none',
+  };
+  const btnStyle = (bg: string, fg: string): React.CSSProperties => ({
+    padding: '7px 14px', borderRadius: 7, border: 'none',
+    background: bg, color: fg, fontSize: 12, fontWeight: 700,
+    cursor: 'pointer', whiteSpace: 'nowrap',
+  });
+
+  return (
+    <div style={{ padding: '28px 32px', maxWidth: 780, fontFamily: 'system-ui, sans-serif' }}>
+
+      {/* Perfil próprio */}
+      <div style={{ background: '#fff', borderRadius: 12, border: '1.5px solid #e8e8e8', padding: '20px 24px', marginBottom: 28 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: NAVY }}>O meu perfil</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 12, color: '#888' }}>
+          {session?.user?.email} —{' '}
+          <span style={{
+            fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
+            background: ROLE_COLOR[selfRole]?.[0] ?? '#eee',
+            color: ROLE_COLOR[selfRole]?.[1] ?? '#555',
+          }}>
+            {ROLE_LABEL[selfRole] ?? selfRole}
+          </span>
+        </p>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input
+            type="password"
+            placeholder="Nova password (mín. 6 caracteres)"
+            value={myPass}
+            onChange={(e) => { setMyPass(e.target.value); setMyPassMsg(''); }}
+            style={{ ...inputStyle, maxWidth: 280 }}
+          />
+          <button onClick={saveMyPassword} style={btnStyle(CYAN, '#fff')}>Alterar password</button>
+          <button onClick={() => signOut({ callbackUrl: '/login' })} style={btnStyle('#fee2e2', '#dc2626')}>
+            Terminar sessão
+          </button>
+        </div>
+        {myPassMsg && (
+          <p style={{ margin: '8px 0 0', fontSize: 12, color: myPassMsg.includes('alterada') ? '#2e7d32' : '#dc2626' }}>
+            {myPassMsg}
+          </p>
+        )}
+      </div>
+
+      {/* Gestão de utilizadores — só admin */}
+      {isAdmin && (
+        <>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: NAVY }}>Utilizadores</h3>
+            <button
+              onClick={() => setShowCreate((s) => !s)}
+              style={btnStyle(showCreate ? '#f5f5f5' : CYAN, showCreate ? '#555' : '#fff')}
+            >
+              {showCreate ? 'Cancelar' : '+ Novo utilizador'}
+            </button>
+          </div>
+
+          {/* Form criar */}
+          {showCreate && (
+            <div style={{
+              background: '#f8fbff', border: '1.5px solid #bde0ff', borderRadius: 10,
+              padding: '16px 18px', marginBottom: 16,
+              display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 12px',
+            }}>
+              <input placeholder="Nome" value={newName} onChange={(e) => setNewName(e.target.value)} style={inputStyle} />
+              <input placeholder="Email" type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} style={inputStyle} />
+              <input placeholder="Password (mín. 6)" type="password" value={newPass} onChange={(e) => setNewPass(e.target.value)} style={inputStyle} />
+              <select value={newRole} onChange={(e) => setNewRole(e.target.value)} style={{ ...inputStyle }}>
+                <option value="Operator">Operador</option>
+                <option value="commissionOperator">Comissão</option>
+                <option value="administrator">Admin</option>
+              </select>
+              <div style={{ gridColumn: '1/-1', display: 'flex', gap: 8 }}>
+                <button onClick={createUser} style={btnStyle('#2e7d32', '#fff')}>Criar utilizador</button>
+              </div>
+            </div>
+          )}
+
+          {/* Lista */}
+          {loading ? (
+            <p style={{ color: '#aaa', fontSize: 13 }}>A carregar...</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {users.map((u) => (
+                <div key={u._id} style={{
+                  background: '#fff', border: `1.5px solid ${u.active ? '#e8e8e8' : '#fee2e2'}`,
+                  borderRadius: 10, padding: '12px 16px',
+                  display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+                  opacity: u.active ? 1 : 0.6,
+                }}>
+                  {/* Initials */}
+                  <div style={{
+                    width: 34, height: 34, borderRadius: '50%', flexShrink: 0,
+                    background: u.active ? CYAN : '#ccc',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    color: '#fff', fontSize: 12, fontWeight: 800,
+                  }}>
+                    {(u.name || u.email).slice(0, 2).toUpperCase()}
+                  </div>
+
+                  {/* Info */}
+                  <div style={{ flex: 1, minWidth: 160 }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: NAVY }}>
+                      {u.name || u.email}
+                      {u._id === selfId && <span style={{ fontSize: 10, color: CYAN, marginLeft: 6 }}>(eu)</span>}
+                    </p>
+                    <p style={{ margin: 0, fontSize: 11, color: '#888' }}>{u.email}</p>
+                  </div>
+
+                  {/* Role */}
+                  {editId === u._id ? (
+                    <select
+                      autoFocus
+                      defaultValue={u.role}
+                      onBlur={(e) => changeRole(u, e.target.value)}
+                      onChange={(e) => changeRole(u, e.target.value)}
+                      style={{ ...inputStyle, width: 'auto', padding: '4px 8px' }}
+                    >
+                      <option value="Operator">Operador</option>
+                      <option value="commissionOperator">Comissão</option>
+                      <option value="administrator">Admin</option>
+                    </select>
+                  ) : (
+                    <span
+                      onClick={() => u._id !== selfId && setEditId(u._id)}
+                      title={u._id !== selfId ? 'Clique para editar role' : ''}
+                      style={{
+                        fontSize: 11, fontWeight: 700, padding: '3px 8px', borderRadius: 5,
+                        background: ROLE_COLOR[u.role]?.[0] ?? '#eee',
+                        color: ROLE_COLOR[u.role]?.[1] ?? '#555',
+                        cursor: u._id !== selfId ? 'pointer' : 'default',
+                      }}
+                    >
+                      {ROLE_LABEL[u.role] ?? u.role}
+                    </span>
+                  )}
+
+                  {/* Acções */}
+                  {u._id !== selfId && (
+                    <button
+                      onClick={() => toggleActive(u)}
+                      style={btnStyle(u.active ? '#fff8e1' : '#e8f5e9', u.active ? '#e65100' : '#2e7d32')}
+                    >
+                      {u.active ? 'Desactivar' : 'Activar'}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 }
