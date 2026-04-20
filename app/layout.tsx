@@ -3,8 +3,9 @@ import './globals.css';
 import { Providers } from './providers';
 
 export const metadata: Metadata = {
-  title: 'YourBox · Dashboard',
-  description: 'Dashboard de leads YourBox',
+  title: 'YourBox · Leads',
+  description: 'YourBox — Dashboard de gestão de leads',
+  icons: { icon: '/logo.png' },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
