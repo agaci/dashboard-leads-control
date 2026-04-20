@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { buildPriceMessage, build24hIntroMessage } from '@/lib/agent/botResponder';
+import { findAggregationHints } from '@/lib/agent/aggregation';
 import { calcAllActiveTariffs } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
@@ -103,6 +104,20 @@ export async function POST(request: NextRequest) {
       createdAt: now,
       updatedAt: now,
     });
+
+    // Disparar análise de agregação em background — não bloqueia a resposta
+    if (serviceType !== 'arrasto') {
+      const convId = conv.insertedId;
+      findAggregationHints(origem, destino)
+        .then(async ({ hints }) => {
+          if (hints.length === 0) return;
+          await db.collection('conversations').updateOne(
+            { _id: convId },
+            { $set: { aggHints: hints, aggHintsAt: new Date(), aggHintsSeen: false } },
+          );
+        })
+        .catch(() => {});
+    }
 
     return Response.json({
       success: true,
