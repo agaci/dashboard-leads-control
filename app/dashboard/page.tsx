@@ -132,6 +132,7 @@ export default function DashboardPage() {
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
   const [aggBlink, setAggBlink] = useState(false);
+  const [pendingConvId, setPendingConvId] = useState<string | undefined>(undefined);
   const toastCounter = useRef(0);
 
   useNotifications((alert) => {
@@ -194,7 +195,8 @@ export default function DashboardPage() {
     });
   }
 
-  function goToConversas() {
+  function goToConversas(convId: string) {
+    setPendingConvId(convId);
     switchTab('inbox');
     setAggBlink(false);
     setAggToasts([]);
@@ -380,7 +382,14 @@ export default function DashboardPage() {
       {/* inbox → Conversas/escalações */}
       {tab === 'inbox' && (
         <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
-          <ConversasPage />
+          <ConversasPage initialConvId={pendingConvId} />
+        </div>
+      )}
+
+      {/* agregacoes → Histórico de hipóteses de agregação */}
+      {tab === 'agregacoes' && (
+        <div style={{ flex: 1, overflow: 'auto', height: '100%' }}>
+          <AgregacoesPage onGoToConv={(id) => goToConversas(id)} />
         </div>
       )}
 
@@ -434,7 +443,7 @@ function AggToastStack({
 }: {
   toasts: (AggHintAlert & { id: number; expiresAt: number })[];
   onDismiss: (id: number) => void;
-  onGoToChat: () => void;
+  onGoToChat: (convId: string) => void;
 }) {
   // Auto-expirar
   useEffect(() => {
@@ -543,7 +552,7 @@ function AggToastStack({
 
                 {/* Acção */}
                 <button
-                  onClick={onGoToChat}
+                  onClick={() => onGoToChat(t.convId)}
                   style={{
                     width: '100%', padding: '7px 0',
                     background: '#ffc107', color: '#1a2332',
@@ -560,6 +569,170 @@ function AggToastStack({
         })}
       </div>
     </>
+  );
+}
+
+// ── Agregações — histórico de hipóteses por dia ───────────────────────────────
+
+type AggHistoryItem = {
+  convId: string;
+  refCode: string;
+  telemovel: string;
+  origem: string;
+  destino: string;
+  aggHintsAt: string;
+  aggHintsSeen: boolean;
+  hints: {
+    serviceId: string;
+    score: number;
+    serviceTime: string | null;
+    timeDeltaMin: number;
+    pickup: string | null;
+    delivery: string | null;
+    detourPickupKm: number;
+    detourDeliveryKm: number;
+    isReturnTrip: boolean;
+    driver: { name: string; phone: string } | null;
+  }[];
+};
+
+function AgregacoesPage({ onGoToConv }: { onGoToConv: (convId: string) => void }) {
+  const today = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = useState(today);
+  const [items, setItems] = useState<AggHistoryItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    fetch(`/api/agg-history?date=${date}`)
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setItems(d.items); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [date]);
+
+  return (
+    <div style={{ padding: '24px 28px', maxWidth: 900 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+        <div>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: NAVY }}>Hipóteses de Agregação</h2>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#888' }}>
+            Avisos gerados pelo sistema — por dia
+          </p>
+        </div>
+        <input
+          type="date"
+          value={date}
+          max={today}
+          onChange={(e) => setDate(e.target.value)}
+          style={{
+            marginLeft: 'auto', padding: '6px 10px', borderRadius: 7,
+            border: '1.5px solid #e0e0e0', fontSize: 13, color: NAVY,
+            fontFamily: 'inherit', cursor: 'pointer',
+          }}
+        />
+      </div>
+
+      {loading && (
+        <p style={{ color: '#aaa', fontSize: 13 }}>A carregar...</p>
+      )}
+
+      {!loading && items.length === 0 && (
+        <div style={{
+          textAlign: 'center', padding: '60px 0', color: '#bbb',
+        }}>
+          <div style={{ fontSize: 36, marginBottom: 12 }}>◈</div>
+          <p style={{ fontSize: 14 }}>Sem hipóteses de agregação para {date}</p>
+        </div>
+      )}
+
+      {!loading && items.map((item) => (
+        <div key={item.convId} style={{
+          background: '#fff', borderRadius: 12,
+          border: `1.5px solid ${item.aggHintsSeen ? '#e0e0e0' : '#ffc107'}`,
+          marginBottom: 16, overflow: 'hidden',
+          boxShadow: item.aggHintsSeen ? 'none' : '0 2px 12px rgba(255,193,7,0.15)',
+        }}>
+          {/* Cabeçalho */}
+          <div style={{
+            padding: '12px 16px',
+            background: item.aggHintsSeen ? '#fafafa' : '#fffde7',
+            display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          }}>
+            <span style={{
+              fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
+              textTransform: 'uppercase', background: '#ffc107',
+              color: NAVY, padding: '3px 7px', borderRadius: 4,
+            }}>AGREGAÇÃO</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: NAVY }}>{item.refCode}</span>
+            <span style={{ fontSize: 12, color: '#555' }}>
+              {item.origem.split(',')[0]} → {item.destino.split(',')[0]}
+            </span>
+            <span style={{ fontSize: 11, color: '#aaa', marginLeft: 'auto' }}>
+              {new Date(item.aggHintsAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+            </span>
+            <button
+              onClick={() => onGoToConv(item.convId)}
+              style={{
+                padding: '5px 12px', borderRadius: 6,
+                background: CYAN, color: '#fff',
+                border: 'none', fontSize: 11, fontWeight: 700, cursor: 'pointer',
+                whiteSpace: 'nowrap',
+              }}
+            >
+              Ver conversa
+            </button>
+          </div>
+
+          {/* Hints */}
+          <div style={{ padding: '10px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {item.hints.map((h, i) => (
+              <div key={h.serviceId} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '8px 10px', borderRadius: 8,
+                background: i === 0 ? '#f0f9ff' : '#f9f9f9',
+                flexWrap: 'wrap',
+              }}>
+                <span style={{
+                  fontSize: 11, fontWeight: 800,
+                  color: h.score >= 80 ? '#2e7d32' : h.score >= 60 ? '#e65100' : '#888',
+                  minWidth: 50,
+                }}>
+                  {h.score}%
+                </span>
+                {h.isReturnTrip && (
+                  <span style={{ fontSize: 10, color: '#1565c0', fontWeight: 700 }}>↩ VOLTA</span>
+                )}
+                <span style={{ fontSize: 11, color: '#444', flex: 1, minWidth: 160 }}>
+                  {h.pickup?.split(',')[0] ?? '—'} → {h.delivery?.split(',')[0] ?? '—'}
+                </span>
+                <span style={{ fontSize: 11, color: '#888' }}>
+                  +{h.detourPickupKm}km / +{h.detourDeliveryKm}km
+                </span>
+                {h.serviceTime && (
+                  <span style={{
+                    fontSize: 11, fontWeight: 700,
+                    color: h.timeDeltaMin < 0 ? '#1565c0'
+                      : h.timeDeltaMin <= 90 ? '#2e7d32'
+                      : h.timeDeltaMin <= 300 ? '#e65100' : '#888',
+                  }}>
+                    {h.serviceTime.slice(11, 16)}
+                    {h.timeDeltaMin < 0 ? ' (em curso)' : ` (+${h.timeDeltaMin < 60 ? h.timeDeltaMin + 'min' : Math.round(h.timeDeltaMin / 60 * 10) / 10 + 'h'})`}
+                  </span>
+                )}
+                {h.driver && (
+                  <span style={{ fontSize: 11, color: NAVY, fontWeight: 600 }}>
+                    {h.driver.name}
+                    {h.driver.phone && <span style={{ color: CYAN, marginLeft: 5 }}>{h.driver.phone}</span>}
+                  </span>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   );
 }
 

@@ -6,8 +6,8 @@
 (function () {
   'use strict';
 
-  //const API_BASE = 'http://localhost:3000'; // dev local
-  const API_BASE = 'https://leads.comgo.pt'; // producao
+  const API_BASE = 'http://localhost:3000'; // dev local
+  //const API_BASE = 'https://leads.comgo.pt'; // producao
   const POLL_INTERVAL = 3000; // ms
   const TYPING_SPEED_MS = 11; // ms por caracter (typewriter)
 

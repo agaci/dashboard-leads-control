@@ -58,7 +58,7 @@ function stepColor(step: ConvStep) {
   return STEP_COLOR[step] ?? 'bg-blue-100 text-blue-700';
 }
 
-export default function ConversasPage() {
+export default function ConversasPage({ initialConvId }: { initialConvId?: string }) {
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [selected, setSelected] = useState<ConvFull | null>(null);
   const [filter, setFilter] = useState<'active' | 'escalated' | 'closed' | 'all'>('active');
@@ -102,6 +102,13 @@ export default function ConversasPage() {
   }, [selected?._id, selected?.step, fetchSelected]);
 
   useEffect(() => { setLoading(true); }, [filter]);
+
+  // Abrir conversa específica quando vindo do toast de agregação
+  useEffect(() => {
+    if (!initialConvId) return;
+    setFilter('all');
+    fetchSelected(initialConvId);
+  }, [initialConvId, fetchSelected]);
 
   async function openConv(id: string) {
     await fetchSelected(id);

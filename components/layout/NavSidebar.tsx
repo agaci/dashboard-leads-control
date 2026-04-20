@@ -5,7 +5,7 @@ import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound 
 
 export type NavTab =
   | 'leads' | 'inbox' | 'clientes' | 'servicos'
-  | 'precos' | 'baseIA' | 'relatorios'
+  | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
   | 'routing';
 
 interface NavSidebarProps {
@@ -76,6 +76,18 @@ function IcoBaseIA() {
       <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
       <circle cx="9" cy="14" r="1" fill="currentColor" stroke="none"/>
       <circle cx="15" cy="14" r="1" fill="currentColor" stroke="none"/>
+    </svg>
+  );
+}
+
+function IcoAgregacoes() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="22 8 22 16 12 22 2 16 2 8 12 2 22 8"/>
+      <polyline points="22 8 12 14 2 8"/>
+      <line x1="12" y1="14" x2="12" y2="22"/>
+      <line x1="7" y1="11" x2="12" y2="14"/>
+      <line x1="17" y1="11" x2="12" y2="14"/>
     </svg>
   );
 }
@@ -324,12 +336,13 @@ export default function NavSidebar({
 
       {/* Main nav */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
-        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}     active={activeTab === 'leads'}      onClick={() => onTabChange('leads')} />
         <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}     active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}  badge={inboxBadge} />
+        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}     active={activeTab === 'leads'}      onClick={() => onTabChange('leads')} />
         <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}  active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />
         <NavItem id="servicos"   label="Serviços"  icon={<IcoServicos />}  active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
         <NavItem id="precos"     label="Preços"    icon={<IcoPrecos />}    active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
         <NavItem id="baseIA"     label="Base IA"   icon={<IcoBaseIA />}    active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
+        <NavItem id="agregacoes" label="Agreg."    icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')} />
       </div>
 
       <Divider />
