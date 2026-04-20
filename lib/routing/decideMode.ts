@@ -8,6 +8,7 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   autoEndHour: 20,
   autoWeekends: false,
   defaultMarkup: 1.35,
+  recolherMoradasCompletas: false,
 };
 
 export function decideMode(

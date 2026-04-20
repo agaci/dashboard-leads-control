@@ -24,6 +24,7 @@ import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { calcAllActiveTariffs, parseWeight } from '@/lib/agent/partnerPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/lib/agent/addressParser';
 import type { ConversationData } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
@@ -118,6 +119,18 @@ export async function POST(request: NextRequest) {
 
       case 'COLLECTING_EMAIL': {
         if (mensagem.includes('@')) dataUpdate.email = mensagem.trim();
+        break;
+      }
+
+      case 'COLLECTING_DETALHES_RECOLHA': {
+        const contacto = await parseContacto(mensagem);
+        dataUpdate.contactoRecolha = contacto;
+        break;
+      }
+
+      case 'COLLECTING_DETALHES_ENTREGA': {
+        const contacto = await parseContacto(mensagem);
+        dataUpdate.contactoEntrega = contacto;
         break;
       }
 
@@ -268,8 +281,52 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Registar lead ────────────────────────────────────────────────────────
+    // ── Morada de recolha — parse LLM + confirmação ──────────────────────────
+    if (conv.step === 'COLLECTING_ORIGEM_COMPLETA') {
+      const parsed = await parseEndereco(mensagem);
+      await updateConversationData(telemovel, { origemCompleta: parsed });
+      conv.data.origemCompleta = parsed;
+      const formatted = formatEndereco(parsed);
+      response = {
+        text: `Percebi a seguinte morada de recolha:\n\n*${formatted}*\n\nEstá correcto?`,
+        nextStep: 'CONFIRMING_ORIGEM_COMPLETA',
+        quickReplies: ['Sim, correcto', 'Não, corrigir'],
+      };
+    }
+
+    // ── Morada de entrega — parse LLM + confirmação ───────────────────────────
+    if (conv.step === 'COLLECTING_DESTINO_COMPLETA') {
+      const parsed = await parseEndereco(mensagem);
+      await updateConversationData(telemovel, { destinoCompleta: parsed });
+      conv.data.destinoCompleta = parsed;
+      const formatted = formatEndereco(parsed);
+      response = {
+        text: `Percebi a seguinte morada de entrega:\n\n*${formatted}*\n\nEstá correcto?`,
+        nextStep: 'CONFIRMING_DESTINO_COMPLETA',
+        quickReplies: ['Sim, correcto', 'Não, corrigir'],
+      };
+    }
+
+    // ── Intercepção pós-email: se recolherMoradasCompletas activo ─────────────
     if (response.nextStep === 'LEAD_REGISTERED' && conv.step === 'COLLECTING_EMAIL') {
+      const db2 = await getDb();
+      const routingDoc2 = await db2.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+      const recolherMoradas = (routingDoc2 as any)?.recolherMoradasCompletas ?? defaultRoutingConfig.recolherMoradasCompletas;
+      if (recolherMoradas) {
+        response = {
+          text: 'Obrigado! Para completar o pedido precisamos das moradas exactas.\n\n' +
+            'Qual a *morada completa de recolha*?\n_(Rua, número, código postal, localidade)_',
+          nextStep: 'COLLECTING_ORIGEM_COMPLETA',
+        };
+        await setConversationStep(telemovel, 'COLLECTING_ORIGEM_COMPLETA');
+        await appendMessage(telemovel, { role: 'bot', text: response.text, timestamp: new Date() });
+        return Response.json({ success: true, response: response.text, nextStep: response.nextStep, quickReplies: [], situacaoId: null, escalate: false });
+      }
+    }
+
+    // ── Registar lead ────────────────────────────────────────────────────────
+    const leadRegistrationSteps = ['COLLECTING_EMAIL', 'COLLECTING_DETALHES_ENTREGA'] as const;
+    if (response.nextStep === 'LEAD_REGISTERED' && (leadRegistrationSteps as readonly string[]).includes(conv.step)) {
       const nome = conv.data.nome ?? 'Lead Bot';
       const db = await getDb();
       const timeStamp = new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
@@ -280,10 +337,19 @@ export async function POST(request: NextRequest) {
         ? `<p><b>Serviço:</b> Entrega Amanhã ${conv.data.partnerWindow} | <b>Peso:</b> ${conv.data.weightKg}kg</p>`
         : `<p><b>Viatura:</b> ${conv.data.viatura} | <b>Urgência:</b> ${conv.data.urgencia}</p>`;
 
+      const moradaRecolhaHtml = conv.data.origemCompleta
+        ? `<p><b>Recolha:</b> ${formatEndereco(conv.data.origemCompleta)}</p>` +
+          (conv.data.contactoRecolha ? `<p><b>Contacto recolha:</b> ${formatContacto(conv.data.contactoRecolha)}</p>` : '')
+        : '';
+      const moradaEntregaHtml = conv.data.destinoCompleta
+        ? `<p><b>Entrega:</b> ${formatEndereco(conv.data.destinoCompleta)}</p>` +
+          (conv.data.contactoEntrega ? `<p><b>Contacto entrega:</b> ${formatContacto(conv.data.contactoEntrega)}</p>` : '')
+        : '';
+
       const leadResult = await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${moradaRecolhaHtml}${moradaEntregaHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent', variante: 'BOT',
         timeStamp: new Date(), closed: false, closedAt: null, reply: [],
         leadData: {
@@ -296,6 +362,10 @@ export async function POST(request: NextRequest) {
           discount: conv.data.discount, distance: conv.data.distance,
           partnerFinalPrice: conv.data.partnerFinalPrice,
           nome, email: conv.data.email, telefone: telemovel,
+          origemCompleta: conv.data.origemCompleta,
+          destinoCompleta: conv.data.destinoCompleta,
+          contactoRecolha: conv.data.contactoRecolha,
+          contactoEntrega: conv.data.contactoEntrega,
           timeStamp: new Date(), converted: true, convertedAt: new Date(), source: 'bot',
         },
       });

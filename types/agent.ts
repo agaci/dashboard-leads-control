@@ -12,12 +12,36 @@ export type ConversationStep =
   // fluxo arrasto (amanhã) — parceiro
   | 'COLLECTING_WEIGHT'
   | 'PRESENTING_PARTNER_PRICE'
-  // fecho
+  // fecho base
   | 'COLLECTING_NOME'
   | 'COLLECTING_EMAIL'
+  // fase 1 — moradas e contactos completos (quando recolherMoradasCompletas=true)
+  | 'COLLECTING_ORIGEM_COMPLETA'
+  | 'CONFIRMING_ORIGEM_COMPLETA'
+  | 'COLLECTING_DESTINO_COMPLETA'
+  | 'CONFIRMING_DESTINO_COMPLETA'
+  | 'COLLECTING_DETALHES_RECOLHA'
+  | 'COLLECTING_DETALHES_ENTREGA'
+  // terminal
   | 'LEAD_REGISTERED'
   | 'ESCALATED_TO_HUMAN'
   | 'CLOSED';
+
+export type EnderecoCompleto = {
+  rua: string;
+  numero?: string;
+  andar?: string;
+  codigoPostal?: string;
+  localidade: string;
+  raw: string;
+};
+
+export type ContactoLocal = {
+  nome?: string;
+  telefone?: string;
+  janela?: string;
+  raw: string;
+};
 
 export interface ConversationData {
   origem?: string;
@@ -44,6 +68,11 @@ export interface ConversationData {
   // situação activa
   activeSituacaoId?: string;
   objectionCount: number;
+  // fase 1 — moradas e contactos completos
+  origemCompleta?: EnderecoCompleto;
+  destinoCompleta?: EnderecoCompleto;
+  contactoRecolha?: ContactoLocal;
+  contactoEntrega?: ContactoLocal;
 }
 
 export interface Conversation {

@@ -15,6 +15,7 @@ interface NavSidebarProps {
   alertsCount?: number;
   inboxBadge?: number;
   aggBlink?: boolean;
+  mobile?: boolean;
 }
 
 // ── SVG icons (17×17, stroke currentColor) ───────────────────────────────────
@@ -289,11 +290,94 @@ function Divider() {
 export default function NavSidebar({
   activeTab,
   onTabChange,
-  leadsCount = 41,
-  alertsCount = 53,
-  inboxBadge = 7,
+  leadsCount = 0,
+  alertsCount = 0,
+  inboxBadge = 0,
   aggBlink = false,
+  mobile = false,
 }: NavSidebarProps) {
+  const animations = `
+    @keyframes aggPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.35); }
+    }
+    @keyframes aggRing {
+      0% { box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
+      70% { box-shadow: 0 0 0 8px rgba(255,193,7,0); }
+      100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
+    }
+  `;
+
+  // ── Mobile: bottom nav bar ────────────────────────────────────────────────
+  if (mobile) {
+    const mobileItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: number; blink?: boolean }[] = [
+      { id: 'inbox',      label: 'Inbox',   icon: <IcoInbox />,      badge: inboxBadge },
+      { id: 'leads',      label: 'Leads',   icon: <IcoLeads /> },
+      { id: 'agregacoes', label: 'Agreg.',  icon: <IcoAgregacoes />, blink: aggBlink },
+      { id: 'servicos',   label: 'Serviços',icon: <IcoServicos /> },
+      { id: 'config',     label: 'Perfil',  icon: <IcoPerfil /> },
+    ];
+
+    return (
+      <nav style={{
+        position: 'fixed', bottom: 0, left: 0, right: 0,
+        height: 56, background: '#1a2332',
+        display: 'flex', alignItems: 'stretch',
+        borderTop: '1px solid rgba(255,255,255,0.08)',
+        zIndex: 100, userSelect: 'none',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}>
+        <style>{animations}</style>
+        {mobileItems.map((item) => {
+          const active = activeTab === item.id;
+          return (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              style={{
+                flex: 1, display: 'flex', flexDirection: 'column',
+                alignItems: 'center', justifyContent: 'center', gap: 3,
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: active ? '#00bcd4' : 'rgba(255,255,255,0.4)',
+                position: 'relative',
+                transition: 'color 0.15s',
+              }}
+            >
+              {item.icon}
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.01em' }}>{item.label}</span>
+              {(item.badge ?? 0) > 0 && (
+                <span style={{
+                  position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)',
+                  width: 14, height: 14, borderRadius: '50%',
+                  background: '#ffc107', color: '#1a2332',
+                  fontSize: 8, fontWeight: 800,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  {(item.badge ?? 0) > 9 ? '9+' : item.badge}
+                </span>
+              )}
+              {item.blink && (
+                <span style={{
+                  position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)',
+                  width: 8, height: 8, borderRadius: '50%',
+                  background: '#ffc107',
+                  animation: 'aggPulse 1s ease-in-out infinite',
+                }} />
+              )}
+              {active && (
+                <span style={{
+                  position: 'absolute', top: 0, left: '15%', right: '15%',
+                  height: 2, background: '#00bcd4', borderRadius: '0 0 2px 2px',
+                }} />
+              )}
+            </button>
+          );
+        })}
+      </nav>
+    );
+  }
+
+  // ── Desktop: sidebar vertical ─────────────────────────────────────────────
   return (
     <nav
       style={{
@@ -305,19 +389,7 @@ export default function NavSidebar({
         userSelect: 'none',
       }}
     >
-      {/* CSS para animações */}
-      <style>{`
-        @keyframes aggPulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.4; transform: scale(1.35); }
-        }
-        @keyframes aggRing {
-          0% { box-shadow: 0 0 0 0 rgba(255,193,7,0.7); }
-          70% { box-shadow: 0 0 0 8px rgba(255,193,7,0); }
-          100% { box-shadow: 0 0 0 0 rgba(255,193,7,0); }
-        }
-      `}</style>
-      {/* Indicador de agregação — pulsa âmbar quando há hipóteses não vistas */}
+      <style>{animations}</style>
       {aggBlink && (
         <div style={{
           position: 'absolute', top: 8, left: 8,
@@ -331,7 +403,7 @@ export default function NavSidebar({
       {/* Logo */}
       <div style={{ marginBottom: 26, width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" alt="YourBox" style={{ width: 48, height: 'auto', display: 'block' }} />
+        <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 44, height: 44, display: 'block', borderRadius: 10 }} />
       </div>
 
       {/* Main nav */}
@@ -342,39 +414,29 @@ export default function NavSidebar({
         <NavItem id="servicos"   label="Serviços"  icon={<IcoServicos />}  active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
         <NavItem id="precos"     label="Preços"    icon={<IcoPrecos />}    active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
         <NavItem id="baseIA"     label="Base IA"   icon={<IcoBaseIA />}    active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
-        <NavItem id="agregacoes" label="Agreg."    icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')} />
+        <NavItem id="agregacoes" label="Agreg."    icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')}
+          badge={aggBlink ? 1 : 0} />
       </div>
 
       <Divider />
 
       <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
 
-      {/* Spacer */}
       <div style={{ flex: 1 }} />
 
       {/* Counters */}
       <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-        <span style={{
-          background: '#00bcd4', color: '#fff',
-          fontSize: 10, fontWeight: 700,
-          padding: '3px 7px', borderRadius: 20,
-        }}>
+        <span style={{ background: '#00bcd4', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 20 }}>
           {leadsCount}
         </span>
-        <span style={{
-          background: '#ffc107', color: '#1a2332',
-          fontSize: 10, fontWeight: 700,
-          padding: '3px 7px', borderRadius: 20,
-        }}>
+        <span style={{ background: '#ffc107', color: '#1a2332', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 20 }}>
           {alertsCount}
         </span>
       </div>
 
       <SoundButton />
-
       <Divider />
 
-      {/* Bottom: Perfil */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
         <NavItem id="config" label="Perfil" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
       </div>

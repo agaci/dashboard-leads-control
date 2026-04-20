@@ -1,6 +1,7 @@
 'use client';
 
 import NavSidebar, { type NavTab } from './NavSidebar';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 interface AppShellProps {
   activeTab: NavTab;
@@ -21,10 +22,13 @@ export default function AppShell({
   inboxBadge,
   aggBlink,
 }: AppShellProps) {
+  const isMobile = useIsMobile();
+
   return (
     <div
       style={{
         display: 'flex',
+        flexDirection: isMobile ? 'column' : 'row',
         height: '100vh',
         overflow: 'hidden',
         fontFamily: 'Nunito, system-ui, sans-serif',
@@ -32,17 +36,40 @@ export default function AppShell({
         position: 'relative',
       }}
     >
-      <NavSidebar
-        activeTab={activeTab}
-        onTabChange={onTabChange}
-        leadsCount={leadsCount}
-        alertsCount={alertsCount}
-        inboxBadge={inboxBadge}
-        aggBlink={aggBlink}
-      />
-      <div style={{ flex: 1, display: 'flex', overflow: 'hidden', minWidth: 0 }}>
+      {!isMobile && (
+        <NavSidebar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          leadsCount={leadsCount}
+          alertsCount={alertsCount}
+          inboxBadge={inboxBadge}
+          aggBlink={aggBlink}
+        />
+      )}
+
+      <div
+        style={{
+          flex: 1,
+          display: 'flex',
+          overflow: 'hidden',
+          minWidth: 0,
+          paddingBottom: isMobile ? 56 : 0,
+        }}
+      >
         {children}
       </div>
+
+      {isMobile && (
+        <NavSidebar
+          activeTab={activeTab}
+          onTabChange={onTabChange}
+          leadsCount={leadsCount}
+          alertsCount={alertsCount}
+          inboxBadge={inboxBadge}
+          aggBlink={aggBlink}
+          mobile
+        />
+      )}
     </div>
   );
 }

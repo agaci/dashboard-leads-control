@@ -1,6 +1,6 @@
 import type { Conversation, BotResponse, ConversationStep } from '@/types/agent';
 import type { PartnerPriceResult } from '@/types/partner';
-import { matchSituacao, isEscalationRequest, isPriceShock } from './matcher';
+import { isEscalationRequest, isPriceShock } from './matcher';
 import { getSituacaoById } from './situacoes';
 import { parseWeight } from './partnerPricing';
 
@@ -25,6 +25,22 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   },
   COLLECTING_EMAIL: {
     text: 'E o seu email para receber confirmação? (ou responda *não* para saltar)',
+  },
+  COLLECTING_ORIGEM_COMPLETA: {
+    text: 'Para confirmar a recolha, indique a morada completa:\n\n_(Rua, número, código postal, localidade)_',
+  },
+  CONFIRMING_ORIGEM_COMPLETA: { text: '' },
+  COLLECTING_DESTINO_COMPLETA: {
+    text: 'E a morada completa de entrega?\n\n_(Rua, número, código postal, localidade)_',
+  },
+  CONFIRMING_DESTINO_COMPLETA: { text: '' },
+  COLLECTING_DETALHES_RECOLHA: {
+    text: 'Quem estará disponível para a recolha?\n\nIndique *nome*, *telefone* e *janela horária* _(ex: João Silva, 912 345 678, 09:00-12:00)_',
+    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00'],
+  },
+  COLLECTING_DETALHES_ENTREGA: {
+    text: 'E na entrega — quem estará disponível para receber?\n\nNome, telefone e janela horária:',
+    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00'],
   },
   INIT: { text: '' },
   COLLECTING_WEIGHT: { text: '' },
@@ -338,11 +354,48 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       };
 
     case 'COLLECTING_EMAIL':
-      // Email opcional — qualquer resposta avança para registo
+      // Email opcional — qualquer resposta avança (route handler decide se vai para moradas ou lead)
       return {
         text: 'A registar o seu pedido...',
         nextStep: 'LEAD_REGISTERED',
       };
+
+    // Fase 1 — moradas e contactos (processamento async feito no route handler)
+    case 'COLLECTING_ORIGEM_COMPLETA':
+      return { text: 'A analisar morada...', nextStep: 'CONFIRMING_ORIGEM_COMPLETA' };
+
+    case 'CONFIRMING_ORIGEM_COMPLETA': {
+      const lower = mensagem.toLowerCase();
+      if (lower.includes('sim') || lower.includes('correc') || lower.includes('ok')) {
+        return { text: QUESTIONS.COLLECTING_DESTINO_COMPLETA.text, nextStep: 'COLLECTING_DESTINO_COMPLETA' };
+      }
+      return { text: QUESTIONS.COLLECTING_ORIGEM_COMPLETA.text, nextStep: 'COLLECTING_ORIGEM_COMPLETA' };
+    }
+
+    case 'COLLECTING_DESTINO_COMPLETA':
+      return { text: 'A analisar morada...', nextStep: 'CONFIRMING_DESTINO_COMPLETA' };
+
+    case 'CONFIRMING_DESTINO_COMPLETA': {
+      const lower = mensagem.toLowerCase();
+      if (lower.includes('sim') || lower.includes('correc') || lower.includes('ok')) {
+        return {
+          text: QUESTIONS.COLLECTING_DETALHES_RECOLHA.text,
+          nextStep: 'COLLECTING_DETALHES_RECOLHA',
+          quickReplies: QUESTIONS.COLLECTING_DETALHES_RECOLHA.quickReplies,
+        };
+      }
+      return { text: QUESTIONS.COLLECTING_DESTINO_COMPLETA.text, nextStep: 'COLLECTING_DESTINO_COMPLETA' };
+    }
+
+    case 'COLLECTING_DETALHES_RECOLHA':
+      return {
+        text: QUESTIONS.COLLECTING_DETALHES_ENTREGA.text,
+        nextStep: 'COLLECTING_DETALHES_ENTREGA',
+        quickReplies: QUESTIONS.COLLECTING_DETALHES_ENTREGA.quickReplies,
+      };
+
+    case 'COLLECTING_DETALHES_ENTREGA':
+      return { text: 'A registar o seu pedido...', nextStep: 'LEAD_REGISTERED' };
 
     default:
       return {

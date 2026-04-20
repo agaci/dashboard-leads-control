@@ -65,6 +65,7 @@ export interface LeadRoutingConfig {
   autoEndHour: number;
   autoWeekends: boolean;
   defaultMarkup: number;   // multiplicador de margem para tarifas de parceiros (ex: 1.35 = 35%)
+  recolherMoradasCompletas: boolean;  // quando true, bot recolhe moradas e contactos completos após email
   botScheduleOverride?: {
     startHour: number;
     endHour: number;

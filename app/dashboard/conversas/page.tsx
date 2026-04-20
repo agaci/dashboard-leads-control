@@ -7,6 +7,9 @@ type ConvStep =
   | 'COLLECTING_URGENCIA' | 'COLLECTING_WEIGHT' | 'CALCULATING_PRICE'
   | 'PRESENTING_PRICE' | 'PRESENTING_PARTNER_PRICE' | 'HANDLING_OBJECTION'
   | 'COLLECTING_NOME' | 'COLLECTING_EMAIL'
+  | 'COLLECTING_ORIGEM_COMPLETA' | 'CONFIRMING_ORIGEM_COMPLETA'
+  | 'COLLECTING_DESTINO_COMPLETA' | 'CONFIRMING_DESTINO_COMPLETA'
+  | 'COLLECTING_DETALHES_RECOLHA' | 'COLLECTING_DETALHES_ENTREGA'
   | 'LEAD_REGISTERED' | 'ESCALATED_TO_HUMAN' | 'CLOSED';
 
 type Message = {
@@ -14,6 +17,19 @@ type Message = {
   text: string;
   timestamp: string;
   situacaoId?: string;
+};
+
+type AggHintItem = {
+  serviceId: string;
+  score: number;
+  serviceTime: string | null;
+  timeDeltaMin: number;
+  pickup: string | null;
+  delivery: string | null;
+  detourPickupKm: number;
+  detourDeliveryKm: number;
+  isReturnTrip: boolean;
+  driver: { name: string; phone: string } | null;
 };
 
 type ConvSummary = {
@@ -26,6 +42,9 @@ type ConvSummary = {
   createdAt: string;
   escalatedAt?: string;
   history: Message[];
+  aggHints?: AggHintItem[];
+  aggHintsSeen?: boolean;
+  aggHintsAt?: string;
 };
 
 type ConvFull = ConvSummary & { history: Message[] };
@@ -43,6 +62,12 @@ const STEP_LABEL: Record<ConvStep, string> = {
   HANDLING_OBJECTION: 'Objecção',
   COLLECTING_NOME: 'Nome',
   COLLECTING_EMAIL: 'Email',
+  COLLECTING_ORIGEM_COMPLETA: 'Morada recolha',
+  CONFIRMING_ORIGEM_COMPLETA: 'Confirmar recolha',
+  COLLECTING_DESTINO_COMPLETA: 'Morada entrega',
+  CONFIRMING_DESTINO_COMPLETA: 'Confirmar entrega',
+  COLLECTING_DETALHES_RECOLHA: 'Contacto recolha',
+  COLLECTING_DETALHES_ENTREGA: 'Contacto entrega',
   LEAD_REGISTERED: 'Lead registada',
   ESCALATED_TO_HUMAN: 'Escalada',
   CLOSED: 'Fechada',
@@ -58,7 +83,7 @@ function stepColor(step: ConvStep) {
   return STEP_COLOR[step] ?? 'bg-blue-100 text-blue-700';
 }
 
-export default function ConversasPage({ initialConvId }: { initialConvId?: string }) {
+export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = false }: { initialConvId?: string; onGoToAgg?: (convId: string) => void; isMobile?: boolean }) {
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [selected, setSelected] = useState<ConvFull | null>(null);
   const [filter, setFilter] = useState<'active' | 'escalated' | 'closed' | 'all'>('active');
@@ -163,7 +188,7 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
   return (
     <div className="flex h-full neu-bg">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div className="w-80 flex flex-col flex-shrink-0 neu-bg" style={{ borderRight: '1px solid hsl(240 10% 88%)' }}>
+      <div className="flex flex-col flex-shrink-0 neu-bg" style={{ width: isMobile ? '100%' : 320, borderRight: '1px solid hsl(240 10% 88%)', display: isMobile && selected ? 'none' : 'flex' }}>
         {/* Filtros */}
         <div className="px-3 py-2 flex gap-1 flex-wrap" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
           {(['active', 'escalated', 'all', 'closed'] as const).map((f) => (
@@ -220,6 +245,18 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
                     {conv.data.origem} → {conv.data.destino ?? '...'}
                   </p>
                 )}
+                {conv.aggHints && conv.aggHints.length > 0 && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <span style={{
+                      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
+                      background: conv.aggHintsSeen ? '#f5f5f5' : '#fff8e1',
+                      color: conv.aggHintsSeen ? '#aaa' : '#e65100',
+                      border: `1px solid ${conv.aggHintsSeen ? '#e0e0e0' : '#ffe082'}`,
+                    }}>
+                      ◈ {conv.aggHints.length} agreg.
+                    </span>
+                  </div>
+                )}
               </button>
             );
           })}
@@ -227,7 +264,8 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
       </div>
 
       {/* ── Painel de chat ──────────────────────────────────── */}
-      <div className="flex-1 flex flex-col neu-bg overflow-hidden">
+      {(!isMobile || selected) && (
+      <div className="flex-1 flex flex-col neu-bg overflow-hidden" style={{ display: isMobile && !selected ? 'none' : 'flex' }}>
         {!selected ? (
           <div className="flex-1 flex items-center justify-center text-[--neu-muted] text-sm">
             Seleccione uma conversa
@@ -235,7 +273,13 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
         ) : (
           <>
             {/* Header da conversa */}
-            <div className="neu-bg px-5 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+            <div className="neu-bg px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              {isMobile && (
+                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#888', padding: '0 4px 0 0', lineHeight: 1 }}>
+                  ←
+                </button>
+              )}
               <div>
                 <div className="flex items-center gap-2">
                   <span className="font-semibold" style={{ color: 'var(--neu-fg)' }}>
@@ -256,7 +300,8 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
                     </span>
                   )}
                 </div>
-              </div>
+              </div>{/* end info div */}
+              </div>{/* end left flex div */}
               <div className="flex items-center gap-2">
                 {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                   <>
@@ -279,6 +324,39 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
                 </span>
               </div>
             </div>
+
+            {/* Banner de agregação */}
+            {selected.aggHints && selected.aggHints.length > 0 && (
+              <div style={{
+                background: '#fffde7', borderBottom: '1.5px solid #ffe082',
+                padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 12,
+                flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#ffc107', color: '#1a2332', padding: '2px 6px', borderRadius: 4 }}>AGREGAÇÃO</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: '#e65100' }}>
+                  {selected.aggHints.length} hipótese{selected.aggHints.length > 1 ? 's' : ''} · melhor {selected.aggHints[0].score}%
+                </span>
+                <span style={{ fontSize: 11, color: '#888' }}>
+                  {selected.aggHints[0].pickup?.split(',')[0]} → {selected.aggHints[0].delivery?.split(',')[0]}
+                  {selected.aggHints[0].driver && (
+                    <span style={{ marginLeft: 8, color: '#555', fontWeight: 600 }}>· {selected.aggHints[0].driver.name}</span>
+                  )}
+                </span>
+                {onGoToAgg && (
+                  <button
+                    onClick={() => onGoToAgg(selected._id)}
+                    style={{
+                      marginLeft: 'auto', padding: '4px 12px', borderRadius: 6,
+                      background: '#ffc107', color: '#1a2332',
+                      border: 'none', fontSize: 11, fontWeight: 800, cursor: 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    Ver agregações →
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Bolhas de chat */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
@@ -315,6 +393,7 @@ export default function ConversasPage({ initialConvId }: { initialConvId?: strin
           </>
         )}
       </div>
+      )}
     </div>
   );
 }

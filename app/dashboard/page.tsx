@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import ConhecimentoPage from './conhecimento/page';
@@ -27,6 +28,7 @@ type RoutingConfig = {
   autoStartHour: number;
   autoEndHour: number;
   autoWeekends: boolean;
+  recolherMoradasCompletas: boolean;
 };
 
 type LeadData = {
@@ -129,6 +131,7 @@ function Tag({ label, type }: { label: string; type: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<NavTab>('leads');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
@@ -217,12 +220,14 @@ export default function DashboardPage() {
       {/* ── Leads ── */}
       {tab === 'leads' && (
         <>
-          {/* Lista */}
+          {/* Lista — hidden on mobile when a lead is selected */}
           <div style={{
-            width: 276, flexShrink: 0,
+            width: isMobile ? '100%' : 276,
+            flexShrink: 0,
             background: '#fff',
-            borderRight: `1px solid ${BORDER}`,
-            display: 'flex', flexDirection: 'column',
+            borderRight: isMobile ? 'none' : `1px solid ${BORDER}`,
+            display: isMobile && selected ? 'none' : 'flex',
+            flexDirection: 'column',
           }}>
             {/* Header */}
             <div style={{ background: '#fff', padding: '12px 12px 0', borderBottom: `1px solid ${BORDER}` }}>
@@ -364,33 +369,43 @@ export default function DashboardPage() {
           </div>
 
           {/* Detail */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: 24, background: YB_BG }}>
-            {!selected ? (
-              <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#bbb' }}>
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
-                  <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
-                </svg>
-                <p style={{ fontSize: 13 }}>Seleccione uma lead para ver detalhes</p>
-              </div>
-            ) : (
-              <DetailPanel lead={selected} onClose={() => setSelected(null)} />
-            )}
-          </div>
+          {(!isMobile || selected) && (
+            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 24, background: YB_BG }}>
+              {isMobile && selected && (
+                <button
+                  onClick={() => setSelected(null)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', color: NAVY, fontSize: 13, fontWeight: 600, padding: 0 }}
+                >
+                  ← Voltar
+                </button>
+              )}
+              {!selected ? (
+                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#bbb' }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
+                    <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
+                  </svg>
+                  <p style={{ fontSize: 13 }}>Seleccione uma lead para ver detalhes</p>
+                </div>
+              ) : (
+                <DetailPanel lead={selected} onClose={() => setSelected(null)} />
+              )}
+            </div>
+          )}
         </>
       )}
 
       {/* inbox → Conversas/escalações */}
       {tab === 'inbox' && (
         <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
-          <ConversasPage initialConvId={pendingConvId} />
+          <ConversasPage isMobile={isMobile} initialConvId={pendingConvId} onGoToAgg={(convId) => { setPendingConvId(convId); switchTab('agregacoes'); }} />
         </div>
       )}
 
       {/* agregacoes → Histórico de hipóteses de agregação */}
       {tab === 'agregacoes' && (
         <div style={{ flex: 1, overflow: 'auto', height: '100%' }}>
-          <AgregacoesPage onGoToConv={(id) => goToConversas(id)} />
+          <AgregacoesPage onGoToConv={(id) => goToConversas(id)} highlightConvId={pendingConvId} />
         </div>
       )}
 
@@ -603,11 +618,12 @@ type AggHistoryItem = {
   }[];
 };
 
-function AgregacoesPage({ onGoToConv }: { onGoToConv: (convId: string) => void }) {
+function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: string) => void; highlightConvId?: string }) {
   const today = new Date().toISOString().slice(0, 10);
   const [date, setDate] = useState(today);
   const [items, setItems] = useState<AggHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const highlightRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -617,6 +633,12 @@ function AgregacoesPage({ onGoToConv }: { onGoToConv: (convId: string) => void }
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [date]);
+
+  useEffect(() => {
+    if (highlightConvId && highlightRef.current) {
+      setTimeout(() => highlightRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 100);
+    }
+  }, [highlightConvId, items]);
 
   return (
     <div style={{ padding: '24px 28px', maxWidth: 900 }}>
@@ -655,12 +677,16 @@ function AgregacoesPage({ onGoToConv }: { onGoToConv: (convId: string) => void }
       )}
 
       {!loading && items.map((item) => (
-        <div key={item.convId} style={{
-          background: '#fff', borderRadius: 12,
-          border: `1.5px solid ${item.aggHintsSeen ? '#e0e0e0' : '#ffc107'}`,
-          marginBottom: 16, overflow: 'hidden',
-          boxShadow: item.aggHintsSeen ? 'none' : '0 2px 12px rgba(255,193,7,0.15)',
-        }}>
+        <div
+          key={item.convId}
+          ref={item.convId === highlightConvId ? highlightRef : undefined}
+          style={{
+            background: '#fff', borderRadius: 12,
+            border: `1.5px solid ${item.convId === highlightConvId ? '#00bcd4' : item.aggHintsSeen ? '#e0e0e0' : '#ffc107'}`,
+            marginBottom: 16, overflow: 'hidden',
+            boxShadow: item.convId === highlightConvId ? '0 0 0 3px rgba(0,188,212,0.2)' : item.aggHintsSeen ? 'none' : '0 2px 12px rgba(255,193,7,0.15)',
+          }}
+        >
           {/* Cabeçalho */}
           <div style={{
             padding: '12px 16px',
@@ -995,6 +1021,15 @@ function ConfigPage() {
               ))}
             </div>
           )}
+        </>
+      )}
+
+      {/* Configuração do Bot — só admin */}
+      {isAdmin && (
+        <>
+          <div style={{ height: 1, background: '#e8e8e8', margin: '28px 0' }} />
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: NAVY }}>Configuração do Bot</h3>
+          <RoutingPanel />
         </>
       )}
     </div>
@@ -1363,6 +1398,7 @@ function RoutingPanel() {
   const defaults: RoutingConfig = {
     systemActive: true, alwaysBot: false, delayMinutesBeforeBot: 0,
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
+    recolherMoradasCompletas: false,
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1399,6 +1435,7 @@ function RoutingPanel() {
       <ToggleRow cardS={cardS} label="Sistema activo" description="Activa ou desactiva todo o bot de atendimento automático" checked={config.systemActive} onChange={() => toggle('systemActive')} />
       <ToggleRow cardS={cardS} label="Sempre bot (ignorar horários)" description="O bot responde 24/7 independentemente do horário configurado" checked={config.alwaysBot} onChange={() => toggle('alwaysBot')} />
       <ToggleRow cardS={cardS} label="Activo aos fins de semana" description="Bot responde automaticamente aos sábados e domingos" checked={config.autoWeekends} onChange={() => toggle('autoWeekends')} />
+      <ToggleRow cardS={cardS} label="Recolher moradas completas" description="Após nome e email, bot pede moradas exactas, janelas horárias e contactos de recolha/entrega" checked={config.recolherMoradasCompletas} onChange={() => toggle('recolherMoradasCompletas')} />
 
       <div style={cardS}>
         <h3 style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 12px' }}>Horário de operação automática</h3>

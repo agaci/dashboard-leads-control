@@ -38,7 +38,7 @@ function LoginForm() {
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo_original_simples.png" alt="YourBox" style={{ height: 48, width: 'auto', display: 'block', margin: '0 auto 10px' }} />
+          <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 56, height: 56, display: 'block', margin: '0 auto 12px', borderRadius: 14 }} />
           <span style={{ fontWeight: 700, fontSize: 18, color: 'hsl(235 21% 21%)' }}>dashboard <span style={{ color: 'hsl(13 100% 65%)' }}>LEADS</span></span>
         </div>
 
