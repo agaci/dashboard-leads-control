@@ -765,6 +765,7 @@ type AggHint = {
   detourDeliveryKm: number;
   bearingDiff: number;
   isReturnTrip: boolean;
+  timeDeltaMin: number;
   driver: { name: string; phone: string } | null;
   driverLocationStale: boolean;
 };
@@ -849,8 +850,26 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
                   Compatibilidade {h.score}%
                 </span>
                 {h.serviceTime && (
-                  <span style={{ fontSize: 11, color: '#888', marginLeft: 'auto' }}>
+                  <span style={{
+                    fontSize: 11,
+                    marginLeft: 'auto',
+                    fontWeight: 700,
+                    color: h.timeDeltaMin < 0
+                      ? '#1565c0'                          // azul = em curso
+                      : h.timeDeltaMin <= 90
+                        ? '#2e7d32'                        // verde = dentro de 1h30
+                        : h.timeDeltaMin <= 300
+                          ? '#e65100'                      // laranja = 1h30 a 5h
+                          : '#888',                        // cinzento = mais de 5h
+                  }}>
                     {h.serviceTime.slice(11, 16)}
+                    <span style={{ fontWeight: 400, marginLeft: 3 }}>
+                      {h.timeDeltaMin < 0
+                        ? '(em curso)'
+                        : h.timeDeltaMin < 60
+                          ? `(+${h.timeDeltaMin}min)`
+                          : `(+${Math.round(h.timeDeltaMin / 60 * 10) / 10}h)`}
+                    </span>
                   </span>
                 )}
               </div>
