@@ -70,10 +70,31 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  // Proteger /dashboard — redirecionar para login se não autenticado
-  if (pathname.startsWith('/dashboard')) {
+  // Rotas de API sensíveis — requerem sessão autenticada
+  const PROTECTED_API = [
+    '/api/leads',
+    '/api/clients',
+    '/api/conversations',
+    '/api/reports',
+    '/api/users',
+    '/api/settings',
+    '/api/notifications',
+    '/api/agg-history',
+    '/api/knowledge',
+    '/api/parceiros',
+    '/api/routing-config',
+  ];
+  const isProtectedApi = PROTECTED_API.some(p => pathname === p || pathname.startsWith(p + '/'));
+
+  if (isProtectedApi || pathname.startsWith('/dashboard')) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
     if (!token) {
+      if (isProtectedApi) {
+        return new NextResponse(
+          JSON.stringify({ error: 'Não autorizado' }),
+          { status: 401, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
       const url = request.nextUrl.clone();
       url.pathname = '/login';
       url.searchParams.set('callbackUrl', pathname);
