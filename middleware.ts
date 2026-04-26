@@ -38,7 +38,7 @@ function getClientIp(request: NextRequest): string {
   // x-forwarded-for pode ter lista: "ip1, ip2, ..." — pegar o primeiro (origem real)
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0].trim();
-  return request.ip ?? 'unknown';
+  return (request as any).ip ?? 'unknown';
 }
 
 // ── Middleware ───────────────────────────────────────────────────────────────
