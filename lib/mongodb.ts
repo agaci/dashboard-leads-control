@@ -1,39 +1,25 @@
 import { MongoClient, Db } from 'mongodb';
 
+const uri = process.env.MONGODB_URI;
+
+// clientPromise is null only during build (no MONGODB_URI). At runtime it is
+// created eagerly so the connection is established before the first request.
 let clientPromise: Promise<MongoClient> | null = null;
 
-function createClientPromise(): Promise<MongoClient> {
-  const uri = process.env.MONGODB_URI;
-  if (!uri) throw new Error('MONGODB_URI environment variable is not set');
-  return new MongoClient(uri).connect();
-}
-
-function getClientPromise(): Promise<MongoClient> {
+if (uri) {
   if (process.env.NODE_ENV === 'development') {
     const g = global as any;
     if (!g._mongoClientPromise) {
-      g._mongoClientPromise = createClientPromise();
+      g._mongoClientPromise = new MongoClient(uri).connect();
     }
-    return g._mongoClientPromise;
+    clientPromise = g._mongoClientPromise;
+  } else {
+    clientPromise = new MongoClient(uri).connect();
   }
-
-  if (!clientPromise) {
-    clientPromise = createClientPromise();
-  }
-  return clientPromise;
 }
 
 export async function getDb(dbName = process.env.MONGODB_DB ?? 'weby'): Promise<Db> {
-  try {
-    const c = await getClientPromise();
-    return c.db(dbName);
-  } catch {
-    // Pool destroyed or connection failed — reset and retry once
-    clientPromise = null;
-    if (process.env.NODE_ENV === 'development') {
-      (global as any)._mongoClientPromise = null;
-    }
-    const c = await getClientPromise();
-    return c.db(dbName);
-  }
+  if (!clientPromise) throw new Error('MONGODB_URI is not set');
+  const c = await clientPromise;
+  return c.db(dbName);
 }
