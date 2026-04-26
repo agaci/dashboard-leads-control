@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: app-dashboard-leads-control
+    container_name: yourbox-leads
     restart: unless-stopped
     ports:
       - "3006:3006"
