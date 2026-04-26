@@ -344,6 +344,15 @@ export default function DashboardPage() {
                           type={lead.leadData.urgencia === '1 Hora' ? 'urgente' : 'auto'}
                         />
                       )}
+                      {lead.clientId && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
+                          background: '#e8f5e9', color: '#2e7d32', letterSpacing: '0.04em',
+                          textTransform: 'uppercase', flexShrink: 0,
+                        }}>
+                          Cliente
+                        </span>
+                      )}
                       {unread && (
                         <span style={{
                           marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%',
@@ -392,7 +401,14 @@ export default function DashboardPage() {
                   <p style={{ fontSize: 13 }}>Seleccione uma lead para ver detalhes</p>
                 </div>
               ) : (
-                <DetailPanel lead={selected} onClose={() => setSelected(null)} />
+                <DetailPanel
+                  lead={selected}
+                  onClose={() => setSelected(null)}
+                  onClientConverted={(clientId) => {
+                    setLeads(ls => ls.map(l => l.id === selected.id ? { ...l, clientId } : l));
+                    setSelected(s => s ? { ...s, clientId } : s);
+                  }}
+                />
               )}
             </div>
           )}
@@ -1118,11 +1134,15 @@ const VARIANTE_TAG: Record<string, [string, string]> = {
   BOT: ['#e3f2fd', '#1565c0'],
 };
 
-function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
+function DetailPanel({ lead, onClose, onClientConverted }: {
+  lead: Lead;
+  onClose: () => void;
+  onClientConverted?: (clientId: string) => void;
+}) {
   const d = lead.leadData;
   const nome = d.nome ?? 'Sem nome';
   const [clientId, setClientId] = useState<string | null>(lead.clientId ?? null);
-  const [converting, setConverting]   = useState(false);
+  const [converting, setConverting] = useState(false);
 
   async function convertToClient() {
     setConverting(true);
@@ -1133,7 +1153,10 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
         body: JSON.stringify({ leadId: lead.id }),
       });
       const data = await res.json();
-      if (data.success) setClientId(data.clientId);
+      if (data.success) {
+        setClientId(data.clientId);
+        onClientConverted?.(data.clientId);
+      }
     } finally {
       setConverting(false);
     }
