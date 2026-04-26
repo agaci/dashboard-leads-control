@@ -1,0 +1,11 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app-dashboard-leads-control
+    restart: unless-stopped
+    ports:
+      - "3006:3006"
+    env_file:
+      - .env.local
