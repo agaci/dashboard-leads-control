@@ -9,6 +9,8 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   autoWeekends: false,
   defaultMarkup: 1.35,
   recolherMoradasCompletas: false,
+  pagamentoAtivo: false,
+  pagamentoProvider: 'paybylink',
 };
 
 export function decideMode(

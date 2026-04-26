@@ -10,6 +10,7 @@ type ConvStep =
   | 'COLLECTING_ORIGEM_COMPLETA' | 'CONFIRMING_ORIGEM_COMPLETA'
   | 'COLLECTING_DESTINO_COMPLETA' | 'CONFIRMING_DESTINO_COMPLETA'
   | 'COLLECTING_DETALHES_RECOLHA' | 'COLLECTING_DETALHES_ENTREGA'
+  | 'AWAITING_PAYMENT'
   | 'LEAD_REGISTERED' | 'ESCALATED_TO_HUMAN' | 'CLOSED';
 
 type Message = {
@@ -68,12 +69,14 @@ const STEP_LABEL: Record<ConvStep, string> = {
   CONFIRMING_DESTINO_COMPLETA: 'Confirmar entrega',
   COLLECTING_DETALHES_RECOLHA: 'Contacto recolha',
   COLLECTING_DETALHES_ENTREGA: 'Contacto entrega',
+  AWAITING_PAYMENT: 'A aguardar pagamento',
   LEAD_REGISTERED: 'Lead registada',
   ESCALATED_TO_HUMAN: 'Escalada',
   CLOSED: 'Fechada',
 };
 
 const STEP_COLOR: Partial<Record<ConvStep, string>> = {
+  AWAITING_PAYMENT: 'bg-yellow-100 text-yellow-700',
   ESCALATED_TO_HUMAN: 'bg-red-100 text-red-700',
   LEAD_REGISTERED: 'bg-green-100 text-green-700',
   CLOSED: 'bg-gray-100 text-gray-500',

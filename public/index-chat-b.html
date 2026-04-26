@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ESTAFETAS - YOURBOX</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/styles-a.css">
+  <link rel="stylesheet" href="assets/css/buttons-harmonization.css">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* ── Lead form (step 1) ── */
+    .yb-lead-form {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .yb-lead-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #1a1a1a;
+      margin: 0 0 0.15rem;
+    }
+
+    .yb-lead-subtitle {
+      font-size: 0.82rem;
+      color: #666;
+      margin: 0 0 0.6rem;
+      line-height: 1.5;
+    }
+
+    .yb-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
+
+    .yb-field label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #444;
+    }
+
+    .yb-field label .yb-optional {
+      font-weight: 400;
+      color: #aaa;
+      font-size: 0.75rem;
+    }
+
+    .yb-field input {
+      padding: 0.65rem 0.9rem;
+      border: 1.5px solid #e0e0e0;
+      border-radius: 10px;
+      font-family: 'Ubuntu', sans-serif;
+      font-size: 0.9rem;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .yb-field input:focus { border-color: #bed62f; }
+    .yb-field input.error { border-color: #e53935; }
+
+    .yb-field-error {
+      font-size: 0.75rem;
+      color: #e53935;
+      display: none;
+    }
+
+    .yb-field.has-error .yb-field-error { display: block; }
+    .yb-field.has-error input { border-color: #e53935; }
+
+    /* Honeypot — oculto de utilizadores, mas bots preenchem */
+    .yb-hp { display: none !important; visibility: hidden !important; }
+
+    .yb-privacy {
+      font-size: 0.72rem;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.5;
+    }
+
+    .yb-divider {
+      border: none;
+      border-top: 1.5px dashed #e8e8e8;
+      margin: 0.5rem 0;
+    }
+
+    .yb-section-label {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #888;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin: 0.25rem 0 0.1rem;
+    }
+
+    /* ── Chat widget ── */
+    #ybChatSection { display: none; margin-top: 0.5rem; }
+
+    .yb-chat-header {
+      background: var(--primary, #bed62f);
+      border-radius: 16px 16px 0 0;
+      padding: 0.85rem 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .yb-chat-header-avatar {
+      width: 36px; height: 36px; border-radius: 50%;
+      background: #1a1a1a; display: flex; align-items: center;
+      justify-content: center; font-size: 1.1rem; flex-shrink: 0;
+    }
+
+    .yb-chat-header-info strong { display: block; font-size: 0.9rem; font-weight: 700; color: #1a1a1a; }
+    .yb-chat-header-info span { font-size: 0.75rem; color: #333; display: flex; align-items: center; gap: 0.3rem; }
+    .yb-online-dot { width: 8px; height: 8px; border-radius: 50%; background: #2e7d32; display: inline-block; }
+
+    .yb-chat-greeting {
+      background: #f0f7e6;
+      border-radius: 10px;
+      padding: 0.6rem 0.9rem;
+      font-size: 0.84rem;
+      color: #3a5a1a;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      display: none;
+    }
+
+    #ybChatMessages {
+      background: #f5f5f5;
+      min-height: 260px; max-height: 360px; overflow-y: auto;
+      padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+    }
+
+    .yb-msg { display: flex; max-width: 82%; }
+    .yb-msg--bot { align-self: flex-start; }
+    .yb-msg--lead { align-self: flex-end; flex-direction: row-reverse; }
+
+    .yb-bubble {
+      padding: 0.6rem 0.9rem; border-radius: 16px;
+      font-size: 0.88rem; line-height: 1.5; word-break: break-word;
+    }
+
+    .yb-msg--bot .yb-bubble {
+      background: #fff; border: 1px solid #e0e0e0;
+      border-radius: 16px 16px 16px 4px; color: #1a1a1a;
+    }
+
+    .yb-msg--lead .yb-bubble {
+      background: #bed62f; border-radius: 16px 16px 4px 16px;
+      color: #1a1a1a; font-weight: 500;
+    }
+
+    .yb-typing { display: flex; gap: 4px; align-items: center; padding: 0.7rem 1rem; }
+    .yb-typing span {
+      width: 7px; height: 7px; border-radius: 50%; background: #999;
+      animation: ybBounce 1.2s infinite ease-in-out;
+    }
+    .yb-typing span:nth-child(2) { animation-delay: 0.2s; }
+    .yb-typing span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes ybBounce {
+      0%, 60%, 100% { transform: translateY(0); }
+      30% { transform: translateY(-6px); }
+    }
+
+    #ybQuickReplies {
+      background: #f5f5f5; padding: 0.5rem 1rem;
+      display: flex; flex-wrap: wrap; gap: 0.4rem;
+      border-top: 1px solid #e8e8e8;
+    }
+
+    .yb-qr {
+      padding: 0.4rem 0.9rem; border-radius: 20px;
+      border: 1.5px solid #bed62f; background: #fff;
+      font-family: 'Ubuntu', sans-serif; font-size: 0.82rem;
+      font-weight: 600; color: #1a1a1a; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .yb-qr:hover { background: #bed62f; }
+
+    #ybChatFooter {
+      background: #fff; border-top: 1px solid #e0e0e0;
+      border-radius: 0 0 16px 16px; padding: 0.7rem;
+      display: flex; gap: 0.5rem; align-items: center;
+    }
+
+    #ybChatInput {
+      flex: 1; border: 1.5px solid #e0e0e0; border-radius: 22px;
+      padding: 0.55rem 1rem; font-family: 'Ubuntu', sans-serif;
+      font-size: 0.88rem; outline: none; transition: border-color 0.2s;
+    }
+    #ybChatInput:focus { border-color: #bed62f; }
+    #ybChatInput:disabled { background: #f5f5f5; color: #999; }
+
+    #ybChatSend {
+      width: 40px; height: 40px; border-radius: 50%; border: none;
+      background: #bed62f; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    #ybChatSend:hover { background: #aac427; }
+    #ybChatSend:disabled { background: #ddd; cursor: default; }
+    #ybChatSend svg { width: 18px; height: 18px; }
+
+    .yb-done {
+      text-align: center; padding: 0.8rem; font-size: 0.85rem;
+      color: #2e7d32; font-weight: 600; width: 100%; margin: 0;
+    }
+    .yb-done--escalated { color: #e65100; }
+
+    /* Progress bar */
+    .yb-progress { display: flex; gap: 6px; margin-bottom: 1rem; }
+    .yb-progress-step {
+      flex: 1; height: 4px; border-radius: 4px;
+      background: #e8e8e8; transition: background 0.3s;
+    }
+    .yb-progress-step.active { background: #bed62f; }
+
+    /* Vehicle & urgency grids (reutilizados de styles-a.css) */
+    #step2, #step3 { overflow: visible !important; }
+    .pricing-form { overflow: visible !important; }
+
+    /* Separador de rota */
+    .yb-route-summary {
+      background: #f8f9fa; border-radius: 12px;
+      padding: 0.7rem 1rem; margin-bottom: 0.8rem; text-align: center;
+    }
+    .yb-route-summary p { margin: 0; }
+    .yb-route-label { font-size: 0.78rem; color: #888; margin-bottom: 0.2rem; }
+    .yb-route-main { font-size: 1rem; font-weight: 700; color: #1a1a1a; }
+    .yb-route-sub { font-size: 0.85rem; color: #666; margin-top: 0.2rem; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Bar -->
+  <div class="top-bar">Entrega Ultra-Rapida em Todo Portugal</div>
+
+  <!-- Header -->
+  <header class="header">
+    <div class="header-content">
+      <a href="index-a.html">
+        <img src="assets/images/logotipo2021-fina-pr-upload-317x95.webp" alt="YOURBOX-ESTAFETAS" style="height: 4.4rem;">
+      </a>
+      <div class="header-actions">
+        <a href="area_de_clientes.html" class="btn-platform">Area de Clientes</a>
+        <a href="tel:+351214304546" class="btn-phone">&#9990; 214 304 546</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero" id="inicio">
+    <div class="rotating-box rotating-box-1">
+      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
+    </div>
+    <div class="rotating-box rotating-box-2">
+      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
+    </div>
+
+    <div class="hero-container">
+      <div class="hero-content">
+        <div class="hero-badge">DISPONIVEL 24/7</div>
+        <h1 class="hero-title">
+          Entrega<br>
+          <span class="highlight">Ultra-Rapida</span> em<br>
+          Todo Portugal
+        </h1>
+        <p class="hero-subtitle">
+          Entregas urgentes em 1 hora ou 4 horas. Rastreamento em tempo real. Sem complicacoes.
+        </p>
+        <div class="hero-buttons">
+          <button class="btn-primary" onclick="ybFormB.focusNome()">Calcular Preco</button>
+          <a href="https://wa.me/351964078194" class="btn-secondary">WhatsApp</a>
+        </div>
+        <div class="hero-stats">
+          <div class="stat"><div class="stat-number">10000+</div><div class="stat-label">Entregas/Mes</div></div>
+          <div class="stat"><div class="stat-number">4.9&#9733;</div><div class="stat-label">Avaliacao Media</div></div>
+          <div class="stat"><div class="stat-number">24/7</div><div class="stat-label">Disponibilidade</div></div>
+        </div>
+      </div>
+
+      <!-- FORMULÁRIO PROGRESSIVO -->
+      <div class="pricing-form" id="form">
+        <h2 class="form-title" id="formTitle">Calcule Agora</h2>
+        <p class="form-subtitle" id="formSubtitle">Preco instantaneo e sem compromisso</p>
+
+        <!-- Barra de progresso -->
+        <div class="yb-progress">
+          <div class="yb-progress-step active" id="prog1"></div>
+          <div class="yb-progress-step" id="prog2"></div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- STEP 1 — Dados de contacto + serviço                   -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="form-step active" id="step1">
+          <div class="yb-lead-form">
+
+            <!-- Contacto -->
+            <p class="yb-section-label">Os seus dados</p>
+            <p class="yb-lead-subtitle">
+              Preencha os seus dados para receber o orçamento personalizado.<br>
+              A informação fica guardada mesmo que não conclua o pedido.
+            </p>
+
+            <div class="yb-field" id="field-nome">
+              <label for="ybNome">Nome <span class="yb-optional">(obrigatório)</span></label>
+              <input type="text" id="ybNome" placeholder="Ex: João Silva" autocomplete="name">
+              <span class="yb-field-error">Por favor indique o seu nome</span>
+            </div>
+
+            <div class="yb-field" id="field-telefone">
+              <label for="ybTelefone">Telemóvel <span class="yb-optional">(obrigatório)</span></label>
+              <input type="tel" id="ybTelefone" placeholder="9XX XXX XXX" autocomplete="tel">
+              <span class="yb-field-error" id="telefoneError">Número português inválido (ex: 912 345 678)</span>
+            </div>
+
+            <div class="yb-field" id="field-email">
+              <label for="ybEmail">Email <span class="yb-optional">(opcional)</span></label>
+              <input type="email" id="ybEmail" placeholder="seu@email.com" autocomplete="email">
+            </div>
+
+            <!-- Honeypot anti-bot (invisível para humanos) -->
+            <div class="yb-hp" aria-hidden="true">
+              <input type="text" id="ybWebsite" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
+            <hr class="yb-divider">
+
+            <!-- Serviço -->
+            <p class="yb-section-label">Detalhes do serviço</p>
+
+            <div class="form-group">
+              <label class="form-label">De onde?</label>
+              <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Para onde?</label>
+              <input type="text" class="form-input" id="destino" placeholder="Ex: Porto, Rua de Santa Catarina">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Tipo de Viatura</label>
+              <div class="vehicle-grid">
+                <div class="vehicle-option">
+                  <input type="radio" name="viatura" id="moto" value="Moto" checked>
+                  <label class="vehicle-label" for="moto">
+                    <div class="vehicle-icon"><i data-lucide="bike"></i></div>
+                    <div class="vehicle-name">Moto</div>
+                    <div class="vehicle-capacity">até 2 kg</div>
+                  </label>
+                </div>
+                <div class="vehicle-option">
+                  <input type="radio" name="viatura" id="furgao1" value="Furgão Classe 1">
+                  <label class="vehicle-label" for="furgao1">
+                    <div class="vehicle-icon"><i data-lucide="truck"></i></div>
+                    <div class="vehicle-name">Furg&atilde;o C1</div>
+                    <div class="vehicle-capacity">ate 150kg</div>
+                  </label>
+                </div>
+                <div class="vehicle-option">
+                  <input type="radio" name="viatura" id="furgao2" value="Furgão Classe 2">
+                  <label class="vehicle-label" for="furgao2">
+                    <div class="vehicle-icon"><i data-lucide="truck"></i></div>
+                    <div class="vehicle-name">Furg&atilde;o C2</div>
+                    <div class="vehicle-capacity">ate 300kg</div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Urgencia</label>
+              <div class="urgency-grid">
+                <div class="urgency-option">
+                  <input type="radio" name="urgencia" id="urg1" value="1 Hora" checked>
+                  <label class="urgency-label" for="urg1">
+                    <div class="urgency-icon"><i data-lucide="zap"></i></div>
+                    <div class="urgency-time">1 Hora</div>
+                  </label>
+                </div>
+                <div class="urgency-option">
+                  <input type="radio" name="urgencia" id="urg4" value="4 Horas">
+                  <label class="urgency-label" for="urg4">
+                    <div class="urgency-icon"><i data-lucide="rocket"></i></div>
+                    <div class="urgency-time">4 Horas</div>
+                  </label>
+                </div>
+                <div class="urgency-option">
+                  <input type="radio" name="urgencia" id="urg24" value="24 Horas">
+                  <label class="urgency-label" for="urg24">
+                    <div class="urgency-icon"><i data-lucide="package"></i></div>
+                    <div class="urgency-time">24 Horas</div>
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <button class="btn-calculate" id="btnStep1" onclick="ybFormB.submit()">
+              Ver Preco e Falar com Assistente
+            </button>
+
+            <p class="yb-privacy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;vertical-align:middle;margin-right:3px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+              Os seus dados são confidenciais e não são partilhados com terceiros.
+            </p>
+          </div>
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <!-- STEP 2 — Chat com assistente                           -->
+        <!-- ═══════════════════════════════════════════════════════ -->
+        <div class="form-step" id="step2">
+
+          <!-- Resumo da rota -->
+          <div class="yb-route-summary" id="ybRouteSummary">
+            <p class="yb-route-label">Rota selecionada</p>
+            <p class="yb-route-main" id="ybRouteText">Lisboa &rarr; Porto</p>
+            <p class="yb-route-sub" id="ybServiceText">Moto &bull; 1 Hora</p>
+          </div>
+
+          <!-- Saudação personalizada (com o nome capturado) -->
+          <div class="yb-chat-greeting" id="ybGreeting"></div>
+
+          <!-- Chat widget -->
+          <div id="ybChatSection">
+            <div class="yb-chat-header">
+              <div class="yb-chat-header-avatar">
+                <i data-lucide="bot" style="width:20px;height:20px;stroke:#bed62f;"></i>
+              </div>
+              <div class="yb-chat-header-info">
+                <strong>Assistente YourBox</strong>
+                <span><span class="yb-online-dot"></span> Online agora</span>
+              </div>
+            </div>
+            <div id="ybChatMessages"></div>
+            <div id="ybQuickReplies"></div>
+            <div id="ybChatFooter">
+              <input type="text" id="ybChatInput" placeholder="Escreva aqui..." disabled>
+              <button id="ybChatSend" disabled title="Enviar">
+                <svg viewBox="0 0 24 24" fill="none">
+                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <button class="btn-back" onclick="ybFormB.back()" style="margin-top: 0.75rem; width: 100%;">
+            &larr; Alterar dados
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Services Section -->
+  <section class="services" id="servicos">
+    <div class="container">
+      <div class="section-tag">NOSSOS SERVICOS</div>
+      <h2 class="section-title">Escolha a Velocidade</h2>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon"><i data-lucide="zap"></i></div>
+          <h3 class="service-title">Express 1H</h3>
+          <div class="service-price"><span class="price-prefix">desde</span> &euro;6</div>
+          <ul class="service-features">
+            <li>&#10003; Recolha imediata</li>
+            <li>&#10003; Servico personalizado</li>
+            <li>&#10003; GPS tracking</li>
+            <li>&#10003; Mesmo estafeta</li>
+          </ul>
+          <button class="btn-calculate" onclick="ybFormB.focusComUrgencia('urg1','moto')">PEDIR AGORA</button>
+        </div>
+        <div class="service-card">
+          <div class="service-icon"><i data-lucide="truck"></i></div>
+          <h3 class="service-title">Standard 4H</h3>
+          <div class="service-price"><span class="price-prefix">desde</span> &euro;10</div>
+          <ul class="service-features">
+            <li>&#10003; Janela 4 horas</li>
+            <li>&#10003; Ate 150kg</li>
+            <li>&#10003; Furgao dedicado</li>
+            <li>&#10003; Seguro incluido</li>
+          </ul>
+          <button class="btn-calculate" onclick="ybFormB.focusComUrgencia('urg4','furgao1')">PEDIR AGORA</button>
+        </div>
+        <div class="service-card">
+          <div class="service-icon"><i data-lucide="globe"></i></div>
+          <h3 class="service-title">24H Nacional</h3>
+          <div class="service-price"><span class="price-prefix">desde</span> &euro;3.50</div>
+          <ul class="service-features">
+            <li>&#10003; Todo o pais</li>
+            <li>&#10003; Entrega no dia seguinte</li>
+            <li>&#10003; Ate 300kg</li>
+            <li>&#10003; Confirmacao digital</li>
+          </ul>
+          <button class="btn-calculate" onclick="ybFormB.focusComUrgencia('urg24')">PEDIR PROPOSTA</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container" id="footer">
+      <div>
+        <div class="logo" style="margin-bottom: 1.5rem; color: white;">Your<span>box</span></div>
+        <p style="color: #999; margin-bottom: 1.5rem; line-height: 1.6;">
+          Solucoes de transporte urgente em Portugal Continental e Ilhas.
+        </p>
+      </div>
+      <div>
+        <h4 class="footer-title">Contacto</h4>
+        <ul class="footer-links">
+          <li><a href="tel:+351214304546">&#9990; (+351) 214 304 546</a></li>
+          <li><a href="https://wa.me/351964078194">WhatsApp: (+351) 964 078 194</a></li>
+          <li><a href="mailto:info@yourbox.com.pt">info@yourbox.com.pt</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <p>&copy; 2025 Yourbox - Todos os direitos reservados</p>
+    </div>
+  </footer>
+
+  <!-- Google Places API -->
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBlVG8t_l0lW7fwOg97LrNYD7vTn4_ZrM4&libraries=places"></script>
+
+  <!-- Chat widget com suporte a pre-seed de nome/email/telefone -->
+  <script src="assets/js/yourbox-chat-b.js"></script>
+
+  <!-- Controlador do formulário B -->
+  <script>
+  (function () {
+    'use strict';
+
+    var _formLoadTime = Date.now();
+
+    var state = {
+      nome: '', email: '', telefone: '',
+      origem: '', destino: '', viatura: 'Moto', urgencia: '1 Hora',
+    };
+
+    function init() {
+      initGooglePlaces();
+      // Formatar telefone ao digitar
+      var tel = document.getElementById('ybTelefone');
+      if (tel) {
+        tel.addEventListener('input', function () {
+          // Manter só dígitos e + para facilitar validação
+          var v = tel.value.replace(/[^\d+\s]/g, '');
+          tel.value = v;
+        });
+      }
+    }
+
+    function initGooglePlaces() {
+      try {
+        var opts = { componentRestrictions: { country: 'pt' }, fields: ['formatted_address'] };
+        var acO = new google.maps.places.Autocomplete(document.getElementById('origem'), opts);
+        var acD = new google.maps.places.Autocomplete(document.getElementById('destino'), opts);
+        acO.addListener('place_changed', function () {
+          var p = acO.getPlace();
+          if (p && p.formatted_address) document.getElementById('origem').value = p.formatted_address;
+        });
+        acD.addListener('place_changed', function () {
+          var p = acD.getPlace();
+          if (p && p.formatted_address) document.getElementById('destino').value = p.formatted_address;
+        });
+      } catch (e) {}
+    }
+
+    // Validação de telefone português: 9xxxxxxxx ou 2xxxxxxxx (com ou sem +351/351)
+    function validarTelefone(val) {
+      var digits = val.replace(/[\s\-+]/g, '');
+      // Remove prefixo 351 se presente
+      if (digits.startsWith('351') && digits.length === 12) digits = digits.slice(3);
+      return /^[92]\d{8}$/.test(digits);
+    }
+
+    function normalizarTelefone(val) {
+      var digits = val.replace(/[\s\-+]/g, '');
+      if (digits.startsWith('351') && digits.length === 12) return digits.slice(3);
+      return digits;
+    }
+
+    function setFieldError(id, hasError) {
+      var field = document.getElementById('field-' + id);
+      if (field) field.classList.toggle('has-error', hasError);
+    }
+
+    function clearErrors() {
+      ['nome', 'telefone', 'email'].forEach(function (id) { setFieldError(id, false); });
+    }
+
+    function showStep(n) {
+      document.querySelectorAll('.form-step').forEach(function (s) { s.classList.remove('active'); });
+      var el = document.getElementById('step' + n);
+      if (el) el.classList.add('active');
+      for (var i = 1; i <= 2; i++) {
+        var p = document.getElementById('prog' + i);
+        if (p) { i <= n ? p.classList.add('active') : p.classList.remove('active'); }
+      }
+      if (window.innerWidth <= 968) {
+        setTimeout(function () {
+          document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
+    }
+
+    async function submit() {
+      clearErrors();
+
+      // ── Anti-spam: honeypot ──────────────────────────────────────────
+      var hp = document.getElementById('ybWebsite');
+      if (hp && hp.value) return; // bot preencheu o campo oculto
+
+      // ── Anti-spam: timing (menos de 2s = bot) ────────────────────────
+      if (Date.now() - _formLoadTime < 2000) return;
+
+      // ── Validação ─────────────────────────────────────────────────────
+      var nome     = document.getElementById('ybNome').value.trim();
+      var telefone = document.getElementById('ybTelefone').value.trim();
+      var email    = document.getElementById('ybEmail').value.trim();
+      var origem   = document.getElementById('origem').value.trim();
+      var destino  = document.getElementById('destino').value.trim();
+
+      var hasError = false;
+      if (!nome) { setFieldError('nome', true); hasError = true; }
+      if (!validarTelefone(telefone)) { setFieldError('telefone', true); hasError = true; }
+      if (!origem) {
+        var origemEl = document.getElementById('origem');
+        origemEl.style.borderColor = 'red';
+        setTimeout(function () { origemEl.style.borderColor = ''; }, 2000);
+        hasError = true;
+      }
+      if (!destino) {
+        var destinoEl = document.getElementById('destino');
+        destinoEl.style.borderColor = 'red';
+        setTimeout(function () { destinoEl.style.borderColor = ''; }, 2000);
+        hasError = true;
+      }
+      if (hasError) {
+        var firstError = document.querySelector('.has-error input, .form-input[style*="red"]');
+        if (firstError) firstError.focus();
+        return;
+      }
+
+      state.nome      = nome;
+      state.email     = email;
+      state.telefone  = normalizarTelefone(telefone);
+      state.origem    = origem;
+      state.destino   = destino;
+      state.viatura   = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
+      state.urgencia  = document.querySelector('input[name="urgencia"]:checked')?.value || '1 Hora';
+
+      var btn = document.getElementById('btnStep1');
+      btn.disabled = true;
+      btn.textContent = 'A ligar ao assistente...';
+
+      // Actualizar resumo da rota
+      document.getElementById('ybRouteText').textContent =
+        origem.split(',')[0] + ' → ' + destino.split(',')[0];
+      document.getElementById('ybServiceText').textContent =
+        state.viatura + ' • ' + state.urgencia;
+
+      // Saudação personalizada
+      var greetingEl = document.getElementById('ybGreeting');
+      if (greetingEl) {
+        greetingEl.textContent = 'Olá ' + nome.split(' ')[0] + '! Já temos os seus dados. O assistente vai calcular o preço agora.';
+        greetingEl.style.display = 'block';
+      }
+
+      showStep(2);
+
+      // Iniciar chat com dados pré-preenchidos (inclui nome, email, telemovel)
+      await window.ybChatB.start({
+        nome:     state.nome,
+        email:    state.email,
+        telemovel: state.telefone,
+        origem:   state.origem,
+        destino:  state.destino,
+        viatura:  state.viatura,
+        urgencia: state.urgencia,
+      });
+
+      btn.disabled = false;
+      btn.textContent = 'Ver Preco e Falar com Assistente';
+    }
+
+    function back() {
+      showStep(1);
+    }
+
+    function focusNome() {
+      var el = document.getElementById('ybNome');
+      if (!el) return;
+      document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      setTimeout(function () { el.focus(); }, 500);
+    }
+
+    function focusComUrgencia(urgId, viatId) {
+      focusNome();
+      setTimeout(function () {
+        if (urgId) { var r = document.getElementById(urgId); if (r) r.checked = true; }
+        if (viatId) { var r = document.getElementById(viatId); if (r) r.checked = true; }
+      }, 100);
+    }
+
+    window.ybFormB = { submit: submit, back: back, focusNome: focusNome, focusComUrgencia: focusComUrgencia };
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', init);
+    } else {
+      init();
+    }
+  })();
+  </script>
+
+  <script>lucide.createIcons();</script>
+</body>
+</html>

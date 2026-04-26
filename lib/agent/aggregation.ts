@@ -7,6 +7,9 @@ const MAX_DETOUR_KM = 15;       // km extra acima da rota directa (fórmula tria
 
 export type AggHint = {
   serviceId: string;
+  nr: string | number | null;    // número do serviço Yourbox
+  serviceStatus: string;         // pending | assigned | accepted
+  pointsStatuses: Array<{ type: string; status: string }>;
   score: number;
   serviceTime: string | null;    // ISO — dataHour do serviço, para o BO coordenar
   timeDeltaMin: number;          // minutos entre agora e o dataHour (negativo = já passou/em curso)
@@ -132,6 +135,12 @@ export async function findAggregationHints(
 
     hints.push({
       serviceId:         svc._id?.toString() ?? '',
+      nr:                svc.nr ?? null,
+      serviceStatus:     svc.status,
+      pointsStatuses:    [
+        { type: 'collection', status: collectionPt.status ?? 'unknown' },
+        { type: 'delivery',   status: deliveryPt.status   ?? 'unknown' },
+      ],
       score,
       serviceTime:       dataHour ? dataHour.toISOString() : null,
       timeDeltaMin,

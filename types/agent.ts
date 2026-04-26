@@ -22,6 +22,8 @@ export type ConversationStep =
   | 'CONFIRMING_DESTINO_COMPLETA'
   | 'COLLECTING_DETALHES_RECOLHA'
   | 'COLLECTING_DETALHES_ENTREGA'
+  // fase 2 — pagamento MBWAY
+  | 'AWAITING_PAYMENT'
   // terminal
   | 'LEAD_REGISTERED'
   | 'ESCALATED_TO_HUMAN'
@@ -73,6 +75,11 @@ export interface ConversationData {
   destinoCompleta?: EnderecoCompleto;
   contactoRecolha?: ContactoLocal;
   contactoEntrega?: ContactoLocal;
+  // fase 2 — pagamento
+  stripePaymentIntentId?: string;
+  ifthenpayRequestId?: string;
+  pblPaymentUrl?: string;
+  pblOrderId?: string;
 }
 
 export interface Conversation {

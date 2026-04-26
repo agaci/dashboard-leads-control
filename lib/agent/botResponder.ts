@@ -48,6 +48,7 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   PRESENTING_PRICE: { text: '' },
   PRESENTING_PARTNER_PRICE: { text: '' },
   HANDLING_OBJECTION: { text: '' },
+  AWAITING_PAYMENT: { text: '' },
   LEAD_REGISTERED: { text: '' },
   ESCALATED_TO_HUMAN: { text: '' },
   CLOSED: { text: '' },
@@ -396,6 +397,12 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
 
     case 'COLLECTING_DETALHES_ENTREGA':
       return { text: 'A registar o seu pedido...', nextStep: 'LEAD_REGISTERED' };
+
+    case 'AWAITING_PAYMENT':
+      return {
+        text: 'O seu pagamento ainda não foi confirmado. Por favor verifique a notificação *MB Way* no seu telemóvel.',
+        nextStep: 'AWAITING_PAYMENT',
+      };
 
     default:
       return {

@@ -10,11 +10,10 @@ export async function GET(request: NextRequest) {
 
     const db = await getDb();
 
-    const filter: Record<string, unknown> = { companyProvider: 'Yourbox' };
-    if (type === 'leads')        filter.messageType = 'newLead';
-    else if (type === 'sims')    filter.messageType = { $in: ['preLeadSimulation', 'clientSimulation'] };
-    else if (type === 'urgente') { filter.messageType = 'newLead'; filter['leadData.urgencia'] = '1 Hora'; }
-    else                         filter.messageType = { $in: ['newLead', 'preLeadSimulation', 'clientSimulation'] };
+    const filter: Record<string, unknown> = { companyProvider: 'Yourbox', messageType: 'newLead' };
+    if (type === 'leads')        filter.variante = 'BOT';
+    else if (type === 'sims')    filter.variante = { $ne: 'BOT' };
+    else if (type === 'urgente') filter['leadData.urgencia'] = '1 Hora';
 
     const [docs, total] = await Promise.all([
       db.collection('messages')
@@ -36,6 +35,7 @@ export async function GET(request: NextRequest) {
       senderName: d.senderName,
       variante: d.variante ?? null,
       leadData: d.leadData ?? {},
+      clientId: d.clientId ?? null,
     }));
 
     return Response.json({ success: true, leads, total, skip, limit });

@@ -13,15 +13,21 @@ import type { PartnerTariff } from '@/types/partner';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { origem, destino, viatura, urgencia, sessionId } = body as {
+    const { origem, destino, viatura, urgencia, sessionId, nome, email, telemovel: phoneFromForm } = body as {
       origem: string;
       destino: string;
       viatura: string;
       urgencia: string;
-      sessionId: string;
+      sessionId?: string;
+      nome?: string;
+      email?: string;
+      telemovel?: string;
     };
 
-    if (!origem || !destino || !urgencia || !sessionId) {
+    // web-b passa telemovel real; web-a passa sessionId (identificador aleatório)
+    const identifier = (phoneFromForm || sessionId || '').trim();
+
+    if (!origem || !destino || !urgencia || !identifier) {
       return Response.json({ error: 'Campos obrigatórios em falta' }, { status: 400 });
     }
 
@@ -30,13 +36,15 @@ export async function POST(request: NextRequest) {
     const serviceType = urgencia === '24 Horas' ? 'arrasto' : 'direto';
 
     const data: ConversationData = {
-      telemovel: sessionId,
+      telemovel: identifier,
       origem,
       destino,
       viatura: viatura || 'Moto',
       urgencia,
       serviceType,
       objectionCount: 0,
+      ...(nome  ? { nome: nome.trim()  } : {}),
+      ...(email ? { email: email.trim() } : {}),
     };
 
     let firstBotMessage: string;
@@ -96,7 +104,7 @@ export async function POST(request: NextRequest) {
     };
 
     const conv = await db.collection('conversations').insertOne({
-      telemovel: sessionId,
+      telemovel: identifier,
       canal: 'web',
       step,
       data,

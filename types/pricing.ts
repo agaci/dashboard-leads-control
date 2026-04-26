@@ -66,6 +66,8 @@ export interface LeadRoutingConfig {
   autoWeekends: boolean;
   defaultMarkup: number;   // multiplicador de margem para tarifas de parceiros (ex: 1.35 = 35%)
   recolherMoradasCompletas: boolean;  // quando true, bot recolhe moradas e contactos completos após email
+  pagamentoAtivo: boolean;            // quando true, bot solicita pagamento MBWAY antes de registar lead
+  pagamentoProvider: 'paybylink' | 'mbway' | 'stripe';
   botScheduleOverride?: {
     startHour: number;
     endHour: number;

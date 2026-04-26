@@ -8,6 +8,7 @@ import ConversasPage from './conversas/page';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
+import ClientesPage from './clientes/page';
 import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
@@ -29,6 +30,8 @@ type RoutingConfig = {
   autoEndHour: number;
   autoWeekends: boolean;
   recolherMoradasCompletas: boolean;
+  pagamentoAtivo: boolean;
+  pagamentoProvider: 'paybylink' | 'mbway' | 'stripe';
 };
 
 type LeadData = {
@@ -61,6 +64,7 @@ type Lead = {
   senderName: string;
   variante: string | null;
   leadData: LeadData;
+  clientId?: string | null;
 };
 
 const VARIANTE_LABELS: Record<string, string> = {
@@ -436,7 +440,9 @@ export default function DashboardPage() {
       )}
 
       {tab === 'clientes' && (
-        <ComingSoon tab={tab} />
+        <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <ClientesPage />
+        </div>
       )}
 
       {tab === 'routing' && (
@@ -1115,6 +1121,23 @@ const VARIANTE_TAG: Record<string, [string, string]> = {
 function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
   const d = lead.leadData;
   const nome = d.nome ?? 'Sem nome';
+  const [clientId, setClientId] = useState<string | null>(lead.clientId ?? null);
+  const [converting, setConverting]   = useState(false);
+
+  async function convertToClient() {
+    setConverting(true);
+    try {
+      const res  = await fetch('/api/clients', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: lead.id }),
+      });
+      const data = await res.json();
+      if (data.success) setClientId(data.clientId);
+    } finally {
+      setConverting(false);
+    }
+  }
 
   function fmt(ts?: string) {
     if (!ts) return '—';
@@ -1213,6 +1236,39 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
         <AggregationHints origem={d.origem} destino={d.destino} />
       )}
 
+      {/* Converter para Cliente */}
+      {lead.messageType === 'newLead' && (
+        <div style={{ ...cardS, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ flex: 1 }}>
+            <p style={{ ...sectionTitle, margin: 0 }}>CRM</p>
+            {clientId
+              ? <p style={{ fontSize: 12, color: '#2e7d32', margin: '4px 0 0', fontWeight: 600 }}>✓ Lead convertida para cliente</p>
+              : <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>Guarda este contacto na lista de Clientes</p>
+            }
+          </div>
+          {!clientId ? (
+            <button
+              onClick={convertToClient}
+              disabled={converting}
+              style={{
+                padding: '7px 16px', borderRadius: 7, border: 'none',
+                background: CYAN, color: '#fff', fontSize: 12, fontWeight: 700,
+                cursor: converting ? 'wait' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
+              }}
+            >
+              {converting ? 'A converter...' : 'Converter para Cliente'}
+            </button>
+          ) : (
+            <span style={{
+              fontSize: 11, padding: '5px 12px', borderRadius: 6,
+              background: '#e8f5e9', color: '#2e7d32', fontWeight: 700, flexShrink: 0,
+            }}>
+              Cliente criado ✓
+            </span>
+          )}
+        </div>
+      )}
+
       {/* Mensagem sistema */}
       <div style={cardS}>
         <p style={sectionTitle}>Mensagem Sistema</p>
@@ -1230,6 +1286,9 @@ function DetailPanel({ lead, onClose }: { lead: Lead; onClose: () => void }) {
 
 type AggHint = {
   serviceId: string;
+  nr: string | number | null;
+  serviceStatus: string;
+  pointsStatuses: Array<{ type: string; status: string }>;
   score: number;
   serviceTime: string | null;
   pickup: string | null;
@@ -1241,6 +1300,22 @@ type AggHint = {
   timeDeltaMin: number;
   driver: { name: string; phone: string } | null;
   driverLocationStale: boolean;
+};
+
+const SVC_STATUS: Record<string, [string, string]> = {
+  pending:   ['#fff8e1', '#e65100'],
+  assigned:  ['#e3f2fd', '#1565c0'],
+  accepted:  ['#e8f5e9', '#2e7d32'],
+  completed: ['#f5f5f5', '#757575'],
+  cancelled: ['#fce4ec', '#c62828'],
+};
+
+const PT_STATUS: Record<string, string> = {
+  pending:     'Pendente',
+  completed:   'Concluído',
+  failed:      'Falhou',
+  in_progress: 'Em curso',
+  accepted:    'Aceite',
 };
 
 function AggregationHints({ origem, destino }: { origem: string; destino: string }) {
@@ -1312,7 +1387,7 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
               background: '#fffbeb', border: '1px solid #ffe082',
               borderRadius: 8, padding: '10px 14px', marginBottom: 8,
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                 <span style={{
                   fontSize: 9, fontWeight: 800, letterSpacing: '0.1em',
                   textTransform: 'uppercase', color: '#e65100',
@@ -1322,6 +1397,19 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
                 <span style={{ fontSize: 11, fontWeight: 700, color: '#e65100' }}>
                   Compatibilidade {h.score}%
                 </span>
+                {h.nr != null && (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: '#555', background: '#f0f0f0', border: '1px solid #ddd', padding: '1px 6px', borderRadius: 4 }}>
+                    #{h.nr}
+                  </span>
+                )}
+                {(() => {
+                  const [bg, fg] = SVC_STATUS[h.serviceStatus] ?? ['#f0f0f0', '#555'];
+                  return (
+                    <span style={{ fontSize: 10, fontWeight: 700, background: bg, color: fg, padding: '1px 6px', borderRadius: 4 }}>
+                      {h.serviceStatus}
+                    </span>
+                  );
+                })()}
                 {h.serviceTime && (
                   <span style={{
                     fontSize: 11,
@@ -1362,6 +1450,20 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
                   Motorista ainda não atribuído
                 </div>
               )}
+              {h.pointsStatuses.length > 0 && (
+                <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {h.pointsStatuses.map((p, i) => (
+                    <span key={i} style={{
+                      fontSize: 10, padding: '2px 7px', borderRadius: 4,
+                      background: p.status === 'completed' ? '#e8f5e9' : p.status === 'failed' ? '#fce4ec' : '#f0f0f0',
+                      color:      p.status === 'completed' ? '#2e7d32' : p.status === 'failed' ? '#c62828' : '#666',
+                      fontWeight: 600,
+                    }}>
+                      {p.type === 'collection' ? 'Recolha' : 'Entrega'}: {PT_STATUS[p.status] ?? p.status}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </>
@@ -1398,7 +1500,7 @@ function RoutingPanel() {
   const defaults: RoutingConfig = {
     systemActive: true, alwaysBot: false, delayMinutesBeforeBot: 0,
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
-    recolherMoradasCompletas: false,
+    recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1436,6 +1538,31 @@ function RoutingPanel() {
       <ToggleRow cardS={cardS} label="Sempre bot (ignorar horários)" description="O bot responde 24/7 independentemente do horário configurado" checked={config.alwaysBot} onChange={() => toggle('alwaysBot')} />
       <ToggleRow cardS={cardS} label="Activo aos fins de semana" description="Bot responde automaticamente aos sábados e domingos" checked={config.autoWeekends} onChange={() => toggle('autoWeekends')} />
       <ToggleRow cardS={cardS} label="Recolher moradas completas" description="Após nome e email, bot pede moradas exactas, janelas horárias e contactos de recolha/entrega" checked={config.recolherMoradasCompletas} onChange={() => toggle('recolherMoradasCompletas')} />
+      <ToggleRow cardS={cardS} label="Pagamento automático activo" description="Bot solicita pagamento antes de registar a lead — o pedido só fica confirmado após pagamento bem-sucedido" checked={config.pagamentoAtivo} onChange={() => toggle('pagamentoAtivo')} />
+
+      {config.pagamentoAtivo && (
+        <div style={{ ...cardS, marginTop: -4 }}>
+          <h3 style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 10px' }}>Provider de pagamento</h3>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {([
+              { key: 'paybylink', label: 'Pay By Link', hint: 'Link no chat — cliente escolhe MB Way / Multibanco / Cartão' },
+              { key: 'mbway',     label: 'MB Way',      hint: 'Push directo para app MB Way (4 min)' },
+              { key: 'stripe',    label: 'Stripe',      hint: 'Stripe MB Way' },
+            ] as const).map(({ key: p, label, hint }) => (
+              <button key={p} onClick={() => setConfig((c) => ({ ...c, pagamentoProvider: p }))}
+                title={hint}
+                style={{ flex: 1, padding: '8px 4px', borderRadius: 8, border: `2px solid ${config.pagamentoProvider === p ? CYAN : BORDER}`, background: config.pagamentoProvider === p ? '#e0f7fa' : '#fff', color: config.pagamentoProvider === p ? NAVY : '#888', fontWeight: config.pagamentoProvider === p ? 700 : 400, fontSize: 12, cursor: 'pointer', transition: 'all 0.15s' }}>
+                {label}
+              </button>
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: '#aaa', margin: '8px 0 0' }}>
+            {config.pagamentoProvider === 'paybylink' && 'Requer PBL_GATEWAY_KEY e PBL_ANTI_PHISHING_KEY no .env'}
+            {config.pagamentoProvider === 'mbway'     && 'Requer MBWAY_KEY e MBWAY_ANTI_PHISHING_KEY no .env'}
+            {config.pagamentoProvider === 'stripe'    && 'Requer STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET no .env'}
+          </p>
+        </div>
+      )}
 
       <div style={cardS}>
         <h3 style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 12px' }}>Horário de operação automática</h3>

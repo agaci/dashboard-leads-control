@@ -307,6 +307,16 @@ export async function POST(request: NextRequest) {
       };
     }
 
+    // ── Auto-skip nome/email (dados pré-preenchidos, ex: web-b) ─────────────────
+    // Se o bot ia pedir o nome mas já está guardado na conversa (pre-seed do
+    // formulário), simular que nome+email já foram recolhidos e avançar
+    // directamente para o passo pós-email (moradas / pagamento / registo).
+    if (response.nextStep === 'COLLECTING_NOME' && conv.data.nome) {
+      await setConversationStep(telemovel, 'COLLECTING_EMAIL');
+      conv.step = 'COLLECTING_EMAIL' as any;
+      response = { text: '', nextStep: 'LEAD_REGISTERED' };
+    }
+
     // ── Intercepção pós-email: se recolherMoradasCompletas activo ─────────────
     if (response.nextStep === 'LEAD_REGISTERED' && conv.step === 'COLLECTING_EMAIL') {
       const db2 = await getDb();
@@ -321,6 +331,98 @@ export async function POST(request: NextRequest) {
         await setConversationStep(telemovel, 'COLLECTING_ORIGEM_COMPLETA');
         await appendMessage(telemovel, { role: 'bot', text: response.text, timestamp: new Date() });
         return Response.json({ success: true, response: response.text, nextStep: response.nextStep, quickReplies: [], situacaoId: null, escalate: false });
+      }
+    }
+
+    // ── Intercepção pré-lead: pagamento MBWAY (se pagamentoAtivo) ────────────
+    if (response.nextStep === 'LEAD_REGISTERED') {
+      const dbPag = await getDb();
+      const routingDocPag = await dbPag.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+      const pagamentoAtivo = (routingDocPag as any)?.pagamentoAtivo ?? defaultRoutingConfig.pagamentoAtivo;
+      const pagamentoProvider: 'paybylink' | 'mbway' | 'stripe' = (routingDocPag as any)?.pagamentoProvider ?? defaultRoutingConfig.pagamentoProvider;
+
+      if (pagamentoAtivo) {
+        const isArrasto = conv.data.serviceType === 'arrasto';
+        const finalPrice = isArrasto ? conv.data.partnerFinalPrice : conv.data.priceWithDiscount;
+        const rawPhone = conv.data.telemovel ?? telemovel;
+
+        try {
+          if (pagamentoProvider === 'paybylink') {
+            // ── Pay By Link — gera link, cliente escolhe método (MB Way, Multibanco, Cartão...)
+            const { createPayByLink, phoneToOrderId } = await import('@/lib/agent/paybylink/ifthenpay');
+            const orderId = phoneToOrderId(rawPhone);
+            const result = await createPayByLink({
+              gatewayKey: process.env.PBL_GATEWAY_KEY!,
+              orderId,
+              amount: finalPrice ?? 0,
+              description: `YourBox ${conv.data.origem ?? ''} → ${conv.data.destino ?? ''}`.slice(0, 200),
+              expireHours: 24,
+            });
+
+            if (result.success && result.redirectUrl) {
+              await updateConversationData(telemovel, { pblOrderId: orderId, pblPaymentUrl: result.redirectUrl });
+              conv.data.pblOrderId = orderId;
+              conv.data.pblPaymentUrl = result.redirectUrl;
+              response = {
+                text: `Para confirmar o seu serviço, efectue o pagamento através do link:\n\n` +
+                  `👉 ${result.redirectUrl}\n\n` +
+                  `*Valor: €${finalPrice?.toFixed(2)}*\n\n` +
+                  `Pode pagar por MB Way, Multibanco ou Cartão. ` +
+                  `O link é válido por *24 horas*.`,
+                nextStep: 'AWAITING_PAYMENT',
+              };
+            }
+
+          } else if (pagamentoProvider === 'mbway') {
+            // ── MB Way directo — push para app MB Way
+            const { createIfthenpayMbway, normalizePhoneIfthenpay } = await import('@/lib/agent/mbway/ifthenpay');
+            const { phoneToOrderId: toOrderId } = await import('@/lib/agent/paybylink/ifthenpay');
+            const phone = normalizePhoneIfthenpay(rawPhone);
+            const result = await createIfthenpayMbway({
+              mbwayKey: process.env.MBWAY_KEY!,
+              orderId: toOrderId(rawPhone),
+              amount: finalPrice ?? 0,
+              phone,
+            });
+
+            if (result.status === '000') {
+              await updateConversationData(telemovel, { ifthenpayRequestId: result.requestId });
+              conv.data.ifthenpayRequestId = result.requestId;
+              response = {
+                text: `Para confirmar o seu pedido, vai receber uma notificação *MB Way* no número *${phone}*.\n\n` +
+                  `Valor: *€${finalPrice?.toFixed(2)}*\n\n` +
+                  `Aceite o pagamento na app MB Way. A notificação expira em *4 minutos*.`,
+                nextStep: 'AWAITING_PAYMENT',
+              };
+            }
+
+          } else {
+            // ── Stripe MB Way
+            const phone = rawPhone.startsWith('+') ? rawPhone : `+351${rawPhone}`;
+            const amountCents = Math.round((finalPrice ?? 0) * 100);
+            const StripeLib = (await import('stripe')).default;
+            const stripe = new StripeLib(process.env.STRIPE_SECRET_KEY!);
+            const pi = await stripe.paymentIntents.create({
+              amount: amountCents,
+              currency: 'eur',
+              payment_method_types: ['mb_way'],
+              payment_method_data: { type: 'mb_way', mb_way: { phone } },
+              confirm: true,
+              metadata: { telemovel: rawPhone },
+            });
+            await updateConversationData(telemovel, { stripePaymentIntentId: pi.id });
+            conv.data.stripePaymentIntentId = pi.id;
+            response = {
+              text: `Para confirmar o seu pedido, vai receber uma notificação *MB Way* no número *${phone}*.\n\n` +
+                `Valor: *€${finalPrice?.toFixed(2)}*\n\n` +
+                `Assim que o pagamento for confirmado, o pedido fica registado.`,
+              nextStep: 'AWAITING_PAYMENT',
+            };
+          }
+        } catch (err: any) {
+          console.error(`Pagamento ${pagamentoProvider} error:`, err.message);
+          // Falha no pagamento — avança sem pagamento
+        }
       }
     }
 

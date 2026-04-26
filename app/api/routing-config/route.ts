@@ -25,7 +25,7 @@ export async function POST(request: NextRequest) {
     const allowed: (keyof LeadRoutingConfig)[] = [
       'systemActive', 'alwaysBot', 'delayMinutesBeforeBot',
       'autoStartHour', 'autoEndHour', 'autoWeekends', 'defaultMarkup',
-      'recolherMoradasCompletas',
+      'recolherMoradasCompletas', 'pagamentoAtivo', 'pagamentoProvider',
     ];
     for (const key of allowed) {
       if (key in body) (update as any)[key] = body[key];
