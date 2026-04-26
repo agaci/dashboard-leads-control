@@ -1,25 +1,27 @@
 import { MongoClient, Db } from 'mongodb';
 
-const uri = process.env.MONGODB_URI!;
-const options = { useNewUrlParser: true, useUnifiedTopology: true };
+let clientPromise: Promise<MongoClient> | null = null;
 
-let client: MongoClient;
-let clientPromise: Promise<MongoClient>;
+function getClientPromise(): Promise<MongoClient> {
+  if (clientPromise) return clientPromise;
 
-if (process.env.NODE_ENV === 'development') {
-  if (!(global as any)._mongoClientPromise) {
-    client = new MongoClient(uri, options);
-    (global as any)._mongoClientPromise = client.connect();
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI environment variable is not set');
+
+  if (process.env.NODE_ENV === 'development') {
+    const g = global as any;
+    if (!g._mongoClientPromise) {
+      g._mongoClientPromise = new MongoClient(uri).connect();
+    }
+    clientPromise = g._mongoClientPromise;
+  } else {
+    clientPromise = new MongoClient(uri).connect();
   }
-  clientPromise = (global as any)._mongoClientPromise;
-} else {
-  client = new MongoClient(uri, options);
-  clientPromise = client.connect();
+
+  return clientPromise!;
 }
 
-export default clientPromise;
-
 export async function getDb(dbName = process.env.MONGODB_DB ?? 'weby'): Promise<Db> {
-  const c = await clientPromise;
+  const c = await getClientPromise();
   return c.db(dbName);
 }

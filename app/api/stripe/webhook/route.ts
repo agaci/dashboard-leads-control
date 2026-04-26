@@ -4,9 +4,8 @@ import { getDb } from '@/lib/mongodb';
 import { getConversation } from '@/lib/agent/conversationState';
 import { registerLead } from '@/lib/agent/registerLead';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
-
 export async function POST(request: NextRequest) {
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
   const body = await request.text();
   const sig = request.headers.get('stripe-signature');
 
