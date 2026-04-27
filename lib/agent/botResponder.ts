@@ -151,8 +151,9 @@ export function buildPartnerPriceMessage(
     };
   }
 
+  // prices já chegam ordenadas da mais cara (10h) para a mais barata (19h)
+  const recommended = prices[Math.floor(prices.length / 2)];
   const lines = prices.map((p) => `*${p.serviceLabelShort}* — *€${p.finalPrice.toFixed(2)}*`);
-  const recommended = prices[0];
 
   return {
     text:

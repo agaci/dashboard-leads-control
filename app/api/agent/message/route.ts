@@ -217,8 +217,9 @@ export async function POST(request: NextRequest) {
 
         if (prices.length === 0) throw new Error('Sem tarifas activas');
 
-        // Guardar tarifa recomendada (primeira = mais económica)
-        const recommended = prices[0];
+        // Apresentar da mais cara (10h) para a mais barata (19h); recomendar a do meio (13h)
+        const sortedPrices = [...prices].reverse();
+        const recommended = sortedPrices[Math.floor(sortedPrices.length / 2)];
         await updateConversationData(telemovel, {
           partnerTariffId: recommended.tariffId,
           partnerBasePrice: recommended.basePrice,
@@ -238,7 +239,7 @@ export async function POST(request: NextRequest) {
           leadData: { origem: conv.data.origem, destino: conv.data.destino, urgencia: '24 Horas', serviceType: 'arrasto', weightKg: kg, partnerWindow: recommended.deliveryWindow, partnerFinalPrice: recommended.finalPrice, telemovel, converted: false, source: 'bot' },
         });
 
-        response = buildPartnerPriceMessage(prices, kg);
+        response = buildPartnerPriceMessage(sortedPrices, kg);
       } catch (err) {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto brevemente.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };
       }

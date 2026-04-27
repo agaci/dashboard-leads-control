@@ -134,8 +134,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const prices = calcAllActiveTariffs(tariffDocs, kg, 0, isSaturday, defaultMarkup);
 
         if (prices.length > 0) {
-          const recommended = prices[0];
-          const priceLines = prices.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)}`).join('\n');
+          // Apresentar da mais cara (10h) para a mais barata (19h); recomendar a do meio (13h)
+          const sorted = [...prices].reverse();
+          const recommended = sorted[Math.floor(sorted.length / 2)];
+          const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)}`).join('\n');
           // Preços são sempre apresentados — o texto do LLM é substituído
           botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
           await db.collection('conversations').updateOne(
