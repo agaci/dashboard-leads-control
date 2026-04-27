@@ -125,7 +125,9 @@
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
     if (step === 'ESCALATED_TO_HUMAN') {
-      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A falar com um agente. Pode continuar a escrever aqui.</p>';
+      // Manter input activo — utilizador pode enviar mensagem adicional ao agente
+      setInputDisabled(false);
+      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">Um agente vai entrar em contacto. Pode deixar uma mensagem adicional aqui.</p>';
       return;
     }
     setInputDisabled(true);

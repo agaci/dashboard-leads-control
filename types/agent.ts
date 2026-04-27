@@ -51,7 +51,7 @@ export interface ConversationData {
   viatura?: string;           // 'Moto' | 'Furgão Classe 1' | 'Furgão Classe 2'
   peso?: string;
   urgencia?: string;          // '1 Hora' | '4 Horas' | '24 Horas'
-  serviceType?: 'direto' | 'arrasto';
+  serviceType?: 'direto' | 'arrasto' | 'internacional';
   nome?: string;
   email?: string;
   telemovel: string;

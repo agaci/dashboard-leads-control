@@ -237,6 +237,28 @@
     .yb-route-label { font-size: 0.78rem; color: #888; margin-bottom: 0.2rem; }
     .yb-route-main { font-size: 1rem; font-weight: 700; color: #1a1a1a; }
     .yb-route-sub { font-size: 0.85rem; color: #666; margin-top: 0.2rem; }
+
+    /* Botão secundário — Internacional */
+    .btn-secondary-outline {
+      width: 100%; padding: 0.75rem 1rem;
+      border: 1.5px solid #ccc; border-radius: 10px;
+      background: #fff; color: #444;
+      font-family: 'Ubuntu', sans-serif; font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; display: flex; align-items: center; justify-content: center;
+      gap: 0.4rem; transition: border-color 0.2s, background 0.2s;
+    }
+    .btn-secondary-outline:hover { border-color: #888; background: #f9f9f9; }
+
+    .yb-or {
+      text-align: center; font-size: 0.78rem; color: #aaa;
+      margin: 0.4rem 0; position: relative;
+    }
+    .yb-or::before, .yb-or::after {
+      content: ''; position: absolute; top: 50%; width: 42%;
+      height: 1px; background: #e8e8e8;
+    }
+    .yb-or::before { left: 0; }
+    .yb-or::after { right: 0; }
   </style>
 </head>
 <body>
@@ -305,40 +327,7 @@
         <div class="form-step active" id="step1">
           <div class="yb-lead-form">
 
-            <!-- Contacto -->
-            <p class="yb-section-label">Os seus dados</p>
-            <p class="yb-lead-subtitle">
-              Preencha os seus dados para receber o orçamento personalizado.<br>
-              A informação fica guardada mesmo que não conclua o pedido.
-            </p>
-
-            <div class="yb-field" id="field-nome">
-              <label for="ybNome">Nome <span class="yb-optional">(obrigatório)</span></label>
-              <input type="text" id="ybNome" placeholder="Ex: João Silva" autocomplete="name">
-              <span class="yb-field-error">Por favor indique o seu nome</span>
-            </div>
-
-            <div class="yb-field" id="field-telefone">
-              <label for="ybTelefone">Telemóvel <span class="yb-optional">(obrigatório)</span></label>
-              <input type="tel" id="ybTelefone" placeholder="9XX XXX XXX" autocomplete="tel">
-              <span class="yb-field-error" id="telefoneError">Número português inválido (ex: 912 345 678)</span>
-            </div>
-
-            <div class="yb-field" id="field-email">
-              <label for="ybEmail">Email <span class="yb-optional">(opcional)</span></label>
-              <input type="email" id="ybEmail" placeholder="seu@email.com" autocomplete="email">
-            </div>
-
-            <!-- Honeypot anti-bot (invisível para humanos) -->
-            <div class="yb-hp" aria-hidden="true">
-              <input type="text" id="ybWebsite" name="website" tabindex="-1" autocomplete="off">
-            </div>
-
-            <hr class="yb-divider">
-
-            <!-- Serviço -->
-            <p class="yb-section-label">Detalhes do serviço</p>
-
+            <!-- Serviço — campos primeiro -->
             <div class="form-group">
               <label class="form-label">De onde?</label>
               <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
@@ -364,7 +353,7 @@
                   <label class="vehicle-label" for="furgao1">
                     <div class="vehicle-icon"><i data-lucide="truck"></i></div>
                     <div class="vehicle-name">Furg&atilde;o C1</div>
-                    <div class="vehicle-capacity">ate 150kg</div>
+                    <div class="vehicle-capacity">até 150kg</div>
                   </label>
                 </div>
                 <div class="vehicle-option">
@@ -372,14 +361,14 @@
                   <label class="vehicle-label" for="furgao2">
                     <div class="vehicle-icon"><i data-lucide="truck"></i></div>
                     <div class="vehicle-name">Furg&atilde;o C2</div>
-                    <div class="vehicle-capacity">ate 300kg</div>
+                    <div class="vehicle-capacity">até 300kg</div>
                   </label>
                 </div>
               </div>
             </div>
 
             <div class="form-group">
-              <label class="form-label">Urgencia</label>
+              <label class="form-label">Urgência</label>
               <div class="urgency-grid">
                 <div class="urgency-option">
                   <input type="radio" name="urgencia" id="urg1" value="1 Hora" checked>
@@ -405,11 +394,43 @@
               </div>
             </div>
 
+            <hr class="yb-divider">
+
+            <!-- Dados de contacto — depois do serviço -->
+            <div class="yb-field" id="field-nome">
+              <label for="ybNome">Nome <span class="yb-optional">(obrigatório)</span></label>
+              <input type="text" id="ybNome" placeholder="Ex: João Silva" autocomplete="name">
+              <span class="yb-field-error">Por favor indique o seu nome</span>
+            </div>
+
+            <div class="yb-field" id="field-telefone">
+              <label for="ybTelefone">Telemóvel <span class="yb-optional">(obrigatório)</span></label>
+              <input type="tel" id="ybTelefone" placeholder="9XX XXX XXX" autocomplete="tel">
+              <span class="yb-field-error" id="telefoneError">Número português inválido (ex: 912 345 678)</span>
+            </div>
+
+            <div class="yb-field" id="field-email">
+              <label for="ybEmail">Email <span class="yb-optional">(opcional)</span></label>
+              <input type="email" id="ybEmail" placeholder="seu@email.com" autocomplete="email">
+            </div>
+
+            <!-- Honeypot anti-bot (invisível para humanos) -->
+            <div class="yb-hp" aria-hidden="true">
+              <input type="text" id="ybWebsite" name="website" tabindex="-1" autocomplete="off">
+            </div>
+
             <button class="btn-calculate" id="btnStep1" onclick="ybFormB.submit()">
-              Ver Preco e Falar com Assistente
+              Ver Preço e Falar com Assistente
             </button>
 
-            <p class="yb-privacy">
+            <div class="yb-or">ou</div>
+
+            <button class="btn-secondary-outline" id="btnInternacional" onclick="ybFormB.submitInternacional()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Internacional / Ilhas (Madeira &amp; Açores)
+            </button>
+
+            <p class="yb-privacy" style="margin-top:0.5rem">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:11px;height:11px;vertical-align:middle;margin-right:3px;"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
               Os seus dados são confidenciais e não são partilhados com terceiros.
             </p>
@@ -707,6 +728,58 @@
       setTimeout(function () { el.focus(); }, 500);
     }
 
+    async function submitInternacional() {
+      clearErrors();
+      var hp = document.getElementById('ybWebsite');
+      if (hp && hp.value) return;
+      if (Date.now() - _formLoadTime < 2000) return;
+
+      var nome     = document.getElementById('ybNome').value.trim();
+      var telefone = document.getElementById('ybTelefone').value.trim();
+      var email    = document.getElementById('ybEmail').value.trim();
+      var origem   = document.getElementById('origem').value.trim() || 'Internacional';
+      var destino  = document.getElementById('destino').value.trim() || 'Internacional';
+
+      var hasError = false;
+      if (!nome) { setFieldError('nome', true); hasError = true; }
+      if (!validarTelefone(telefone)) { setFieldError('telefone', true); hasError = true; }
+      if (hasError) return;
+
+      state.nome     = nome;
+      state.email    = email;
+      state.telefone = normalizarTelefone(telefone);
+      state.viatura  = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
+      state.urgencia = 'Internacional';
+
+      var btn = document.getElementById('btnInternacional');
+      btn.disabled = true;
+      btn.textContent = 'A ligar ao assistente...';
+
+      document.getElementById('ybRouteText').textContent = 'Internacional / Ilhas';
+      document.getElementById('ybServiceText').textContent = state.viatura + ' • Internacional';
+
+      var greetingEl = document.getElementById('ybGreeting');
+      if (greetingEl) {
+        greetingEl.textContent = 'Olá ' + nome.split(' ')[0] + '! Vamos preparar um orçamento para o seu envio.';
+        greetingEl.style.display = 'block';
+      }
+
+      showStep(2);
+
+      await window.ybChatB.start({
+        nome:      state.nome,
+        email:     state.email,
+        telemovel: state.telefone,
+        origem:    origem,
+        destino:   destino,
+        viatura:   state.viatura,
+        urgencia:  'Internacional',
+      });
+
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:15px;height:15px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Internacional / Ilhas (Madeira &amp; Açores)';
+    }
+
     function focusComUrgencia(urgId, viatId) {
       focusNome();
       setTimeout(function () {
@@ -715,7 +788,7 @@
       }, 100);
     }
 
-    window.ybFormB = { submit: submit, back: back, focusNome: focusNome, focusComUrgencia: focusComUrgencia };
+    window.ybFormB = { submit: submit, back: back, focusNome: focusNome, focusComUrgencia: focusComUrgencia, submitInternacional: submitInternacional };
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', init);

@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
     const now = new Date();
-    const serviceType = urgencia === '24 Horas' ? 'arrasto' : 'direto';
+    const serviceType = urgencia === '24 Horas' ? 'arrasto' : urgencia === 'Internacional' ? 'internacional' : 'direto';
 
     const data: ConversationData = {
       telemovel: identifier,
@@ -51,7 +51,15 @@ export async function POST(request: NextRequest) {
     let step: string;
     let quickReplies: string[] | undefined;
 
-    if (serviceType === 'direto') {
+    if (serviceType === 'internacional') {
+      firstBotMessage =
+        'Para envios para as *Ilhas* (Madeira & Açores) ou *Internacional*, a nossa equipa prepara um orçamento personalizado.\n\n' +
+        'Um agente vai entrar em contacto brevemente.\n\n' +
+        'Pode deixar uma mensagem adicional ou aguardar o contacto.';
+      step = 'ESCALATED_TO_HUMAN';
+      quickReplies = undefined;
+
+    } else if (serviceType === 'direto') {
       // Calcular preço direto (YourBox)
       try {
         const settings = await db.collection('calculators').findOne({
@@ -114,7 +122,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Disparar análise de agregação em background — não bloqueia a resposta
-    if (serviceType !== 'arrasto') {
+    if (serviceType !== 'arrasto' && serviceType !== 'internacional') {
       const convId = conv.insertedId;
       findAggregationHints(origem, destino)
         .then(async ({ hints }) => {
