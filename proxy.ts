@@ -89,7 +89,11 @@ export async function proxy(request: NextRequest) {
     '/api/health',
     '/api/leads/international',
   ];
-  const isPublicPath = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p));
+  // Chat widget: POST .../message and GET .../conversations/{id} for polling
+  const isChatMessage = /^\/api\/conversations\/[^/]+\/message$/.test(pathname) && request.method === 'POST';
+  const isChatPoll    = /^\/api\/conversations\/[^/]+$/.test(pathname)           && request.method === 'GET';
+
+  const isPublicPath = isChatMessage || isChatPoll || PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p));
 
   const isProtectedApi = !isPublicPath && PROTECTED_API.some(p => pathname === p || pathname.startsWith(p + '/'));
 
