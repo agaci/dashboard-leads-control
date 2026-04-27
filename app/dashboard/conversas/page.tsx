@@ -276,53 +276,73 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
         ) : (
           <>
             {/* Header da conversa */}
-            <div className="neu-bg px-4 py-3 flex items-center justify-between flex-shrink-0" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              {isMobile && (
-                <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#888', padding: '0 4px 0 0', lineHeight: 1 }}>
-                  ←
-                </button>
-              )}
-              <div>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold" style={{ color: 'var(--neu-fg)' }}>
-                    {selected.data?.nome ?? refCode(selected._id)}
-                  </span>
-                  <span className="text-xs text-[--neu-muted] font-mono">{refCode(selected._id)}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stepColor(selected.step)}`}>
-                    {STEP_LABEL[selected.step]}
-                  </span>
-                </div>
-                <div className="flex gap-3 text-xs text-[--neu-muted] mt-0.5">
-                  {selected.data?.origem && <span>{selected.data.origem} → {selected.data.destino}</span>}
-                  {selected.data?.urgencia && <span>{selected.data.urgencia}</span>}
-                  {selected.data?.weightKg && <span>{selected.data.weightKg} kg</span>}
-                  {(selected.data?.priceWithDiscount ?? selected.data?.partnerFinalPrice) && (
-                    <span className="text-green-600 font-medium">
-                      €{(selected.data.priceWithDiscount ?? selected.data.partnerFinalPrice).toFixed(2)}
-                    </span>
+            <div className="neu-bg px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+              {/* Linha 1: voltar + nome/ref + badge + (botões e meta em desktop) */}
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex items-start gap-2 min-w-0">
+                  {isMobile && (
+                    <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#888', padding: '2px 4px 0 0', lineHeight: 1, flexShrink: 0 }}>
+                      ←
+                    </button>
                   )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <span className="font-semibold" style={{ color: 'var(--neu-fg)' }}>
+                        {selected.data?.nome ?? refCode(selected._id)}
+                      </span>
+                      {selected.data?.nome && (
+                        <span className="text-xs text-[--neu-muted] font-mono">{refCode(selected._id)}</span>
+                      )}
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stepColor(selected.step)}`}>
+                        {STEP_LABEL[selected.step]}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[--neu-muted] mt-0.5">
+                      {selected.data?.origem && (
+                        <span className="truncate max-w-[200px] md:max-w-none">
+                          {selected.data.origem.split(',')[0]} → {(selected.data.destino ?? '').split(',')[0]}
+                        </span>
+                      )}
+                      {selected.data?.urgencia && <span>{selected.data.urgencia}</span>}
+                      {selected.data?.weightKg && <span>{selected.data.weightKg} kg</span>}
+                      {(selected.data?.priceWithDiscount ?? selected.data?.partnerFinalPrice) && (
+                        <span className="text-green-600 font-medium">
+                          €{(selected.data.priceWithDiscount ?? selected.data.partnerFinalPrice).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>{/* end info div */}
-              </div>{/* end left flex div */}
-              <div className="flex items-center gap-2">
+                {/* Botões + meta — em desktop ficam aqui; em mobile passam para linha 2 */}
+                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                  {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
+                    <>
+                      <button onClick={() => setStep('LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
+                        ✓ Resolvida
+                      </button>
+                      <button onClick={() => setStep('CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
+                        ✕ Fechar
+                      </button>
+                    </>
+                  )}
+                  <span className="text-xs text-[--neu-muted]">
+                    {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
+                  </span>
+                </div>
+              </div>
+              {/* Linha 2 (só mobile): botões de acção + meta */}
+              <div className="flex md:hidden items-center gap-2 mt-2">
                 {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                   <>
-                    <button
-                      onClick={() => setStep('LEAD_REGISTERED')}
-                      className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all"
-                    >
+                    <button onClick={() => setStep('LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
                       ✓ Resolvida
                     </button>
-                    <button
-                      onClick={() => setStep('CLOSED')}
-                      className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all"
-                    >
+                    <button onClick={() => setStep('CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
                       ✕ Fechar
                     </button>
                   </>
                 )}
-                <span className="text-xs text-[--neu-muted]">
+                <span className="text-xs text-[--neu-muted] ml-auto">
                   {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
                 </span>
               </div>
