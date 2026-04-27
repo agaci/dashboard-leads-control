@@ -9,6 +9,7 @@ export default function ParceirosPage() {
   const [selected, setSelected] = useState<PartnerTariff | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [showEditor, setShowEditor] = useState(false);
 
   async function fetchTariffs() {
     setLoading(true);
@@ -44,12 +45,20 @@ export default function ParceirosPage() {
     if (selected?._id === tariff._id) setSelected((prev) => prev ? { ...prev, active: !prev.active } : null);
   }
 
+  function selectTariff(t: PartnerTariff) {
+    setSelected({ ...t });
+    setShowEditor(true);
+  }
+
   const partners = [...new Set(tariffs.map((t) => t.partner))];
 
   return (
     <div className="flex h-full neu-bg">
-      {/* Lista */}
-      <div className="w-80 flex flex-col neu-bg" style={{ borderRight: '1px solid hsl(240 10% 88%)' }}>
+      {/* Lista — visível em desktop sempre; em mobile só quando !showEditor */}
+      <div
+        className={`flex flex-col neu-bg ${showEditor ? 'hidden md:flex' : 'flex'} w-full md:w-80`}
+        style={{ borderRight: '1px solid hsl(240 10% 88%)' }}
+      >
         <div className="px-4 py-3" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
           <h2 className="font-semibold text-sm" style={{ color: 'var(--neu-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>Tarifas de Parceiros</h2>
           <p className="text-xs text-[--neu-muted] mt-0.5">{tariffs.length} tarifas · {partners.join(', ')}</p>
@@ -64,7 +73,7 @@ export default function ParceirosPage() {
               {tariffs.filter((t) => t.partner === partner).map((t) => (
                 <button
                   key={t._id}
-                  onClick={() => setSelected({ ...t })}
+                  onClick={() => selectTariff(t)}
                   className={`w-full text-left px-4 py-3 transition-all ${
                     selected?._id === t._id ? 'neu-pressed border-l-3 border-l-orange-500' : 'hover:neu-raised-sm'
                   }`}
@@ -84,22 +93,35 @@ export default function ParceirosPage() {
         </div>
       </div>
 
-      {/* Detalhe / Editor */}
-      <div className="flex-1 overflow-y-auto p-6">
-        {!selected ? (
-          <div className="flex items-center justify-center h-full text-[--neu-muted] text-sm">
-            Seleccione uma tarifa para editar
-          </div>
-        ) : (
-          <TariffEditor
-            tariff={selected}
-            onChange={setSelected}
-            onSave={saveSelected}
-            onToggleActive={() => toggleActive(selected)}
-            saving={saving}
-            saved={saved}
-          />
+      {/* Editor — visível em desktop sempre (se selected); em mobile só quando showEditor */}
+      <div className={`flex-1 overflow-y-auto ${showEditor ? 'flex flex-col' : 'hidden md:block'}`}>
+        {/* Botão voltar — só em mobile */}
+        {showEditor && (
+          <button
+            onClick={() => setShowEditor(false)}
+            className="md:hidden flex items-center gap-2 px-4 py-3 text-sm font-medium text-[--neu-muted] neu-raised-sm"
+            style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}
+          >
+            ← Voltar às tarifas
+          </button>
         )}
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-6">
+          {!selected ? (
+            <div className="hidden md:flex items-center justify-center h-full text-[--neu-muted] text-sm">
+              Seleccione uma tarifa para editar
+            </div>
+          ) : (
+            <TariffEditor
+              tariff={selected}
+              onChange={setSelected}
+              onSave={saveSelected}
+              onToggleActive={() => toggleActive(selected)}
+              saving={saving}
+              saved={saved}
+            />
+          )}
+        </div>
       </div>
     </div>
   );
@@ -134,17 +156,17 @@ function TariffEditor({
   return (
     <div className="max-w-2xl mx-auto">
       {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <div className="flex items-center gap-2 mb-1">
+      <div className="flex items-start justify-between mb-6 gap-2">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs neu-pressed px-2 py-0.5 rounded-lg font-mono text-[--neu-muted]">{tariff.partner}</span>
             <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tariff.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
               {tariff.active ? 'Activo' : 'Inactivo'}
             </span>
           </div>
-          <h2 className="text-xl font-semibold" style={{ color: 'var(--neu-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>{tariff.serviceLabel}</h2>
+          <h2 className="text-lg md:text-xl font-semibold truncate" style={{ color: 'var(--neu-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>{tariff.serviceLabel}</h2>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <button
             onClick={onToggleActive}
             className={`px-3 py-1.5 text-sm rounded-xl neu-raised-sm transition-all ${
