@@ -311,11 +311,14 @@ export default function NavSidebar({
   // ── Mobile: bottom nav bar ────────────────────────────────────────────────
   if (mobile) {
     const mobileItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: number; blink?: boolean }[] = [
-      { id: 'inbox',      label: 'Inbox',   icon: <IcoInbox />,      badge: inboxBadge },
-      { id: 'leads',      label: 'Leads',   icon: <IcoLeads /> },
-      { id: 'agregacoes', label: 'Agreg.',  icon: <IcoAgregacoes />, blink: aggBlink },
-      { id: 'servicos',   label: 'Serviços',icon: <IcoServicos /> },
-      { id: 'config',     label: 'Perfil',  icon: <IcoPerfil /> },
+      { id: 'inbox',      label: 'Inbox',      icon: <IcoInbox />,      badge: inboxBadge },
+      { id: 'leads',      label: 'Leads',      icon: <IcoLeads /> },
+      { id: 'clientes',   label: 'Clientes',   icon: <IcoClientes /> },
+      { id: 'agregacoes', label: 'Agreg.',     icon: <IcoAgregacoes />, blink: aggBlink },
+      { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
+      { id: 'baseIA',     label: 'Base IA',    icon: <IcoBaseIA /> },
+      { id: 'relatorios', label: 'Relatórios', icon: <IcoRelatorios /> },
+      { id: 'config',     label: 'Perfil',     icon: <IcoPerfil /> },
     ];
 
     return (
@@ -326,8 +329,11 @@ export default function NavSidebar({
         borderTop: '1px solid rgba(255,255,255,0.08)',
         zIndex: 100, userSelect: 'none',
         paddingBottom: 'env(safe-area-inset-bottom)',
-      }}>
-        <style>{animations}</style>
+        overflowX: 'auto',
+        scrollbarWidth: 'none',
+        WebkitOverflowScrolling: 'touch',
+      } as React.CSSProperties}>
+        <style>{animations}{`nav::-webkit-scrollbar{display:none}`}</style>
         {mobileItems.map((item) => {
           const active = activeTab === item.id;
           return (
@@ -335,16 +341,18 @@ export default function NavSidebar({
               key={item.id}
               onClick={() => onTabChange(item.id)}
               style={{
-                flex: 1, display: 'flex', flexDirection: 'column',
+                minWidth: 64, flexShrink: 0,
+                display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 3,
                 background: 'none', border: 'none', cursor: 'pointer',
                 color: active ? '#00bcd4' : 'rgba(255,255,255,0.4)',
                 position: 'relative',
                 transition: 'color 0.15s',
+                padding: '0 4px',
               }}
             >
               {item.icon}
-              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.01em' }}>{item.label}</span>
+              <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: '0.01em', whiteSpace: 'nowrap' }}>{item.label}</span>
               {(item.badge ?? 0) > 0 && (
                 <span style={{
                   position: 'absolute', top: 6, right: '50%', transform: 'translateX(8px)',
