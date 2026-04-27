@@ -79,7 +79,19 @@ export async function proxy(request: NextRequest) {
     '/api/parceiros',
     '/api/routing-config',
   ];
-  const isProtectedApi = PROTECTED_API.some(p => pathname === p || pathname.startsWith(p + '/'));
+  // Rotas públicas do chat widget — nunca proteger mesmo que o prefixo coincida
+  const PUBLIC_PATHS = [
+    '/api/conversations/start',
+    '/api/agent/',
+    '/api/price',
+    '/api/ifthenpay/',
+    '/api/stripe/',
+    '/api/health',
+    '/api/leads/international',
+  ];
+  const isPublicPath = PUBLIC_PATHS.some(p => pathname === p || pathname.startsWith(p));
+
+  const isProtectedApi = !isPublicPath && PROTECTED_API.some(p => pathname === p || pathname.startsWith(p + '/'));
 
   if (isProtectedApi || pathname.startsWith('/dashboard')) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET });
