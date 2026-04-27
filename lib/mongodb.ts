@@ -10,11 +10,11 @@ if (uri) {
   if (process.env.NODE_ENV === 'development') {
     const g = global as any;
     if (!g._mongoClientPromise) {
-      g._mongoClientPromise = new MongoClient(uri).connect();
+      g._mongoClientPromise = new MongoClient(uri, { useUnifiedTopology: true } as any).connect();
     }
     clientPromise = g._mongoClientPromise;
   } else {
-    clientPromise = new MongoClient(uri).connect();
+    clientPromise = new MongoClient(uri, { useUnifiedTopology: true } as any).connect();
   }
 }
 
