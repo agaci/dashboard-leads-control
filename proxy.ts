@@ -38,7 +38,7 @@ function getClientIp(request: NextRequest): string {
   return (request as any).ip ?? 'unknown';
 }
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // CORS preflight para API
