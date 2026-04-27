@@ -109,76 +109,21 @@
             overflow: hidden;
         }
 
-        /* Rotating Box Background */
-        .rotating-box {
+        .yb-map-wrap {
             position: absolute;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            font-size: 3rem;
-            color: rgba(139, 90, 43, 0.5);
-            text-shadow: 
-                1px 1px 0 rgba(255,255,255,0.3),
-                -1px -1px 0 rgba(0,0,0,0.2);
-            border: 4px solid rgba(139, 90, 43, 0.4);
-            box-shadow: 
-                inset 0 0 0 3px rgba(139, 90, 43, 0.2),
-                inset 0 0 50px rgba(0,0,0,0.1),
-                0 20px 40px rgba(0,0,0,0.3);
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: 0;
         }
 
-        .rotating-box-1 {
-            width: 400px;
-            height: 400px;
-            top: 10%;
-            right: 10%;
-            animation: rotate 20s linear infinite;
-            background: 
-                linear-gradient(90deg, transparent 48%, rgba(210, 180, 140, 0.9) 48%, rgba(210, 180, 140, 0.9) 52%, transparent 52%),
-                linear-gradient(0deg, transparent 48%, rgba(210, 180, 140, 0.7) 48%, rgba(210, 180, 140, 0.7) 52%, transparent 52%),
-                repeating-linear-gradient(
-                    45deg,
-                    #d4a574 0px,
-                    #d4a574 10px,
-                    #c99a67 10px,
-                    #c99a67 20px
-                ),
-                linear-gradient(135deg, #d4a574 0%, #b8935f 50%, #d4a574 100%);
-        }
-
-        .rotating-box-2 {
-            width: 300px;
-            height: 300px;
-            bottom: 10%;
-            left: 5%;
-            animation: rotate 25s linear infinite reverse;
-            background: 
-                linear-gradient(90deg, transparent 45%, rgba(210, 180, 140, 0.85) 45%, rgba(210, 180, 140, 0.85) 55%, transparent 55%),
-                repeating-linear-gradient(
-                    -45deg,
-                    #c99a67 0px,
-                    #c99a67 8px,
-                    #b8935f 8px,
-                    #b8935f 16px
-                ),
-                linear-gradient(135deg, #c99a67 0%, #a8824f 50%, #c99a67 100%);
-            font-size: 2.2rem;
-        }
-
-        .box-logo {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            opacity: 0.6;
-        }
-
-        .box-logo-your {
-            color: rgba(90, 60, 30, 0.8);
-        }
-
-        .box-logo-box {
-            color: rgba(139, 90, 43, 0.9);
+        .yb-map-wrap canvas {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
         }
 
         @keyframes rotate {
@@ -1206,22 +1151,6 @@
             .btn-cta {
                 padding: 1.2rem 2rem;
                 font-size: 1rem;
-            }
-
-            .rotating-box-1 {
-                width: 200px;
-                height: 200px;
-                font-size: 1.5rem;
-                top: 5%;
-                right: 5%;
-            }
-
-            .rotating-box-2 {
-                width: 150px;
-                height: 150px;
-                font-size: 1.2rem;
-                bottom: 5%;
-                left: 5%;
             }
 
             .vehicle-grid {

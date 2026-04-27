@@ -6,8 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ESTAFETAS - YOURBOX</title>
   <meta name="robots" content="noindex">
-  <link rel="icon" href="logo.png" type="image/png">
-  <link rel="shortcut icon" href="logo.png">
+  <link rel="shortcut icon" href="https://www.yourbox.com.pt/assets/images/pin-yourbox-black-128x134-1-128x134.png" type="image/x-icon">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -287,11 +286,8 @@
 
   <!-- Hero Section -->
   <section class="hero" id="inicio">
-    <div class="rotating-box rotating-box-1">
-      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
-    </div>
-    <div class="rotating-box rotating-box-2">
-      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
+    <div class="yb-map-wrap">
+      <canvas id="yb-map-canvas"></canvas>
     </div>
 
     <div class="hero-container">
@@ -805,5 +801,6 @@
   </script>
 
   <script>lucide.createIcons();</script>
+  <script src="yourbox-hero-map.js"></script>
 </body>
 </html>
