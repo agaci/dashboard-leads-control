@@ -15,10 +15,8 @@ function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const entry = ipStore.get(ip);
 
-  // Janela expirada ou IP novo — reset
   if (!entry || now > entry.resetAt) {
     ipStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    // Limpeza ocasional para evitar crescimento ilimitado do Map
     if (ipStore.size > 2000) purgeExpired(now);
     return true;
   }
@@ -35,13 +33,10 @@ function purgeExpired(now: number) {
 }
 
 function getClientIp(request: NextRequest): string {
-  // x-forwarded-for pode ter lista: "ip1, ip2, ..." — pegar o primeiro (origem real)
   const forwarded = request.headers.get('x-forwarded-for');
   if (forwarded) return forwarded.split(',')[0].trim();
   return (request as any).ip ?? 'unknown';
 }
-
-// ── Middleware ───────────────────────────────────────────────────────────────
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
