@@ -13,7 +13,7 @@ services:
       - yourbox-network
 
   evolution-api:
-    image: atendai/evolution-api:latest
+    image: atendai/evolution-api:v1.8.2
     container_name: evolution-api
     restart: unless-stopped
     ports:
@@ -31,7 +31,7 @@ services:
       - STORE_CHATS=true
       - DEL_INSTANCE=false
       - DATABASE_ENABLED=false
-      - DATABASE_PROVIDER=postgresql
+      - REDIS_ENABLED=false
     volumes:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
