@@ -24,25 +24,26 @@ export async function sendWhatsAppMessage(to: string, text: string): Promise<boo
   const cfg = await getEvolutionConfig();
   if (!cfg) return false;
 
-  // Se já é um JID completo (contém @), usar directamente; senão limpar para dígitos
-  const number = to.includes('@') ? to : to.replace(/\D/g, '');
+  // Tentar com @lid primeiro; se falhar, tentar só com os dígitos
+  const candidates: string[] = to.includes('@')
+    ? [to, to.replace(/\D/g, '')]   // @lid → tentar JID e depois só dígitos
+    : [to.replace(/\D/g, '')];
 
-  try {
-    const res = await fetch(`${cfg.apiUrl}/message/sendText/${cfg.instance}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': cfg.apiKey,
-      },
-      body: JSON.stringify({
-        number,
-        text,
-      }),
-    });
-    return res.ok;
-  } catch {
-    return false;
+  for (const number of candidates) {
+    try {
+      const res = await fetch(`${cfg.apiUrl}/message/sendText/${cfg.instance}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': cfg.apiKey },
+        body: JSON.stringify({ number, text }),
+      });
+      const body = await res.json().catch(() => ({}));
+      console.log('[WA Send] number:', number, 'status:', res.status, 'body:', JSON.stringify(body).slice(0, 120));
+      if (res.ok) return true;
+    } catch (err) {
+      console.error('[WA Send] error for', number, err);
+    }
   }
+  return false;
 }
 
 export async function isWhatsAppBotAtivo(): Promise<boolean> {
