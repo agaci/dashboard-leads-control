@@ -31,6 +31,7 @@ services:
       - STORE_CHATS=true
       - DEL_INSTANCE=false
       - DATABASE_ENABLED=false
+      - DATABASE_PROVIDER=postgresql
     volumes:
       - evolution_instances:/evolution/instances
       - evolution_store:/evolution/store
