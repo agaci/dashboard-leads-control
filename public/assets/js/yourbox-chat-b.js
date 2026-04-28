@@ -125,19 +125,31 @@
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
     if (step === 'ESCALATED_TO_HUMAN') {
-      // Manter input activo — utilizador pode enviar mensagem adicional ao agente
       setInputDisabled(false);
       if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">Um agente vai entrar em contacto. Pode deixar uma mensagem adicional aqui.</p>';
       return;
     }
     setInputDisabled(true);
     stopPolling();
-    if (!footer) return;
-    if (step === 'LEAD_REGISTERED') {
-      footer.innerHTML = '<p class="yb-done">Obrigado! A nossa equipa vai entrar em contacto brevemente.</p>';
-    } else {
-      footer.innerHTML = '<p class="yb-done">Conversa encerrada.</p>';
+
+    var finalText = step === 'LEAD_REGISTERED'
+      ? 'Obrigado! A nossa equipa vai entrar em contacto brevemente.'
+      : 'Conversa encerrada.';
+
+    // Mostrar como bolha no chat (fluxo natural) e fazer scroll
+    appendBubble('bot', finalText);
+
+    // Simplificar footer — apenas ícone de confirmação
+    if (footer) footer.innerHTML = '<p class="yb-done">✓ Pedido registado</p>';
+
+    // Scroll para a mensagem final — tanto na área de chat como na página (mobile)
+    var area = document.getElementById('ybChatMessages');
+    if (area) {
+      area.scrollTop = area.scrollHeight;
     }
+    setTimeout(function () {
+      if (footer) footer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 300);
   }
 
   // ── Gestão de step ───────────────────────────────────────────────────────────
