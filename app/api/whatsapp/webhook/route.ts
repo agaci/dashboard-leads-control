@@ -17,6 +17,7 @@ export async function POST(request: NextRequest) {
 
     // Evolution API envia vários tipos de evento — só nos interessa MESSAGES_UPSERT
     const event: string = body?.event ?? body?.type ?? '';
+    console.log('[WA Webhook] event:', event);
     if (!event.includes('MESSAGES') && !event.includes('messages')) {
       return NextResponse.json({ ok: true });
     }
@@ -32,18 +33,24 @@ export async function POST(request: NextRequest) {
     const remoteJid: string = msgData?.key?.remoteJid ?? '';
     if (remoteJid.includes('@g.us')) return NextResponse.json({ ok: true });
 
-    // Extrair número e texto
-    const telefone = remoteJid.replace('@s.whatsapp.net', '').replace(/\D/g, '');
+    // Extrair número (para o agente) e JID completo (para enviar resposta)
+    // remoteJid pode ser @s.whatsapp.net ou @lid (formato de privacidade novo)
+    const telefone = remoteJid.replace(/\D/g, '');
+    const jid = remoteJid; // JID completo para enviar resposta via Evolution
+
     const mensagem: string =
       msgData?.message?.conversation ??
       msgData?.message?.extendedTextMessage?.text ??
       msgData?.message?.imageMessage?.caption ??
       '';
 
+    console.log('[WA Webhook] de:', remoteJid, '| msg:', mensagem.slice(0, 80));
+
     if (!telefone || !mensagem.trim()) return NextResponse.json({ ok: true });
 
     // Verificar se bot WhatsApp está activo
     const botAtivo = await isWhatsAppBotAtivo();
+    console.log('[WA Webhook] botAtivo:', botAtivo);
     if (!botAtivo) return NextResponse.json({ ok: true });
 
     // Chamar o agente existente
@@ -60,13 +67,18 @@ export async function POST(request: NextRequest) {
       }
     );
 
-    if (!agentRes.ok) return NextResponse.json({ ok: true });
+    if (!agentRes.ok) {
+      console.error('[WA Webhook] agent error:', agentRes.status);
+      return NextResponse.json({ ok: true });
+    }
 
     const agentData = await agentRes.json();
     const resposta: string = agentData?.response ?? agentData?.message ?? '';
 
+    console.log('[WA Webhook] resposta agent:', resposta.slice(0, 80));
+
     if (resposta) {
-      await sendWhatsAppMessage(telefone, resposta);
+      await sendWhatsAppMessage(jid, resposta);
     }
 
     return NextResponse.json({ ok: true });

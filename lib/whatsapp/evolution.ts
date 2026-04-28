@@ -24,8 +24,8 @@ export async function sendWhatsAppMessage(to: string, text: string): Promise<boo
   const cfg = await getEvolutionConfig();
   if (!cfg) return false;
 
-  // Normalizar número: só dígitos, sem +
-  const number = to.replace(/\D/g, '');
+  // Se já é um JID completo (contém @), usar directamente; senão limpar para dígitos
+  const number = to.includes('@') ? to : to.replace(/\D/g, '');
 
   try {
     const res = await fetch(`${cfg.apiUrl}/message/sendText/${cfg.instance}`, {
