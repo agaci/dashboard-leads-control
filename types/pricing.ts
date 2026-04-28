@@ -64,10 +64,15 @@ export interface LeadRoutingConfig {
   autoStartHour: number;
   autoEndHour: number;
   autoWeekends: boolean;
-  defaultMarkup: number;   // multiplicador de margem para tarifas de parceiros (ex: 1.35 = 35%)
-  recolherMoradasCompletas: boolean;  // quando true, bot recolhe moradas e contactos completos após email
-  pagamentoAtivo: boolean;            // quando true, bot solicita pagamento MBWAY antes de registar lead
+  defaultMarkup: number;
+  recolherMoradasCompletas: boolean;
+  pagamentoAtivo: boolean;
   pagamentoProvider: 'paybylink' | 'mbway' | 'stripe';
+  whatsappBotAtivo?: boolean;
+  whatsappNumero?: string;
+  evolutionApiUrl?: string;
+  evolutionApiKey?: string;
+  evolutionInstance?: string;
   botScheduleOverride?: {
     startHour: number;
     endHour: number;

@@ -11,6 +11,11 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   recolherMoradasCompletas: false,
   pagamentoAtivo: false,
   pagamentoProvider: 'paybylink',
+  whatsappBotAtivo: false,
+  whatsappNumero: '',
+  evolutionApiUrl: '',
+  evolutionApiKey: '',
+  evolutionInstance: 'yourbox',
 };
 
 export function decideMode(

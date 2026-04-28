@@ -32,6 +32,11 @@ type RoutingConfig = {
   recolherMoradasCompletas: boolean;
   pagamentoAtivo: boolean;
   pagamentoProvider: 'paybylink' | 'mbway' | 'stripe';
+  whatsappBotAtivo: boolean;
+  whatsappNumero: string;
+  evolutionApiUrl: string;
+  evolutionApiKey: string;
+  evolutionInstance: string;
 };
 
 type LeadData = {
@@ -1524,6 +1529,7 @@ function RoutingPanel() {
     systemActive: true, alwaysBot: false, delayMinutesBeforeBot: 0,
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
+    whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1607,10 +1613,71 @@ function RoutingPanel() {
           style={{ width: 100, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }} />
       </div>
 
+      {/* ── WhatsApp / Evolution API ── */}
+      <div style={{ ...cardS, borderTop: `3px solid #25d366`, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: NAVY, margin: 0 }}>WhatsApp Bot (Evolution API)</h3>
+            <p style={{ fontSize: 11, color: '#aaa', margin: '3px 0 0' }}>Liga o bot automático ao WhatsApp via Evolution API</p>
+          </div>
+          <ToggleSwitch checked={config.whatsappBotAtivo} onChange={() => toggle('whatsappBotAtivo')} />
+        </div>
+
+        {config.whatsappBotAtivo && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <WaField label="Número WhatsApp do bot" hint="Só dígitos com indicativo, sem + (ex: 351964078194)"
+              value={config.whatsappNumero}
+              onChange={(v) => setConfig((c) => ({ ...c, whatsappNumero: v }))} />
+            <WaField label="URL da Evolution API" hint="Ex: http://evolution-api:8080 ou https://api.seudominio.pt"
+              value={config.evolutionApiUrl}
+              onChange={(v) => setConfig((c) => ({ ...c, evolutionApiUrl: v }))} />
+            <WaField label="API Key" hint="Chave definida na variável AUTHENTICATION_API_KEY do Evolution"
+              value={config.evolutionApiKey} password
+              onChange={(v) => setConfig((c) => ({ ...c, evolutionApiKey: v }))} />
+            <WaField label="Nome da instância" hint="Nome configurado no Evolution (ex: yourbox)"
+              value={config.evolutionInstance}
+              onChange={(v) => setConfig((c) => ({ ...c, evolutionInstance: v }))} />
+          </div>
+        )}
+      </div>
+
       <button onClick={save} disabled={saving}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#2e7d32' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
         {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar configuração'}
       </button>
+    </div>
+  );
+}
+
+function ToggleSwitch({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+  return (
+    <button onClick={onChange} style={{
+      width: 42, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+      background: checked ? '#25d366' : '#ddd', position: 'relative', transition: 'background 0.2s', flexShrink: 0,
+    }}>
+      <span style={{
+        position: 'absolute', top: 3, left: checked ? 20 : 3,
+        width: 18, height: 18, borderRadius: '50%', background: '#fff',
+        transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+      }} />
+    </button>
+  );
+}
+
+function WaField({ label, hint, value, onChange, password }: {
+  label: string; hint: string; value: string; onChange: (v: string) => void; password?: boolean;
+}) {
+  return (
+    <div>
+      <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 3 }}>{label}</label>
+      <input
+        type={password ? 'password' : 'text'}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={hint}
+        style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #e0e0e0', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: password ? 'monospace' : 'inherit' }}
+      />
+      <p style={{ fontSize: 10, color: '#aaa', margin: '3px 0 0' }}>{hint}</p>
     </div>
   );
 }
