@@ -53,9 +53,9 @@ export async function POST(request: NextRequest) {
     console.log('[WA Webhook] botAtivo:', botAtivo);
     if (!botAtivo) return NextResponse.json({ ok: true });
 
-    // Chamar o agente existente
+    // Chamar o agente existente — usar localhost para evitar loop de rede externa
     const agentRes = await fetch(
-      `${process.env.NEXTAUTH_URL ?? 'http://yourbox-leads:3006'}/api/agent/message`,
+      `http://localhost:${process.env.PORT ?? 3006}/api/agent/message`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
