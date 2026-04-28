@@ -133,22 +133,41 @@ function buildDynamicBlock(data: ConversationData): string {
     : 'ainda a calcular';
   const serviceType = data.serviceType === 'arrasto' ? 'Entrega Amanhã (24h)' : data.urgencia ?? 'Urgente';
 
+  // Dados de contacto pré-preenchidos no formulário (se existirem)
+  const hasPreSeededContact = !!(data.nome || data.telemovel);
+  const contactLines: string[] = [];
+  if (data.nome)      contactLines.push(`- **Nome:** ${data.nome}`);
+  if (data.telemovel) contactLines.push(`- **Telemóvel:** ${data.telemovel}`);
+  if (data.email)     contactLines.push(`- **Email:** ${data.email}`);
+
+  const contactSection = hasPreSeededContact
+    ? `\n\n## Dados de contacto fornecidos no formulário inicial\n${contactLines.join('\n')}\n`
+    : '';
+
+  const objectivoContacto = hasPreSeededContact
+    ? `3. Quando o utilizador confirmar que quer avançar, NÃO perguntes nome nem telefone de novo — já os tens acima.
+   Em vez disso, pergunta UMA VEZ: "Confirmamos o pedido com os seus dados iniciais — *${data.nome ? `Nome: ${data.nome}` : ''}${data.telemovel ? `, Telemóvel: ${data.telemovel}` : ''}*. Quer manter ou prefere alterar algum dado?"
+   - Se confirmar ("manter", "sim", "ok", "correto", etc.) → chama IMEDIATAMENTE \`register_lead\` com esses dados. Não anunces — age.
+   - Se quiser alterar → pede apenas os campos que quer mudar.
+   - Email é sempre opcional; se não foi fornecido, não perguntes.`
+    : `3. Quando confirmar que quer avançar, recolher por esta ordem:
+   a. **Nome** (obrigatório)
+   b. **Telefone/telemóvel** (obrigatório — sem contacto não é possível confirmar o serviço)
+   c. **Email** (opcional — pergunta depois do telefone)`;
+
   return `## Serviço cotado nesta conversa
 - **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
 - **Viatura:** ${data.viatura ?? '?'}
 - **Tipo de serviço:** ${serviceType}
 - **Distância:** ${data.distance ? `${data.distance} km` : 'a calcular'}
-- **Preço:** ${price}
+- **Preço:** ${price}${contactSection}
 
 ## Objectivo desta conversa
 1. Esclarecer dúvidas com base na Base de Conhecimento
 2. Convencer o utilizador do valor do serviço
-3. Quando confirmar que quer avançar, recolher por esta ordem:
-   a. **Nome** (obrigatório)
-   b. **Telefone/telemóvel** (obrigatório — sem contacto não é possível confirmar o serviço)
-   c. **Email** (opcional — pergunta depois do telefone)
+${objectivoContacto}
 4. Assim que tens nome + telefone: chama IMEDIATAMENTE \`register_lead\`. Não anunces — age.
-5. Se o utilizador recusar dar telefone: explica "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar. Podes partilhar?" — se insistir em recusar, usa \`escalate_to_human\`
+5. Se o utilizador recusar dar telefone: explica "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar. Pode partilhar?" — se insistir em recusar, usa \`escalate_to_human\`
 6. Se quiser entrega amanhã: pedir peso em kg e chamar \`calculate_tomorrow_delivery\``;
 }
 
