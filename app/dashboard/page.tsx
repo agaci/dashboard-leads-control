@@ -1546,9 +1546,20 @@ function RoutingPanel() {
 
   async function save() {
     setSaving(true); setSaved(false);
-    await fetch('/api/routing-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
-    setSaving(false); setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    try {
+      const res = await fetch('/api/routing-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert('Erro ao guardar: ' + (data.error ?? res.status));
+      } else {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (e: any) {
+      alert('Erro de rede: ' + e.message);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (loading) return <p style={{ fontSize: 13, color: '#aaa' }}>A carregar...</p>;
