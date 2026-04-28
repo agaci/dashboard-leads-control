@@ -18,6 +18,11 @@ export async function POST(request: NextRequest) {
     // Evolution API envia vários tipos de evento — só nos interessa MESSAGES_UPSERT
     const event: string = body?.event ?? body?.type ?? '';
     console.log('[WA Webhook] event:', event);
+    if (event.includes('messages') || event.includes('MESSAGES')) {
+      console.log('[WA Webhook] full body keys:', Object.keys(body));
+      console.log('[WA Webhook] data keys:', Object.keys(body?.data ?? {}));
+      console.log('[WA Webhook] body sample:', JSON.stringify(body).slice(0, 600));
+    }
     if (!event.includes('MESSAGES') && !event.includes('messages')) {
       return NextResponse.json({ ok: true });
     }
