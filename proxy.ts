@@ -88,6 +88,7 @@ export async function proxy(request: NextRequest) {
     '/api/stripe/',
     '/api/health',
     '/api/leads/international',
+    '/api/whatsapp/',
   ];
   // Chat widget: POST .../message and GET .../conversations/{id} for polling
   const isChatMessage = /^\/api\/conversations\/[^/]+\/message$/.test(pathname) && request.method === 'POST';
