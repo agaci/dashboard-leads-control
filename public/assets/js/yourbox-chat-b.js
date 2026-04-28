@@ -293,13 +293,14 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            origem:    formData.origem,
-            destino:   formData.destino,
-            viatura:   formData.viatura,
-            urgencia:  formData.urgencia,
-            telemovel: formData.telemovel,
-            nome:      formData.nome  || undefined,
-            email:     formData.email || undefined,
+            origem:      formData.origem,
+            destino:     formData.destino,
+            viatura:     formData.viatura,
+            urgencia:    formData.urgencia,
+            telemovel:   formData.telemovel,
+            nome:        formData.nome        || undefined,
+            email:       formData.email       || undefined,
+            observacoes: formData.observacoes || undefined,
           }),
         });
         const data = await res.json();
@@ -317,9 +318,15 @@
 
         appendBubbleTyped(data.message, function () {
           handleNewStep(data.step, data.quickReplies || []);
-          setInputDisabled(false);
-          var inp = document.getElementById('ybChatInput');
-          if (inp) inp.focus();
+          // Se o utilizador deixou observações, mostrar como mensagem e enviar ao bot
+          if (formData.observacoes) {
+            appendBubble('lead', formData.observacoes);
+            sendMessage(formData.observacoes);
+          } else {
+            setInputDisabled(false);
+            var inp = document.getElementById('ybChatInput');
+            if (inp) inp.focus();
+          }
         });
 
         startPolling();
