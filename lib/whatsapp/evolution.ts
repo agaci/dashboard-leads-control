@@ -37,7 +37,7 @@ export async function sendWhatsAppMessage(to: string, text: string): Promise<boo
         body: JSON.stringify({ number, textMessage: { text } }),
       });
       const body = await res.json().catch(() => ({}));
-      console.log('[WA Send] number:', number, 'status:', res.status, 'body:', JSON.stringify(body).slice(0, 120));
+      console.log('[WA Send] number:', number, 'status:', res.status, 'body:', JSON.stringify(body));
       if (res.ok) return true;
     } catch (err) {
       console.error('[WA Send] error for', number, err);
