@@ -166,6 +166,7 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
   const LIMIT = 20;
+  const autoSelectedLeadRef = useRef(false);
 
   const fetchLeads = useCallback(async () => {
     setLoading(true); setError(null);
@@ -184,6 +185,14 @@ export default function DashboardPage() {
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
   useEffect(() => { setPage(0); }, [filter]);
+
+  // Auto-seleccionar a lead mais recente na primeira carga
+  useEffect(() => {
+    if (autoSelectedLeadRef.current) return;
+    if (leads.length === 0) return;
+    autoSelectedLeadRef.current = true;
+    setSelected(leads[0]);
+  }, [leads]);
 
   const totalPages = Math.ceil(total / LIMIT);
 
