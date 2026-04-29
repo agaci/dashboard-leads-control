@@ -3,12 +3,22 @@ import type { Conversation, ConversationStep, ConversationData, ConversationMess
 
 export async function getConversation(telemovel: string): Promise<Conversation | null> {
   const db = await getDb();
-  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // expirar após 24h de inactividade
-  return db.collection('conversations').findOne({
-    telemovel,
-    step: { $nin: ['CLOSED', 'LEAD_REGISTERED'] },
-    updatedAt: { $gte: cutoff },
-  }) as any;
+  // Ordenar pela mais recente para evitar devolver conversas antigas caso existam duplicados
+  const conv = await db.collection('conversations').findOne(
+    { telemovel, step: { $nin: ['CLOSED', 'LEAD_REGISTERED'] } },
+    { sort: { updatedAt: -1 } }
+  ) as any;
+  if (!conv) return null;
+  // Expirar após 24h de inactividade (check em JS para robustez com tipos Date)
+  const updatedAt = conv.updatedAt instanceof Date ? conv.updatedAt : new Date(conv.updatedAt ?? 0);
+  if (Date.now() - updatedAt.getTime() > 24 * 60 * 60 * 1000) {
+    await db.collection('conversations').updateOne(
+      { _id: conv._id },
+      { $set: { step: 'CLOSED', closedAt: new Date(), updatedAt: new Date() } }
+    );
+    return null;
+  }
+  return conv;
 }
 
 export async function createConversation(telemovel: string, canal: Conversation['canal']): Promise<Conversation> {
