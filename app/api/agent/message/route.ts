@@ -30,6 +30,28 @@ import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/
 import type { ConversationData } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
+function isLeadInquiry(text: string): boolean {
+  const upper = text.trim().toUpperCase();
+  if (upper === 'PSERV' || upper === 'AJUDA' || upper === 'ESTADO') return true;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes('orçamento') ||
+    lower.includes('orcamento') ||
+    lower.includes('solicitei') ||
+    lower.includes('confirmar os detalhes') ||
+    lower.includes('quanto custa') ||
+    lower.includes('qual o preço') ||
+    lower.includes('qual é o preço') ||
+    lower.includes('preciso enviar') ||
+    lower.includes('quero enviar') ||
+    lower.includes('preciso de enviar') ||
+    lower.includes('quero transportar') ||
+    lower.includes('preciso transportar') ||
+    lower.includes('quero um transporte') ||
+    lower.includes('preciso de transporte')
+  );
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({}));
@@ -51,6 +73,13 @@ export async function POST(request: NextRequest) {
       await closeConversation(telemovel);
       conv = null;
     }
+
+    // Sem conversa activa e mensagem sem sinais de lead → ignorar silenciosamente
+    // (clientes existentes, drivers, equipa interna que contactam directamente)
+    if (!conv && !isTriggerRestart && !isLeadInquiry(mensagem)) {
+      return Response.json({ success: true, response: '', nextStep: 'CLOSED', quickReplies: [], situacaoId: null, escalate: false });
+    }
+
     if (!conv) {
       conv = await createConversation(telemovel, canal as any);
     }
