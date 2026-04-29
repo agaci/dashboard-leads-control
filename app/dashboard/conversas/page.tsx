@@ -95,6 +95,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const [sending, setSending] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const autoSelectedRef = useRef(false);
 
   const fetchList = useCallback(async () => {
     const res = await fetch(`/api/conversations?status=${filter}&limit=60`);
@@ -137,6 +138,15 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     setFilter('all');
     fetchSelected(initialConvId);
   }, [initialConvId, fetchSelected]);
+
+  // Auto-seleccionar a conversa mais recente na primeira carga
+  useEffect(() => {
+    if (autoSelectedRef.current) return;
+    if (initialConvId) return;
+    if (conversations.length === 0) return;
+    autoSelectedRef.current = true;
+    fetchSelected(conversations[0]._id);
+  }, [conversations, initialConvId, fetchSelected]);
 
   async function openConv(id: string) {
     await fetchSelected(id);

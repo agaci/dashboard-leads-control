@@ -141,7 +141,7 @@ function Tag({ label, type }: { label: string; type: string }) {
 
 export default function DashboardPage() {
   const isMobile = useIsMobile();
-  const [tab, setTab] = useState<NavTab>('leads');
+  const [tab, setTab] = useState<NavTab>('inbox');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
   const [aggBlink, setAggBlink] = useState(false);
