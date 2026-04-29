@@ -6,7 +6,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ESTAFETAS - YOURBOX</title>
   <meta name="robots" content="noindex">
-  <link rel="shortcut icon" href="https://www.yourbox.com.pt/assets/images/pin-yourbox-black-128x134-1-128x134.png" type="image/x-icon">
+  <link rel="icon" href="logo.png" type="image/png">
+  <link rel="shortcut icon" href="logo.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700;900&display=swap" rel="stylesheet">
@@ -70,27 +71,6 @@
 
     .yb-field input:focus { border-color: #bed62f; }
     .yb-field input.error { border-color: #e53935; }
-
-    .yb-field textarea {
-      width: 100%; padding: 0.85rem 1rem;
-      border: 1.5px solid #e0e0e0; border-radius: 10px;
-      font-family: 'Ubuntu', sans-serif; font-size: 1rem;
-      color: #1a1a1a; background: #fff; outline: none;
-      box-sizing: border-box; transition: border-color 0.2s;
-      resize: vertical; min-height: 80px; line-height: 1.5;
-    }
-    .yb-field textarea:focus { border-color: #bed62f; }
-
-    .yb-benefits {
-      background: #f8fdf0; border: 1px solid #d8eea8;
-      border-radius: 10px; padding: 0.75rem 1rem;
-      display: flex; flex-direction: column; gap: 0.4rem;
-    }
-    .yb-benefit {
-      display: flex; align-items: center; gap: 0.5rem;
-      font-size: 0.82rem; color: #3a5a1a; font-weight: 500;
-    }
-    .yb-benefit svg { flex-shrink: 0; }
 
     .yb-field-error {
       font-size: 0.75rem;
@@ -307,8 +287,11 @@
 
   <!-- Hero Section -->
   <section class="hero" id="inicio">
-    <div class="yb-map-wrap">
-      <canvas id="yb-map-canvas"></canvas>
+    <div class="rotating-box rotating-box-1">
+      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
+    </div>
+    <div class="rotating-box rotating-box-2">
+      <div class="box-logo"><span class="box-logo-your">Your</span><span class="box-logo-box">box</span></div>
     </div>
 
     <div class="hero-container">
@@ -419,14 +402,8 @@
 
             <hr class="yb-divider">
 
-            <!-- Label de secção de contacto -->
-            <p style="font-size:0.82rem;font-weight:600;color:#888;display:flex;align-items:center;gap:0.4rem;margin:0 0 0.1rem;">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.63 3.4 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 8.91A16 16 0 0 0 15.1 15.9l.77-.77a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-              Para receber o orçamento personalizado
-            </p>
-
             <!-- Dados de contacto — depois do serviço -->
-            <div class="yb-field" id="field-nome" style="margin-top:0.25rem;">
+            <div class="yb-field" id="field-nome">
               <label for="ybNome">Nome <span class="yb-optional">(obrigatório)</span></label>
               <input type="text" id="ybNome" placeholder="Ex: João Silva" autocomplete="name">
               <span class="yb-field-error">Por favor indique o seu nome</span>
@@ -441,27 +418,6 @@
             <div class="yb-field" id="field-email">
               <label for="ybEmail">Email <span class="yb-optional">(opcional)</span></label>
               <input type="email" id="ybEmail" placeholder="seu@email.com" autocomplete="email">
-            </div>
-
-            <div class="yb-field" id="field-observacoes">
-              <label for="ybObservacoes">Observações <span class="yb-optional">(opcional)</span></label>
-              <textarea id="ybObservacoes" placeholder="Alguma informação adicional sobre o envio..." autocomplete="off" rows="3"></textarea>
-            </div>
-
-            <!-- Bullets de confiança -->
-            <div class="yb-benefits">
-              <div class="yb-benefit">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#5a9e2f" stroke-width="2.5" style="width:13px;height:13px;"><polyline points="20 6 9 17 4 12"/></svg>
-                Orçamento personalizado e detalhado
-              </div>
-              <div class="yb-benefit">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#5a9e2f" stroke-width="2.5" style="width:13px;height:13px;"><polyline points="20 6 9 17 4 12"/></svg>
-                Contacto humano especializado
-              </div>
-              <div class="yb-benefit">
-                <svg viewBox="0 0 24 24" fill="none" stroke="#5a9e2f" stroke-width="2.5" style="width:13px;height:13px;"><polyline points="20 6 9 17 4 12"/></svg>
-                Resposta imediata
-              </div>
             </div>
 
             <!-- Honeypot anti-bot (invisível para humanos) -->
@@ -616,7 +572,7 @@
     var _formLoadTime = Date.now();
 
     var state = {
-      nome: '', email: '', telefone: '', observacoes: '',
+      nome: '', email: '', telefone: '',
       origem: '', destino: '', viatura: 'Moto', urgencia: '1 Hora',
     };
 
@@ -725,14 +681,13 @@
         return;
       }
 
-      state.nome        = nome;
-      state.email       = email;
-      state.telefone    = normalizarTelefone(telefone);
-      state.origem      = origem;
-      state.destino     = destino;
-      state.viatura     = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
-      state.urgencia    = document.querySelector('input[name="urgencia"]:checked')?.value || '1 Hora';
-      state.observacoes = (document.getElementById('ybObservacoes')?.value || '').trim();
+      state.nome      = nome;
+      state.email     = email;
+      state.telefone  = normalizarTelefone(telefone);
+      state.origem    = origem;
+      state.destino   = destino;
+      state.viatura   = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
+      state.urgencia  = document.querySelector('input[name="urgencia"]:checked')?.value || '1 Hora';
 
       var btn = document.getElementById('btnStep1');
       btn.disabled = true;
@@ -753,16 +708,15 @@
 
       showStep(2);
 
-      // Iniciar chat com dados pré-preenchidos (inclui nome, email, telemovel, observações)
+      // Iniciar chat com dados pré-preenchidos (inclui nome, email, telemovel)
       await window.ybChatB.start({
-        nome:        state.nome,
-        email:       state.email,
-        telemovel:   state.telefone,
-        origem:      state.origem,
-        destino:     state.destino,
-        viatura:     state.viatura,
-        urgencia:    state.urgencia,
-        observacoes: state.observacoes || undefined,
+        nome:     state.nome,
+        email:    state.email,
+        telemovel: state.telefone,
+        origem:   state.origem,
+        destino:  state.destino,
+        viatura:  state.viatura,
+        urgencia: state.urgencia,
       });
 
       btn.disabled = false;
@@ -774,7 +728,7 @@
     }
 
     function focusNome() {
-      var el = document.getElementById('origem');
+      var el = document.getElementById('ybNome');
       if (!el) return;
       document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
       setTimeout(function () { el.focus(); }, 500);
@@ -797,12 +751,11 @@
       if (!validarTelefone(telefone)) { setFieldError('telefone', true); hasError = true; }
       if (hasError) return;
 
-      state.nome        = nome;
-      state.email       = email;
-      state.telefone    = normalizarTelefone(telefone);
-      state.viatura     = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
-      state.urgencia    = 'Internacional';
-      state.observacoes = (document.getElementById('ybObservacoes')?.value || '').trim();
+      state.nome     = nome;
+      state.email    = email;
+      state.telefone = normalizarTelefone(telefone);
+      state.viatura  = document.querySelector('input[name="viatura"]:checked')?.value || 'Moto';
+      state.urgencia = 'Internacional';
 
       var btn = document.getElementById('btnInternacional');
       btn.disabled = true;
@@ -820,14 +773,13 @@
       showStep(2);
 
       await window.ybChatB.start({
-        nome:        state.nome,
-        email:       state.email,
-        telemovel:   state.telefone,
-        origem:      origem,
-        destino:     destino,
-        viatura:     state.viatura,
-        urgencia:    'Internacional',
-        observacoes: state.observacoes || undefined,
+        nome:      state.nome,
+        email:     state.email,
+        telemovel: state.telefone,
+        origem:    origem,
+        destino:   destino,
+        viatura:   state.viatura,
+        urgencia:  'Internacional',
       });
 
       btn.disabled = false;
@@ -853,6 +805,5 @@
   </script>
 
   <script>lucide.createIcons();</script>
-  <script src="yourbox-hero-map.js"></script>
 </body>
 </html>

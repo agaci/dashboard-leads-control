@@ -215,6 +215,14 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
   // Escalamento explícito
   if (isEscalationRequest(mensagem)) return buildEscalationMessage();
 
+  // Saudação genérica — devolver a pergunta actual sem bloquear
+  const trimmedLower = mensagem.trim().toLowerCase().replace(/[!.,?]+$/, '').trim();
+  const GREETINGS = new Set(['bom dia', 'boa tarde', 'boa noite', 'olá', 'ola', 'oi', 'hey', 'hello', 'hi', 'boas']);
+  if (GREETINGS.has(trimmedLower) && conv.step !== 'INIT') {
+    const q = QUESTIONS[conv.step];
+    if (q?.text) return { text: q.text, nextStep: conv.step, quickReplies: q.quickReplies };
+  }
+
   // Choque de preço
   if (isPriceShock(mensagem) && conv.step === 'PRESENTING_PRICE') {
     return buildObjectionResponse(conv);
@@ -430,6 +438,82 @@ export function normalizeUrgencia(text: string): string | null {
   if (t.includes('4 hora') || t.includes('quatro hora') || /\b4\b/.test(t)) return '4 Horas';
   if (t.includes('1 hora') || t.includes('uma hora') || /\b1\b/.test(t)) return '1 Hora';
   return null;
+}
+
+// ── Mensagem pré-preenchida da landing page ──────────────────────────────────
+
+export interface WAPrefilledData {
+  origem?: string;
+  destino?: string;
+  viatura?: string;
+  urgencia?: string;
+  nome?: string;
+  email?: string;
+}
+
+export function parseWAPrefilledMessage(text: string): WAPrefilledData | null {
+  const lower = text.toLowerCase();
+  if (!lower.includes('orçamento') && !lower.includes('orcamento') && !lower.includes('confirmar os detalhes')) {
+    return null;
+  }
+  const result: WAPrefilledData = {};
+
+  const deMatch   = text.match(/De:\s*(.+)/i);
+  const paraMatch = text.match(/Para:\s*(.+)/i);
+  if (deMatch)   result.origem  = deMatch[1].trim();
+  if (paraMatch) result.destino = paraMatch[1].trim();
+
+  const viaturaMatch = text.match(/Viatura:\s*(.+)/i);
+  if (viaturaMatch) {
+    const v = normalizeViatura(viaturaMatch[1].trim());
+    if (v) result.viatura = v;
+  }
+  const urgenciaMatch = text.match(/Urg[eê]ncia:\s*(.+)/i);
+  if (urgenciaMatch) {
+    const u = normalizeUrgencia(urgenciaMatch[1].trim());
+    if (u) result.urgencia = u;
+  }
+  // Form-a has a bug: "€" before nome → strip it
+  const nomeMatch  = text.match(/Nome:\s*€?(.+)/i);
+  if (nomeMatch) result.nome = nomeMatch[1].trim();
+  const emailMatch = text.match(/Email:\s*(\S+@\S+)/i);
+  if (emailMatch) result.email = emailMatch[1].trim();
+
+  return Object.keys(result).length > 0 ? result : null;
+}
+
+export function buildWAPrefilledResponse(data: WAPrefilledData): BotResponse {
+  const greeting = data.nome
+    ? `Olá, *${data.nome}*! Recebi o seu pedido de orçamento.`
+    : 'Olá! Recebi o seu pedido de orçamento.';
+  const route = data.origem && data.destino
+    ? `\n\n*${data.origem}* → *${data.destino}*`
+    : '';
+
+  if (!data.origem || !data.destino) return buildWelcomeMessage();
+
+  if (data.urgencia === '24 Horas') {
+    return {
+      text: greeting + route + '\n\nPara a entrega amanhã, qual o *peso total* do envio (em kg)?',
+      nextStep: 'COLLECTING_WEIGHT',
+    };
+  }
+  if (data.viatura && data.urgencia) {
+    return { text: greeting + route + '\n\nA calcular preço...', nextStep: 'CALCULATING_PRICE' };
+  }
+  if (data.urgencia) {
+    return {
+      text: greeting + route + '\n\n' + QUESTIONS.COLLECTING_VIATURA.text,
+      nextStep: 'COLLECTING_VIATURA',
+      quickReplies: QUESTIONS.COLLECTING_VIATURA.quickReplies,
+    };
+  }
+  // Só temos origem + destino — perguntar urgência
+  return {
+    text: greeting + route + '\n\n' + QUESTIONS.COLLECTING_URGENCIA.text,
+    nextStep: 'COLLECTING_URGENCIA',
+    quickReplies: QUESTIONS.COLLECTING_URGENCIA.quickReplies,
+  };
 }
 
 function getResponseTimeLabel(): string {

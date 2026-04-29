@@ -1,28 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendWhatsAppMessage, isWhatsAppBotAtivo } from '@/lib/whatsapp/evolution';
 
-// Verifica se a mensagem vem do próprio bot (evitar loop)
-function isFromBot(data: any, botNumber: string): boolean {
-  const from: string = data?.data?.key?.remoteJid ?? '';
-  const fromMe: boolean = data?.data?.key?.fromMe ?? false;
-  if (fromMe) return true;
-  const fromDigits = from.replace(/\D/g, '').replace(/^55/, ''); // limpar JID whatsapp
-  const botDigits = botNumber.replace(/\D/g, '');
-  return fromDigits === botDigits;
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
     // Evolution API envia vários tipos de evento — só nos interessa MESSAGES_UPSERT
     const event: string = body?.event ?? body?.type ?? '';
-    console.log('[WA Webhook] event:', event);
-    if (event.includes('messages') || event.includes('MESSAGES')) {
-      console.log('[WA Webhook] full body keys:', Object.keys(body));
-      console.log('[WA Webhook] data keys:', Object.keys(body?.data ?? {}));
-      console.log('[WA Webhook] body sample:', JSON.stringify(body).slice(0, 600));
-    }
     if (!event.includes('MESSAGES') && !event.includes('messages')) {
       return NextResponse.json({ ok: true });
     }
@@ -55,7 +39,6 @@ export async function POST(request: NextRequest) {
 
     // Verificar se bot WhatsApp está activo
     const botAtivo = await isWhatsAppBotAtivo();
-    console.log('[WA Webhook] botAtivo:', botAtivo);
     if (!botAtivo) return NextResponse.json({ ok: true });
 
     // Chamar o agente existente — usar localhost para evitar loop de rede externa
@@ -79,8 +62,6 @@ export async function POST(request: NextRequest) {
 
     const agentData = await agentRes.json();
     const resposta: string = agentData?.response ?? agentData?.message ?? '';
-
-    console.log('[WA Webhook] resposta agent:', resposta.slice(0, 80));
 
     if (resposta) {
       await sendWhatsAppMessage(jid, resposta);

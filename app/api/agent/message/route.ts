@@ -17,6 +17,8 @@ import {
   buildPartnerConfirmedMessage,
   normalizeViatura,
   normalizeUrgencia,
+  parseWAPrefilledMessage,
+  buildWAPrefilledResponse,
 } from '@/lib/agent/botResponder';
 import { matchSituacao, matchTriggerCode } from '@/lib/agent/matcher';
 import { findAggregationHints } from '@/lib/agent/aggregation';
@@ -63,6 +65,26 @@ export async function POST(request: NextRequest) {
     }
 
     let response = processMessage(conv, mensagem);
+
+    // ── Mensagem pré-preenchida da landing page (botão WhatsApp) ────────────
+    if (conv.step === 'INIT') {
+      const prefilled = parseWAPrefilledMessage(mensagem);
+      if (prefilled && (prefilled.origem || prefilled.destino)) {
+        const seedData: Partial<ConversationData> = {};
+        if (prefilled.origem)   seedData.origem  = prefilled.origem;
+        if (prefilled.destino)  seedData.destino = prefilled.destino;
+        if (prefilled.viatura)  seedData.viatura = prefilled.viatura;
+        if (prefilled.urgencia) {
+          seedData.urgencia    = prefilled.urgencia;
+          seedData.serviceType = prefilled.urgencia === '24 Horas' ? 'arrasto' : 'direto';
+        }
+        if (prefilled.nome)  seedData.nome  = prefilled.nome;
+        if (prefilled.email) seedData.email = prefilled.email;
+        await updateConversationData(telemovel, seedData);
+        Object.assign(conv.data, seedData);
+        response = buildWAPrefilledResponse(prefilled);
+      }
+    }
 
     // ── Recolha de dados por step ────────────────────────────────────────────
     const dataUpdate: Partial<ConversationData> = {};

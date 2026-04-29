@@ -3,7 +3,12 @@ import type { Conversation, ConversationStep, ConversationData, ConversationMess
 
 export async function getConversation(telemovel: string): Promise<Conversation | null> {
   const db = await getDb();
-  return db.collection('conversations').findOne({ telemovel, step: { $nin: ['CLOSED', 'LEAD_REGISTERED'] } }) as any;
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000); // expirar após 24h de inactividade
+  return db.collection('conversations').findOne({
+    telemovel,
+    step: { $nin: ['CLOSED', 'LEAD_REGISTERED'] },
+    updatedAt: { $gte: cutoff },
+  }) as any;
 }
 
 export async function createConversation(telemovel: string, canal: Conversation['canal']): Promise<Conversation> {
