@@ -34,7 +34,7 @@ export async function sendWhatsAppMessage(to: string, text: string): Promise<boo
       const res = await fetch(`${cfg.apiUrl}/message/sendText/${cfg.instance}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'apikey': cfg.apiKey },
-        body: JSON.stringify({ number, text }),
+        body: JSON.stringify({ number, text, options: { delay: 0, checkNumber: false } }),
       });
       const body = await res.json().catch(() => ({}));
       console.log('[WA Send] number:', number, 'status:', res.status, 'body:', JSON.stringify(body));
