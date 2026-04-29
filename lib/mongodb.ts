@@ -2,29 +2,36 @@ import { MongoClient, Db } from 'mongodb';
 
 const uri = process.env.MONGODB_URI;
 
-// Cachear o cliente no global para sobreviver a recarregamentos de módulo
-// (hot-reload em dev, restarts em prod após deploy)
-function getClientPromise(): Promise<MongoClient> | null {
-  if (!uri) return null;
-  const g = global as any;
-  if (!g._mongoClientPromise) {
-    g._mongoClientPromise = new MongoClient(uri).connect();
-  }
-  return g._mongoClientPromise;
+// useUnifiedTopology é obrigatório no driver v3.x para o novo motor de topologia
+const MONGO_OPTIONS = { useUnifiedTopology: true } as any;
+
+function createClientPromise(): Promise<MongoClient> {
+  const p = new MongoClient(uri!, MONGO_OPTIONS).connect();
+  // Quando a topology fechar (ex: restart), limpar cache para forçar reconexão
+  p.then((client) => {
+    client.on('topologyClosed', () => {
+      const g = global as any;
+      if (g._mongoClientPromise === p) delete g._mongoClientPromise;
+    });
+  }).catch(() => {
+    const g = global as any;
+    if (g._mongoClientPromise === p) delete g._mongoClientPromise;
+  });
+  return p;
 }
 
 export async function getDb(dbName = process.env.MONGODB_DB ?? 'weby'): Promise<Db> {
-  let promise = getClientPromise();
-  if (!promise) throw new Error('MONGODB_URI is not set');
+  if (!uri) throw new Error('MONGODB_URI is not set');
+  const g = global as any;
+  if (!g._mongoClientPromise) g._mongoClientPromise = createClientPromise();
   try {
-    const c = await promise;
-    return c.db(dbName);
+    const client: MongoClient = await g._mongoClientPromise;
+    return client.db(dbName);
   } catch {
-    // Pool destruída (ex: restart do servidor) — forçar reconexão
-    const g = global as any;
-    g._mongoClientPromise = new MongoClient(uri!).connect();
-    promise = g._mongoClientPromise;
-    const c = await promise!;
-    return c.db(dbName);
+    // Promise rejeitada — reconectar
+    delete g._mongoClientPromise;
+    g._mongoClientPromise = createClientPromise();
+    const client: MongoClient = await g._mongoClientPromise;
+    return client.db(dbName);
   }
 }

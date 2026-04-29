@@ -20,7 +20,7 @@
         //API_CALLBACK_URL: 'https://weby-5204.nodechef.com/api/callbackRequest', // NOVO ENDPOINT
         
         // WhatsApp
-        WHATSAPP_NUMBER: '351964078194',
+        WHATSAPP_NUMBER: '351961220881',
         
         // Google Places
         GOOGLE_PLACES_OPTIONS: {

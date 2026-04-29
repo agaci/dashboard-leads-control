@@ -16,7 +16,7 @@
         //API_RANGE_URL: 'https://weby-5204.nodechef.com/api/getPriceRange',
         API_LEAD_URL: 'http://yb.serveftp.com:3000/api/submitLeadVariantD',
         //API_LEAD_URL: 'https://weby-5204.nodechef.com/api/submitLeadVariantD',
-        WHATSAPP_NUMBER: '351964078194',
+        WHATSAPP_NUMBER: '351961220881',
         
         GOOGLE_PLACES_OPTIONS: {
             componentRestrictions: { country: 'pt' },

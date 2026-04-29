@@ -16,7 +16,7 @@
         API_URL: 'http://yb.serveftp.com:3000/api/freeGetServicePriceAPI2026',
         //API_URL: 'https://weby-5204.nodechef.com/api/freeGetServicePriceAPI2026',
         // WhatsApp
-        WHATSAPP_NUMBER: '351964078194',
+        WHATSAPP_NUMBER: '351961220881',
         
         // Google Places
         GOOGLE_PLACES_OPTIONS: {
