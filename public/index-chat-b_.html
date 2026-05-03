@@ -578,6 +578,12 @@
 
     function init() {
       initGooglePlaces();
+      if (window.innerWidth > 768) {
+        setTimeout(function () {
+          var el = document.getElementById('origem');
+          if (el) el.focus();
+        }, 300);
+      }
       // Formatar telefone ao digitar
       var tel = document.getElementById('ybTelefone');
       if (tel) {
@@ -728,10 +734,10 @@
     }
 
     function focusNome() {
-      var el = document.getElementById('ybNome');
+      var el = document.getElementById('origem');
       if (!el) return;
-      document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
-      setTimeout(function () { el.focus(); }, 500);
+      el.focus();
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     async function submitInternacional() {
