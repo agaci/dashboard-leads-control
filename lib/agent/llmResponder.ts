@@ -24,7 +24,7 @@ const TOOLS: Anthropic.Tool[] = [
         contactoEntrega: { type: 'string', description: 'Contacto na entrega: nome, telefone e janela horária' },
         volumes: { type: 'string', description: 'Nº de volumes e dimensões aproximadas — apenas para serviço 24h (ex: 3 caixas, 50×40×30 cm cada)' },
       },
-      required: ['nome', 'telefone', 'origemCompleta', 'destinoCompleta', 'contactoRecolha', 'contactoEntrega'],
+      required: ['nome', 'telefone'],
     },
   },
   {
