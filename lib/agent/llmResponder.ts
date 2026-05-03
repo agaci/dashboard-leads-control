@@ -179,12 +179,13 @@ function buildDynamicBlock(data: ConversationData): string {
 ${contactConfirmation}
 4. Após confirmar contacto, recolher NESTA ORDEM — uma pergunta de cada vez:
    a. **Notas adicionais** (opcional) — "Tem alguma instrução especial? (horário de acesso, código de portão, etc.)" — pode responder "não"
-   b. **Morada completa de RECOLHA** — rua, número/andar, código postal, localidade — confirma com o utilizador
-   c. **Morada completa de ENTREGA** — rua, número/andar, código postal, localidade — confirma com o utilizador
-   d. **Contacto na recolha** — "Quem estará disponível para a recolha? Nome, telefone e janela horária."
-   e. **Contacto na entrega** — "E na entrega — quem estará disponível? Nome, telefone e janela horária."${volumesStep}
-   **IMPORTANTE:** todos estes campos são opcionais. Se o utilizador recusar qualquer um ("não quero", "não tenho", "passa à frente", "saltar", etc.), aceita sem insistir e avança para o passo seguinte. Nunca perguntes o mesmo dado duas vezes.
+   b. **Morada completa de RECOLHA** — ao perguntar, acrescenta SEMPRE: "Caso prefira não partilhar agora, responda *saltar* — a nossa equipa de coordenação confirmará os detalhes consigo."
+   c. **Morada completa de ENTREGA** — ao perguntar, acrescenta: "Pode responder *saltar* para avançar."
+   d. **Contacto na recolha** — "Quem estará disponível para a recolha? Nome, telefone e janela horária. (Pode responder *saltar*.)"
+   e. **Contacto na entrega** — "E na entrega — quem estará disponível? Nome, telefone e janela horária. (Pode responder *saltar*.)"${volumesStep}
+   **IMPORTANTE:** todos estes campos são opcionais. Se o utilizador responder "saltar", "não", ou recusar qualquer campo, aceita sem insistir e avança imediatamente para o passo seguinte. Nunca perguntes o mesmo dado duas vezes.
 5. Assim que tiveres os dados que o utilizador quis partilhar, chamas \`register_lead\`. Não anunces — age directamente.
+   - Na mensagem de confirmação após o registo, inclui SEMPRE: ${isArrasto ? '"A nossa equipa de coordenação entrará em contacto em breve para confirmar todos os detalhes logísticos do serviço."' : '"Dado tratar-se de um serviço expresso, um coordenador YourBox entrará em contacto nos próximos minutos para validar todos os detalhes operacionais e garantir a recolha dentro do prazo previsto."'}
 6. Se o utilizador recusar dar telefone: "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar." — se insistir, usa \`escalate_to_human\`
 7. Se quiser entrega amanhã: pedir peso em kg e chamar \`calculate_tomorrow_delivery\``;
 }

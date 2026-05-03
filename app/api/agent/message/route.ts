@@ -30,6 +30,11 @@ import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/
 import type { ConversationData } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
+function isSaltar(text: string): boolean {
+  const t = text.trim().toLowerCase().replace(/[!.,?]+$/, '');
+  return ['saltar', 'skip', 'avançar', 'avancar', 'passar', 'não', 'nao'].includes(t);
+}
+
 function isLeadInquiry(text: string): boolean {
   const upper = text.trim().toUpperCase();
   if (upper === 'PSERV' || upper === 'AJUDA' || upper === 'ESTADO') return true;
@@ -192,14 +197,18 @@ export async function POST(request: NextRequest) {
       }
 
       case 'COLLECTING_DETALHES_RECOLHA': {
-        const contacto = await parseContacto(mensagem);
-        dataUpdate.contactoRecolha = contacto;
+        if (!isSaltar(mensagem)) {
+          const contacto = await parseContacto(mensagem);
+          dataUpdate.contactoRecolha = contacto;
+        }
         break;
       }
 
       case 'COLLECTING_DETALHES_ENTREGA': {
-        const contacto = await parseContacto(mensagem);
-        dataUpdate.contactoEntrega = contacto;
+        if (!isSaltar(mensagem)) {
+          const contacto = await parseContacto(mensagem);
+          dataUpdate.contactoEntrega = contacto;
+        }
         break;
       }
 
@@ -353,28 +362,36 @@ export async function POST(request: NextRequest) {
 
     // ── Morada de recolha — parse LLM + confirmação ──────────────────────────
     if (conv.step === 'COLLECTING_ORIGEM_COMPLETA') {
-      const parsed = await parseEndereco(mensagem);
-      await updateConversationData(telemovel, { origemCompleta: parsed });
-      conv.data.origemCompleta = parsed;
-      const formatted = formatEndereco(parsed);
-      response = {
-        text: `Percebi a seguinte morada de recolha:\n\n*${formatted}*\n\nEstá correcto?`,
-        nextStep: 'CONFIRMING_ORIGEM_COMPLETA',
-        quickReplies: ['Sim, correcto', 'Não, corrigir'],
-      };
+      if (isSaltar(mensagem)) {
+        response = { text: 'E a morada completa de entrega?\n\n_(Rua, número/andar, código postal, localidade)_\n\nPode responder *saltar* para avançar.', nextStep: 'COLLECTING_DESTINO_COMPLETA' };
+      } else {
+        const parsed = await parseEndereco(mensagem);
+        await updateConversationData(telemovel, { origemCompleta: parsed });
+        conv.data.origemCompleta = parsed;
+        const formatted = formatEndereco(parsed);
+        response = {
+          text: `Percebi a seguinte morada de recolha:\n\n*${formatted}*\n\nEstá correcto?`,
+          nextStep: 'CONFIRMING_ORIGEM_COMPLETA',
+          quickReplies: ['Sim, correcto', 'Não, corrigir'],
+        };
+      }
     }
 
     // ── Morada de entrega — parse LLM + confirmação ───────────────────────────
     if (conv.step === 'COLLECTING_DESTINO_COMPLETA') {
-      const parsed = await parseEndereco(mensagem);
-      await updateConversationData(telemovel, { destinoCompleta: parsed });
-      conv.data.destinoCompleta = parsed;
-      const formatted = formatEndereco(parsed);
-      response = {
-        text: `Percebi a seguinte morada de entrega:\n\n*${formatted}*\n\nEstá correcto?`,
-        nextStep: 'CONFIRMING_DESTINO_COMPLETA',
-        quickReplies: ['Sim, correcto', 'Não, corrigir'],
-      };
+      if (isSaltar(mensagem)) {
+        response = { text: 'Quem estará disponível para a recolha? Indique *nome*, *telefone* e *janela horária*.\n\nPode responder *saltar* para avançar.', nextStep: 'COLLECTING_DETALHES_RECOLHA', quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00', 'Saltar'] };
+      } else {
+        const parsed = await parseEndereco(mensagem);
+        await updateConversationData(telemovel, { destinoCompleta: parsed });
+        conv.data.destinoCompleta = parsed;
+        const formatted = formatEndereco(parsed);
+        response = {
+          text: `Percebi a seguinte morada de entrega:\n\n*${formatted}*\n\nEstá correcto?`,
+          nextStep: 'CONFIRMING_DESTINO_COMPLETA',
+          quickReplies: ['Sim, correcto', 'Não, corrigir'],
+        };
+      }
     }
 
     // ── Auto-skip nome (dados pré-preenchidos, ex: web-b) ───────────────────────
@@ -533,7 +550,7 @@ export async function POST(request: NextRequest) {
         },
       });
       await closeConversation(telemovel, leadResult.insertedId.toString());
-      response = buildLeadRegisteredMessage(nome, finalPrice);
+      response = buildLeadRegisteredMessage(nome, finalPrice, conv.data.serviceType);
     }
 
     // ── Escalamento ──────────────────────────────────────────────────────────

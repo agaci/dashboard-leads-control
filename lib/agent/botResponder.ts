@@ -31,20 +31,20 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
     quickReplies: ['Sem notas'],
   },
   COLLECTING_ORIGEM_COMPLETA: {
-    text: 'Para confirmar a recolha, indique a morada completa:\n\n_(Rua, número, código postal, localidade)_',
+    text: 'Para assegurar uma recolha precisa, qual é a morada completa?\n\n_(Rua, número/andar, código postal, localidade)_\n\nCaso prefira não partilhar agora, responda *saltar* — a nossa equipa de coordenação confirmará os detalhes consigo.',
   },
   CONFIRMING_ORIGEM_COMPLETA: { text: '' },
   COLLECTING_DESTINO_COMPLETA: {
-    text: 'E a morada completa de entrega?\n\n_(Rua, número, código postal, localidade)_',
+    text: 'E a morada completa de entrega?\n\n_(Rua, número/andar, código postal, localidade)_\n\nPode responder *saltar* para avançar.',
   },
   CONFIRMING_DESTINO_COMPLETA: { text: '' },
   COLLECTING_DETALHES_RECOLHA: {
-    text: 'Quem estará disponível para a recolha?\n\nIndique *nome*, *telefone* e *janela horária* _(ex: João Silva, 912 345 678, 09:00-12:00)_',
-    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00'],
+    text: 'Quem estará disponível para a recolha? Indique *nome*, *telefone* e *janela horária*.\n\n_(ex: João Silva, 912 345 678, 09:00-12:00)_\n\nPode responder *saltar* para avançar.',
+    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00', 'Saltar'],
   },
   COLLECTING_DETALHES_ENTREGA: {
-    text: 'E na entrega — quem estará disponível para receber?\n\nNome, telefone e janela horária:',
-    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00'],
+    text: 'E na entrega — quem estará disponível para receber? Nome, telefone e janela horária:\n\nPode responder *saltar* para avançar.',
+    quickReplies: ['09:00-12:00', '12:00-17:00', '17:00-20:00', 'Saltar'],
   },
   INIT: { text: '' },
   COLLECTING_WEIGHT: { text: '' },
@@ -195,13 +195,17 @@ export function buildPartnerConfirmedMessage(price: PartnerPriceResult): BotResp
 }
 
 // Lead registada com sucesso
-export function buildLeadRegisteredMessage(nome: string, priceWithDiscount?: number): BotResponse {
+export function buildLeadRegisteredMessage(nome: string, priceWithDiscount?: number, serviceType?: string): BotResponse {
   const priceText = priceWithDiscount
-    ? `O preço confirmado é *€${priceWithDiscount.toFixed(2)}* (IVA incluído). `
+    ? `O preço confirmado é *€${priceWithDiscount.toFixed(2)}* (IVA incluído).\n\n`
     : '';
 
+  const coordText = serviceType === 'direto'
+    ? 'Dado tratar-se de um serviço expresso, um coordenador YourBox entrará em contacto nos próximos minutos para validar todos os detalhes operacionais e garantir a recolha dentro do prazo previsto.'
+    : 'A nossa equipa de coordenação entrará em contacto em breve para confirmar todos os detalhes logísticos do serviço.';
+
   return {
-    text: `Perfeito, *${nome}*! O seu pedido foi registado.\n\n${priceText}A nossa equipa entrará em contacto em breve para confirmar os detalhes.\n\n_Obrigado por escolher a YourBox!_`,
+    text: `Pedido registado com sucesso, *${nome}*.\n\n${priceText}${coordText}\n\n_Obrigado por escolher a YourBox!_`,
     nextStep: 'LEAD_REGISTERED',
   };
 }
