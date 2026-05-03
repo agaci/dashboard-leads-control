@@ -11,18 +11,20 @@ export type ConversationStep =
   | 'HANDLING_OBJECTION'
   // fluxo arrasto (amanhã) — parceiro
   | 'COLLECTING_WEIGHT'
+  | 'COLLECTING_VOLUMES'    // arrasto: nº volumes + dimensões, antes do cálculo de preço
   | 'PRESENTING_PARTNER_PRICE'
-  // fecho base
+  // fecho — recolha de dados
   | 'COLLECTING_NOME'
   | 'COLLECTING_EMAIL'
-  // fase 1 — moradas e contactos completos (quando recolherMoradasCompletas=true)
+  | 'COLLECTING_NOTAS'      // ambos os fluxos: notas adicionais após email
+  // moradas e contactos completos
   | 'COLLECTING_ORIGEM_COMPLETA'
   | 'CONFIRMING_ORIGEM_COMPLETA'
   | 'COLLECTING_DESTINO_COMPLETA'
   | 'CONFIRMING_DESTINO_COMPLETA'
   | 'COLLECTING_DETALHES_RECOLHA'
   | 'COLLECTING_DETALHES_ENTREGA'
-  // fase 2 — pagamento MBWAY
+  // pagamento
   | 'AWAITING_PAYMENT'
   // terminal
   | 'LEAD_REGISTERED'
@@ -70,6 +72,13 @@ export interface ConversationData {
   // situação activa
   activeSituacaoId?: string;
   objectionCount: number;
+  volumes?: {
+    count?: number;
+    descricao?: string;
+    dimensoes?: string;
+    foraParametros?: boolean;
+  };
+  notas?: string;
   // fase 1 — moradas e contactos completos
   origemCompleta?: EnderecoCompleto;
   destinoCompleta?: EnderecoCompleto;

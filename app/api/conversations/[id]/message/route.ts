@@ -86,11 +86,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const serviceInfo = isArrasto
         ? `<p><b>Serviço:</b> Entrega Amanhã ${convDoc.data.partnerWindow ?? ''} | <b>Peso:</b> ${convDoc.data.weightKg ?? '?'}kg</p>`
         : `<p><b>Viatura:</b> ${convDoc.data.viatura} | <b>Urgência:</b> ${convDoc.data.urgencia}</p>`;
+      const notasHtml = result.notas ? `<p><b>Notas:</b> ${result.notas}</p>` : '';
 
       await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p><p style="color:green;"><b>CONTACTAR [canal: WEB CHAT BOT LLM]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${notasHtml}<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p><p style="color:green;"><b>CONTACTAR [canal: WEB CHAT BOT LLM]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent Web', variante: 'BOT',
         timeStamp: now, closed: false, closedAt: null, reply: [],
         leadData: {
@@ -101,6 +102,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           priceWithDiscount: convDoc.data.priceWithDiscount,
           partnerFinalPrice: convDoc.data.partnerFinalPrice,
           nome, email, telefone,
+          notas: result.notas,
           timeStamp: now, converted: true, source: 'web_chat',
         },
       });

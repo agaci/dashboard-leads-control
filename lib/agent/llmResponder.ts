@@ -17,6 +17,7 @@ const TOOLS: Anthropic.Tool[] = [
         nome: { type: 'string', description: 'Nome do cliente' },
         telefone: { type: 'string', description: 'Número de telefone/telemóvel' },
         email: { type: 'string', description: 'Email (null se não forneceu)' },
+        notas: { type: 'string', description: 'Notas adicionais do serviço (horários, instruções de acesso, etc.) — opcional' },
       },
       required: ['nome', 'telefone'],
     },
@@ -109,9 +110,9 @@ async function buildStaticBlock(): Promise<string> {
 - Nunca compares preços nem serviços com concorrentes
 
 ## Catálogo YourBox
-- **Moto** — até 20 kg, documentos e pequenas encomendas
-- **Furgão Classe 1** — até 150 kg
-- **Furgão Classe 2** — acima de 150 kg
+- **Moto** — até 2 kg / 10 L, documentos e pequenas encomendas
+- **Furgão Classe 1** — até 150 kg / 3 m³
+- **Furgão Classe 2** — até 300 kg / 9 m³
 - **Urgências:** 1 Hora, 4 Horas, 24 Horas (Entrega Amanhã — recolha hoje, entrega garantida amanhã)
 - Portugal Continental. Ilhas a consultar com agente humano.
 - Serviço porta-a-porta, dedicado, rastreável
@@ -147,13 +148,14 @@ function buildDynamicBlock(data: ConversationData): string {
   const objectivoContacto = hasPreSeededContact
     ? `3. Quando o utilizador confirmar que quer avançar, NÃO perguntes nome nem telefone de novo — já os tens acima.
    Em vez disso, pergunta UMA VEZ: "Confirmamos o pedido com os seus dados iniciais — *${data.nome ? `Nome: ${data.nome}` : ''}${data.telemovel ? `, Telemóvel: ${data.telemovel}` : ''}*. Quer manter ou prefere alterar algum dado?"
-   - Se confirmar ("manter", "sim", "ok", "correto", etc.) → chama IMEDIATAMENTE \`register_lead\` com esses dados. Não anunces — age.
+   - Se confirmar ("manter", "sim", "ok", "correto", etc.) → pergunta UMA VEZ se tem notas adicionais (horários, instruções de acesso) — opcional, pode responder "não" → depois chama IMEDIATAMENTE \`register_lead\`. Não anunces — age.
    - Se quiser alterar → pede apenas os campos que quer mudar.
    - Email é sempre opcional; se não foi fornecido, não perguntes.`
     : `3. Quando confirmar que quer avançar, recolher por esta ordem:
    a. **Nome** (obrigatório)
    b. **Telefone/telemóvel** (obrigatório — sem contacto não é possível confirmar o serviço)
-   c. **Email** (opcional — pergunta depois do telefone)`;
+   c. **Email** (opcional — pergunta depois do telefone)
+   d. **Notas adicionais** (opcional — pergunta no fim: "Tem alguma nota adicional? Ex: horários de acesso, instruções especiais")`;
 
   return `## Serviço cotado nesta conversa
 - **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
@@ -175,7 +177,7 @@ ${objectivoContacto}
 
 export type LlmResult =
   | { type: 'message'; text: string }
-  | { type: 'register_lead'; text: string; nome: string; telefone: string; email?: string }
+  | { type: 'register_lead'; text: string; nome: string; telefone: string; email?: string; notas?: string }
   | { type: 'escalate'; text: string; reason: string }
   | { type: 'calculate_tomorrow'; text: string; weightKg: number }
   | { type: 'close'; text: string; reason: string };
@@ -231,7 +233,7 @@ export async function getLlmResponse(
   if (toolUse) {
     const inp = toolUse.input as Record<string, any>;
     if (toolUse.name === 'register_lead') {
-      return { type: 'register_lead', text, nome: inp.nome, telefone: inp.telefone, email: inp.email ?? undefined };
+      return { type: 'register_lead', text, nome: inp.nome, telefone: inp.telefone, email: inp.email ?? undefined, notas: inp.notas ?? undefined };
     }
     if (toolUse.name === 'escalate_to_human') {
       return { type: 'escalate', text, reason: inp.reason };

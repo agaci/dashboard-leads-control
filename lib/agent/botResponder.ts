@@ -26,6 +26,10 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   COLLECTING_EMAIL: {
     text: 'E o seu email para receber confirmação? (ou responda *não* para saltar)',
   },
+  COLLECTING_NOTAS: {
+    text: 'Tem alguma nota adicional? _(horários especiais, instruções de acesso, pisos, etc.)_\n\nResponda *não* ou *sem notas* para saltar.',
+    quickReplies: ['Sem notas'],
+  },
   COLLECTING_ORIGEM_COMPLETA: {
     text: 'Para confirmar a recolha, indique a morada completa:\n\n_(Rua, número, código postal, localidade)_',
   },
@@ -44,6 +48,9 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   },
   INIT: { text: '' },
   COLLECTING_WEIGHT: { text: '' },
+  COLLECTING_VOLUMES: {
+    text: 'Quantos volumes tem o envio e quais as dimensões aproximadas?\n\n_(ex: 3 caixas, 50×40×30 cm cada)_',
+  },
   CALCULATING_PRICE: { text: '' },
   PRESENTING_PRICE: { text: '' },
   PRESENTING_PARTNER_PRICE: { text: '' },
@@ -62,9 +69,19 @@ export function buildWelcomeMessage(): BotResponse {
   };
 }
 
+const VEHICLE_CAPACITY: Record<string, string> = {
+  'Moto': '2 kg / 10 L',
+  'Furgão Classe 1': '150 kg / 3 m³',
+  'Furgão Classe 2': '300 kg / 9 m³',
+};
+
 // Resposta após preço calculado
 export function buildPriceMessage(conv: Conversation): BotResponse {
   const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura } = conv.data;
+
+  const capacityNote = viatura && VEHICLE_CAPACITY[viatura]
+    ? `\n_Capacidade máxima: ${VEHICLE_CAPACITY[viatura]}_\n\n`
+    : '\n\n';
 
   const priceText = priceCalculated
     ? `*Orçamento Estimado*\n\n` +
@@ -72,7 +89,8 @@ export function buildPriceMessage(conv: Conversation): BotResponse {
       `*€${priceWithDiscount!.toFixed(2)}* _Desconto de 10% incluído_\n\n` +
       `Distância: ${distance} km\n` +
       `Viatura: ${viatura}\n` +
-      `Urgência: ${urgencia}\n\n` +
+      `Urgência: ${urgencia}` +
+      capacityNote +
       `Pretende avançar com este serviço?`
     : 'Para calcular o preço, precisamos dos detalhes do serviço.';
 
@@ -285,7 +303,14 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
           nextStep: 'COLLECTING_WEIGHT',
         };
       }
-      // O cálculo real é feito no route handler (precisa de DB)
+      return {
+        text: QUESTIONS.COLLECTING_VOLUMES.text,
+        nextStep: 'COLLECTING_VOLUMES',
+      };
+    }
+
+    case 'COLLECTING_VOLUMES': {
+      // Qualquer resposta avança para o cálculo de preço (parsing feito no route handler)
       return { text: 'A calcular preço...', nextStep: 'CALCULATING_PARTNER_PRICE' as any };
     }
 
@@ -364,10 +389,16 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       };
 
     case 'COLLECTING_EMAIL':
-      // Email opcional — qualquer resposta avança (route handler decide se vai para moradas ou lead)
       return {
-        text: 'A registar o seu pedido...',
-        nextStep: 'LEAD_REGISTERED',
+        text: QUESTIONS.COLLECTING_NOTAS.text,
+        nextStep: 'COLLECTING_NOTAS',
+        quickReplies: QUESTIONS.COLLECTING_NOTAS.quickReplies,
+      };
+
+    case 'COLLECTING_NOTAS':
+      return {
+        text: QUESTIONS.COLLECTING_ORIGEM_COMPLETA.text,
+        nextStep: 'COLLECTING_ORIGEM_COMPLETA',
       };
 
     // Fase 1 — moradas e contactos (processamento async feito no route handler)

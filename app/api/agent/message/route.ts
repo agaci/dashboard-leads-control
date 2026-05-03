@@ -164,12 +164,30 @@ export async function POST(request: NextRequest) {
         break;
       }
 
+      case 'COLLECTING_VOLUMES': {
+        const countMatch = mensagem.match(/(\d+)\s*(volume|caixa|saco|embalagem|volumes|caixas|sacos|embalagens)/i);
+        const dimMatch = mensagem.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
+        dataUpdate.volumes = {
+          count: countMatch ? parseInt(countMatch[1]) : undefined,
+          descricao: mensagem.trim(),
+          dimensoes: dimMatch ? `${dimMatch[1]}×${dimMatch[2]}×${dimMatch[3]} cm` : undefined,
+        };
+        break;
+      }
+
       case 'COLLECTING_NOME':
         dataUpdate.nome = mensagem;
         break;
 
       case 'COLLECTING_EMAIL': {
         if (mensagem.includes('@')) dataUpdate.email = mensagem.trim();
+        break;
+      }
+
+      case 'COLLECTING_NOTAS': {
+        const lower = mensagem.toLowerCase().trim();
+        const skip = lower === 'não' || lower === 'nao' || lower.startsWith('sem nota') || lower.startsWith('não ') || lower.startsWith('nao ');
+        if (!skip) dataUpdate.notas = mensagem.trim();
         break;
       }
 
@@ -359,31 +377,14 @@ export async function POST(request: NextRequest) {
       };
     }
 
-    // ── Auto-skip nome/email (dados pré-preenchidos, ex: web-b) ─────────────────
-    // Se o bot ia pedir o nome mas já está guardado na conversa (pre-seed do
-    // formulário), simular que nome+email já foram recolhidos e avançar
-    // directamente para o passo pós-email (moradas / pagamento / registo).
+    // ── Auto-skip nome (dados pré-preenchidos, ex: web-b) ───────────────────────
+    // Se o bot ia pedir o nome mas já está guardado, saltar directo para notas.
     if (response.nextStep === 'COLLECTING_NOME' && conv.data.nome) {
-      await setConversationStep(telemovel, 'COLLECTING_EMAIL');
-      conv.step = 'COLLECTING_EMAIL' as any;
-      response = { text: '', nextStep: 'LEAD_REGISTERED' };
-    }
-
-    // ── Intercepção pós-email: se recolherMoradasCompletas activo ─────────────
-    if (response.nextStep === 'LEAD_REGISTERED' && conv.step === 'COLLECTING_EMAIL') {
-      const db2 = await getDb();
-      const routingDoc2 = await db2.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
-      const recolherMoradas = (routingDoc2 as any)?.recolherMoradasCompletas ?? defaultRoutingConfig.recolherMoradasCompletas;
-      if (recolherMoradas) {
-        response = {
-          text: 'Obrigado! Para completar o pedido precisamos das moradas exactas.\n\n' +
-            'Qual a *morada completa de recolha*?\n_(Rua, número, código postal, localidade)_',
-          nextStep: 'COLLECTING_ORIGEM_COMPLETA',
-        };
-        await setConversationStep(telemovel, 'COLLECTING_ORIGEM_COMPLETA');
-        await appendMessage(telemovel, { role: 'bot', text: response.text, timestamp: new Date() });
-        return Response.json({ success: true, response: response.text, nextStep: response.nextStep, quickReplies: [], situacaoId: null, escalate: false });
-      }
+      response = {
+        text: 'Tem alguma nota adicional? _(horários especiais, instruções de acesso, pisos, etc.)_\n\nResponda *não* para saltar.',
+        nextStep: 'COLLECTING_NOTAS',
+        quickReplies: ['Sem notas'],
+      };
     }
 
     // ── Intercepção pré-lead: pagamento MBWAY (se pagamentoAtivo) ────────────
@@ -479,7 +480,7 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Registar lead ────────────────────────────────────────────────────────
-    const leadRegistrationSteps = ['COLLECTING_EMAIL', 'COLLECTING_DETALHES_ENTREGA'] as const;
+    const leadRegistrationSteps = ['COLLECTING_DETALHES_ENTREGA'] as const;
     if (response.nextStep === 'LEAD_REGISTERED' && (leadRegistrationSteps as readonly string[]).includes(conv.step)) {
       const nome = conv.data.nome ?? 'Lead Bot';
       const db = await getDb();
@@ -499,11 +500,17 @@ export async function POST(request: NextRequest) {
         ? `<p><b>Entrega:</b> ${formatEndereco(conv.data.destinoCompleta)}</p>` +
           (conv.data.contactoEntrega ? `<p><b>Contacto entrega:</b> ${formatContacto(conv.data.contactoEntrega)}</p>` : '')
         : '';
+      const volumesHtml = conv.data.volumes?.descricao
+        ? `<p><b>Volumes:</b> ${conv.data.volumes.descricao}</p>`
+        : '';
+      const notasHtml = conv.data.notas
+        ? `<p><b>Notas:</b> ${conv.data.notas}</p>`
+        : '';
 
       const leadResult = await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${moradaRecolhaHtml}${moradaEntregaHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${volumesHtml}${moradaRecolhaHtml}${moradaEntregaHtml}${notasHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent', variante: 'BOT',
         timeStamp: new Date(), closed: false, closedAt: null, reply: [],
         leadData: {
@@ -520,6 +527,8 @@ export async function POST(request: NextRequest) {
           destinoCompleta: conv.data.destinoCompleta,
           contactoRecolha: conv.data.contactoRecolha,
           contactoEntrega: conv.data.contactoEntrega,
+          volumes: conv.data.volumes,
+          notas: conv.data.notas,
           timeStamp: new Date(), converted: true, convertedAt: new Date(), source: 'bot',
         },
       });
