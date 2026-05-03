@@ -620,6 +620,11 @@
       origem: '', destino: '', viatura: 'Moto', urgencia: '1 Hora',
     };
 
+    function scrollToNext(el) {
+      if (window.innerWidth > 768 || !el) return;
+      setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); }, 200);
+    }
+
     function init() {
       initGooglePlaces();
       // Focus em "De onde?" no load — apenas desktop (evitar teclado automático em mobile)
@@ -629,11 +634,37 @@
           if (el) el.focus();
         }, 300);
       }
+
+      // ── Auto-scroll para o campo seguinte em mobile ──────────────────────────
+      var vGrid   = document.querySelector('.vehicle-grid');
+      var uGrid   = document.querySelector('.urgency-grid');
+      var vGroup  = vGrid  ? vGrid.parentElement  : null;
+      var uGroup  = uGrid  ? uGrid.parentElement  : null;
+      var destEl  = document.getElementById('destino');
+      var nomeField = document.getElementById('field-nome');
+
+      // "De onde?" → "Para onde?"
+      var oriEl = document.getElementById('origem');
+      if (oriEl) oriEl.addEventListener('blur', function () {
+        if (this.value.trim()) scrollToNext(destEl);
+      });
+      // "Para onde?" → Tipo de Viatura
+      if (destEl) destEl.addEventListener('blur', function () {
+        if (this.value.trim()) scrollToNext(vGroup);
+      });
+      // Viatura → Urgência
+      document.querySelectorAll('input[name="viatura"]').forEach(function (r) {
+        r.addEventListener('change', function () { scrollToNext(uGroup); });
+      });
+      // Urgência → Nome (campo de contacto)
+      document.querySelectorAll('input[name="urgencia"]').forEach(function (r) {
+        r.addEventListener('change', function () { scrollToNext(nomeField); });
+      });
+
       // Formatar telefone ao digitar
       var tel = document.getElementById('ybTelefone');
       if (tel) {
         tel.addEventListener('input', function () {
-          // Manter só dígitos e + para facilitar validação
           var v = tel.value.replace(/[^\d+\s]/g, '');
           tel.value = v;
         });
@@ -648,10 +679,13 @@
         acO.addListener('place_changed', function () {
           var p = acO.getPlace();
           if (p && p.formatted_address) document.getElementById('origem').value = p.formatted_address;
+          scrollToNext(document.getElementById('destino'));
         });
         acD.addListener('place_changed', function () {
           var p = acD.getPlace();
           if (p && p.formatted_address) document.getElementById('destino').value = p.formatted_address;
+          var vg = document.querySelector('.vehicle-grid');
+          scrollToNext(vg ? vg.parentElement : null);
         });
       } catch (e) {}
     }
