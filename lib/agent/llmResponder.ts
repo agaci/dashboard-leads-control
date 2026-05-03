@@ -183,7 +183,8 @@ ${contactConfirmation}
    c. **Morada completa de ENTREGA** — rua, número/andar, código postal, localidade — confirma com o utilizador
    d. **Contacto na recolha** — "Quem estará disponível para a recolha? Nome, telefone e janela horária."
    e. **Contacto na entrega** — "E na entrega — quem estará disponível? Nome, telefone e janela horária."${volumesStep}
-5. Só depois de teres TODOS estes dados chamas \`register_lead\`. Não anunces — age directamente.
+   **IMPORTANTE:** todos estes campos são opcionais. Se o utilizador recusar qualquer um ("não quero", "não tenho", "passa à frente", "saltar", etc.), aceita sem insistir e avança para o passo seguinte. Nunca perguntes o mesmo dado duas vezes.
+5. Assim que tiveres os dados que o utilizador quis partilhar, chamas \`register_lead\`. Não anunces — age directamente.
 6. Se o utilizador recusar dar telefone: "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar." — se insistir, usa \`escalate_to_human\`
 7. Se quiser entrega amanhã: pedir peso em kg e chamar \`calculate_tomorrow_delivery\``;
 }
