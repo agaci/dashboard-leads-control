@@ -125,31 +125,19 @@
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
     if (step === 'ESCALATED_TO_HUMAN') {
+      // Manter input activo — utilizador pode enviar mensagem adicional ao agente
       setInputDisabled(false);
       if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">Um agente vai entrar em contacto. Pode deixar uma mensagem adicional aqui.</p>';
       return;
     }
     setInputDisabled(true);
     stopPolling();
-
-    var finalText = step === 'LEAD_REGISTERED'
-      ? 'Obrigado! A nossa equipa vai entrar em contacto brevemente.'
-      : 'Conversa encerrada.';
-
-    // Mostrar como bolha no chat (fluxo natural) e fazer scroll
-    appendBubble('bot', finalText);
-
-    // Simplificar footer — apenas ícone de confirmação
-    if (footer) footer.innerHTML = '<p class="yb-done">✓ Pedido registado</p>';
-
-    // Scroll para a mensagem final — tanto na área de chat como na página (mobile)
-    var area = document.getElementById('ybChatMessages');
-    if (area) {
-      area.scrollTop = area.scrollHeight;
+    if (!footer) return;
+    if (step === 'LEAD_REGISTERED') {
+      footer.innerHTML = '<p class="yb-done">Obrigado! A nossa equipa vai entrar em contacto brevemente.</p>';
+    } else {
+      footer.innerHTML = '<p class="yb-done">Conversa encerrada.</p>';
     }
-    setTimeout(function () {
-      if (footer) footer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 300);
   }
 
   // ── Gestão de step ───────────────────────────────────────────────────────────
@@ -305,14 +293,13 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            origem:      formData.origem,
-            destino:     formData.destino,
-            viatura:     formData.viatura,
-            urgencia:    formData.urgencia,
-            telemovel:   formData.telemovel,
-            nome:        formData.nome        || undefined,
-            email:       formData.email       || undefined,
-            observacoes: formData.observacoes || undefined,
+            origem:    formData.origem,
+            destino:   formData.destino,
+            viatura:   formData.viatura,
+            urgencia:  formData.urgencia,
+            telemovel: formData.telemovel,
+            nome:      formData.nome  || undefined,
+            email:     formData.email || undefined,
           }),
         });
         const data = await res.json();
@@ -330,15 +317,9 @@
 
         appendBubbleTyped(data.message, function () {
           handleNewStep(data.step, data.quickReplies || []);
-          // Se o utilizador deixou observações, mostrar como mensagem e enviar ao bot
-          if (formData.observacoes) {
-            appendBubble('lead', formData.observacoes);
-            sendMessage(formData.observacoes);
-          } else {
-            setInputDisabled(false);
-            var inp = document.getElementById('ybChatInput');
-            if (inp) inp.focus();
-          }
+          setInputDisabled(false);
+          var inp = document.getElementById('ybChatInput');
+          if (inp) inp.focus();
         });
 
         startPolling();

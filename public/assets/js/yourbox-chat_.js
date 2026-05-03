@@ -1,8 +1,6 @@
 /**
- * YourBox Web Chat B — variante com dados de contacto pré-preenchidos
- * O nome, email e telefone são capturados no formulário antes do chat.
- * Este script pre-seed esses dados e responde automaticamente quando o
- * bot os solicita, tornando o fluxo invisível para o utilizador.
+ * YourBox Web Chat Widget
+ * Conecta ao backend Next.js — sem dependencias externas
  */
 
 (function () {
@@ -10,24 +8,24 @@
 
   //const API_BASE = 'http://localhost:3000'; // dev local
   const API_BASE = 'https://leads.comgo.pt'; // producao
-  const POLL_INTERVAL = 3000;
-  const TYPING_SPEED_MS = 11;
-  const AUTO_RESPOND_DELAY_MS = 750; // pausa antes de auto-responder (naturalidade)
+  const POLL_INTERVAL = 3000; // ms
+  const TYPING_SPEED_MS = 11; // ms por caracter (typewriter)
 
   let chatState = {
     conversationId: null,
+    sessionId: null,
     step: null,
     polling: null,
     lastMsgCount: 0,
     sending: false,
-    typing: false,
-    preSeededNome: null,
-    preSeededEmail: null, // null = não auto-responder; '' = responder 'não'
-    autoRespondPending: false,
+    typing: false, // true enquanto animação typewriter está a correr
   };
 
-  // ── Helpers de DOM ───────────────────────────────────────────────────────────
+  function newSessionId() {
+    return 'web_' + Date.now() + '_' + Math.random().toString(36).slice(2, 9);
+  }
 
+  // Converter markdown simples para HTML
   function mdToHtml(text) {
     return text
       .replace(/\*([^*\n]+)\*/g, '<strong>$1</strong>')
@@ -36,6 +34,7 @@
       .replace(/\n/g, '<br>');
   }
 
+  // Adicionar bolha de mensagem instantânea
   function appendBubble(role, text) {
     const area = document.getElementById('ybChatMessages');
     if (!area) return;
@@ -49,9 +48,11 @@
     area.scrollTop = area.scrollHeight;
   }
 
+  // Adicionar bolha do bot com efeito typewriter
   function appendBubbleTyped(text, onDone) {
     const area = document.getElementById('ybChatMessages');
     if (!area) return;
+
     const wrap = document.createElement('div');
     wrap.className = 'yb-msg yb-msg--bot';
     const bubble = document.createElement('div');
@@ -62,26 +63,41 @@
     area.scrollTop = area.scrollHeight;
 
     chatState.typing = true;
-    let i = 0, accumulated = '';
+
+    let i = 0;
+    let accumulated = '';
 
     function typeNext() {
       if (i >= text.length) {
+        // Terminou — aplicar HTML com formatação
         bubble.innerHTML = mdToHtml(text);
         area.scrollTop = area.scrollHeight;
         chatState.typing = false;
         if (onDone) onDone();
         return;
       }
+
+      // Avançar por blocos de 1-2 caracteres para ser mais fluido
       const chunk = text.slice(i, i + (Math.random() > 0.7 ? 2 : 1));
       accumulated += chunk;
       i += chunk.length;
+
       bubble.textContent = accumulated;
-      if (i % 5 === 0 || i >= text.length) area.scrollTop = area.scrollHeight;
-      setTimeout(typeNext, TYPING_SPEED_MS + (Math.random() > 0.85 ? 30 : 0));
+
+      // Scroll suave — só a cada 5 chars para não ser pesado
+      if (i % 5 === 0 || i >= text.length) {
+        area.scrollTop = area.scrollHeight;
+      }
+
+      // Variação ligeira de velocidade para parecer natural
+      const delay = TYPING_SPEED_MS + (Math.random() > 0.85 ? 30 : 0);
+      setTimeout(typeNext, delay);
     }
+
     typeNext();
   }
 
+  // Indicador "a escrever..."
   function showTyping() {
     const area = document.getElementById('ybChatMessages');
     if (!area || document.getElementById('ybTyping')) return;
@@ -98,6 +114,7 @@
     if (el) el.remove();
   }
 
+  // Botões de resposta rápida — só aparecem após typewriter terminar
   function showQuickReplies(replies) {
     const container = document.getElementById('ybQuickReplies');
     if (!container || !replies || !replies.length) return;
@@ -124,85 +141,42 @@
   function showFinalState(step) {
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
+
     if (step === 'ESCALATED_TO_HUMAN') {
-      setInputDisabled(false);
-      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">Um agente vai entrar em contacto. Pode deixar uma mensagem adicional aqui.</p>';
+      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A falar com um agente. Pode continuar a escrever aqui.</p>';
       return;
     }
+
     setInputDisabled(true);
     stopPolling();
-
-    var finalText = step === 'LEAD_REGISTERED'
-      ? 'Obrigado! A nossa equipa vai entrar em contacto brevemente.'
-      : 'Conversa encerrada.';
-
-    // Mostrar como bolha no chat (fluxo natural) e fazer scroll
-    appendBubble('bot', finalText);
-
-    // Simplificar footer — apenas ícone de confirmação
-    if (footer) footer.innerHTML = '<p class="yb-done">✓ Pedido registado</p>';
-
-    // Scroll para a mensagem final — tanto na área de chat como na página (mobile)
-    var area = document.getElementById('ybChatMessages');
-    if (area) {
-      area.scrollTop = area.scrollHeight;
+    if (!footer) return;
+    if (step === 'LEAD_REGISTERED') {
+      footer.innerHTML = '<p class="yb-done">Obrigado! A nossa equipa vai entrar em contacto brevemente.</p>';
+    } else {
+      footer.innerHTML = '<p class="yb-done">Conversa encerrada.</p>';
     }
-    setTimeout(function () {
-      if (footer) footer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 300);
   }
 
-  // ── Gestão de step ───────────────────────────────────────────────────────────
-  // Chamado após cada resposta do bot — trata estados finais, pagamento e quick replies.
-  // Nota: o servidor já salta COLLECTING_NOME e COLLECTING_EMAIL quando os dados
-  // estão pré-preenchidos (web-b), por isso estes passos normalmente não aparecem.
-  // O auto-respond abaixo serve apenas de fallback caso o pre-seed não tenha funcionado.
-
-  function handleNewStep(step, quickReplies) {
-    chatState.step = step;
-
-    const done = ['LEAD_REGISTERED', 'CLOSED', 'ESCALATED_TO_HUMAN'];
-    if (done.includes(step)) { showFinalState(step); return; }
-
-    // AWAITING_PAYMENT — chat fica aberto, utilizador pode acompanhar
-    if (step === 'AWAITING_PAYMENT') {
-      var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
-      return;
-    }
-
-    // Fallback: se por algum motivo o servidor pedir nome/email já pré-preenchidos
-    if (step === 'COLLECTING_NOME' && chatState.preSeededNome && !chatState.autoRespondPending) {
-      chatState.autoRespondPending = true;
-      setTimeout(function () { chatState.autoRespondPending = false; sendMessage(chatState.preSeededNome); }, AUTO_RESPOND_DELAY_MS);
-      return;
-    }
-    if (step === 'COLLECTING_EMAIL' && chatState.preSeededEmail !== null && !chatState.autoRespondPending) {
-      chatState.autoRespondPending = true;
-      var emailToSend = chatState.preSeededEmail.trim() || 'não';
-      setTimeout(function () { chatState.autoRespondPending = false; sendMessage(emailToSend); }, AUTO_RESPOND_DELAY_MS);
-      return;
-    }
-
-    if (quickReplies && quickReplies.length) showQuickReplies(quickReplies);
-  }
-
-  // ── Polling ──────────────────────────────────────────────────────────────────
-
+  // Polling — só acrescenta mensagens novas (não limpa o DOM)
   function startPolling() {
     stopPolling();
     chatState.polling = setInterval(pollMessages, POLL_INTERVAL);
   }
 
   function stopPolling() {
-    if (chatState.polling) { clearInterval(chatState.polling); chatState.polling = null; }
+    if (chatState.polling) {
+      clearInterval(chatState.polling);
+      chatState.polling = null;
+    }
   }
 
   async function pollMessages() {
-    if (!chatState.conversationId || chatState.sending || chatState.typing || chatState.autoRespondPending) return;
+    if (!chatState.conversationId || chatState.sending || chatState.typing) return;
     try {
       const res = await fetch(API_BASE + '/api/conversations/' + chatState.conversationId);
       const data = await res.json();
       if (!data.success) return;
+
       const conv = data.conversation;
       const msgs = conv.history || [];
 
@@ -210,11 +184,13 @@
         const newMsgs = msgs.slice(chatState.lastMsgCount);
         chatState.lastMsgCount = msgs.length;
 
+        // Enfileirar mensagens novas para não se sobreporem
         let chain = Promise.resolve();
         newMsgs.forEach(function (m) {
           chain = chain.then(function () {
             return new Promise(function (resolve) {
-              if (m.role !== 'lead') {
+              var role = m.role === 'lead' ? 'lead' : 'bot';
+              if (role === 'bot') {
                 appendBubbleTyped(m.text, resolve);
               } else {
                 appendBubble('lead', m.text);
@@ -223,14 +199,16 @@
             });
           });
         });
+      }
 
-        chain.then(function () { handleNewStep(conv.step, []); });
+      const done = ['LEAD_REGISTERED', 'CLOSED', 'ESCALATED_TO_HUMAN'];
+      if (done.includes(conv.step)) {
+        showFinalState(conv.step);
       }
     } catch (_) {}
   }
 
-  // ── Envio de mensagem ────────────────────────────────────────────────────────
-
+  // Enviar mensagem
   async function sendMessage(text) {
     if (!text || !text.trim() || chatState.sending || chatState.typing) return;
     if (!chatState.conversationId) return;
@@ -252,19 +230,31 @@
       const data = await res.json();
       removeTyping();
 
-      if (!data.success && data.step) { showFinalState(data.step); return; }
+      if (!data.success && data.step) {
+        showFinalState(data.step);
+        return;
+      }
 
       if (data.message) {
         chatState.lastMsgCount += 2;
         appendBubbleTyped(data.message, function () {
-          handleNewStep(data.step, data.quickReplies || []);
+          // Quick replies só aparecem após o bot "terminar de escrever"
+          if (data.quickReplies && data.quickReplies.length) {
+            showQuickReplies(data.quickReplies);
+          }
+          const done = ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED'];
+          if (done.includes(data.step)) {
+            showFinalState(data.step);
+          }
         });
       } else {
-        handleNewStep(data.step, data.quickReplies || []);
+        if (data.quickReplies && data.quickReplies.length) showQuickReplies(data.quickReplies);
+        const done = ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED'];
+        if (done.includes(data.step)) showFinalState(data.step);
       }
     } catch (e) {
       removeTyping();
-      appendBubble('bot', 'Erro de ligação. Por favor tente novamente.');
+      appendBubble('bot', 'Erro de ligacao. Por favor tente novamente.');
     } finally {
       chatState.sending = false;
       setInputDisabled(false);
@@ -273,23 +263,11 @@
     }
   }
 
-  // ── Iniciar conversa ─────────────────────────────────────────────────────────
-
-  window.ybChatB = {
-    /**
-     * @param {object} formData
-     * @param {string} formData.nome
-     * @param {string} formData.email        — pode ser vazio
-     * @param {string} formData.telemovel    — número PT (ex: "912345678")
-     * @param {string} formData.origem
-     * @param {string} formData.destino
-     * @param {string} formData.viatura
-     * @param {string} formData.urgencia
-     */
+  // Iniciar conversa
+  window.ybChat = {
     start: async function (formData) {
-      chatState.preSeededNome = formData.nome || null;
-      // email pode ser string vazia (utilizador não preencheu) → auto-responde 'não'
-      chatState.preSeededEmail = typeof formData.email === 'string' ? formData.email : null;
+      const sessionId = newSessionId();
+      chatState.sessionId = sessionId;
 
       const chatSection = document.getElementById('ybChatSection');
       if (chatSection) chatSection.style.display = 'block';
@@ -305,21 +283,18 @@
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            origem:      formData.origem,
-            destino:     formData.destino,
-            viatura:     formData.viatura,
-            urgencia:    formData.urgencia,
-            telemovel:   formData.telemovel,
-            nome:        formData.nome        || undefined,
-            email:       formData.email       || undefined,
-            observacoes: formData.observacoes || undefined,
+            origem: formData.origem,
+            destino: formData.destino,
+            viatura: formData.viatura,
+            urgencia: formData.urgencia,
+            sessionId: sessionId,
           }),
         });
         const data = await res.json();
         removeTyping();
 
         if (!data.success) {
-          appendBubble('bot', 'Erro ao ligar ao assistente: ' + (data.error || 'resposta inválida') + '. Tente novamente ou contacte-nos.');
+          appendBubble('bot', 'Erro ao ligar ao assistente: ' + (data.error || 'resposta invalida') + '. Tente novamente ou contacte-nos.');
           setInputDisabled(false);
           return;
         }
@@ -329,21 +304,16 @@
         chatState.lastMsgCount = 1;
 
         appendBubbleTyped(data.message, function () {
-          handleNewStep(data.step, data.quickReplies || []);
-          // Se o utilizador deixou observações, mostrar como mensagem e enviar ao bot
-          if (formData.observacoes) {
-            appendBubble('lead', formData.observacoes);
-            sendMessage(formData.observacoes);
-          } else {
-            setInputDisabled(false);
-            var inp = document.getElementById('ybChatInput');
-            if (inp) inp.focus();
+          if (data.quickReplies && data.quickReplies.length) {
+            showQuickReplies(data.quickReplies);
           }
+          setInputDisabled(false);
+          document.getElementById('ybChatInput') && document.getElementById('ybChatInput').focus();
         });
 
         startPolling();
       } catch (e) {
-        console.error('[YB Chat B] start error:', e);
+        console.error('[YB Chat] start error:', e);
         removeTyping();
         appendBubble('bot', 'Não foi possível ligar ao assistente. Verifique a sua ligação e tente novamente.');
         setInputDisabled(false);
@@ -351,8 +321,7 @@
     },
   };
 
-  // ── Listeners de teclado/clique ──────────────────────────────────────────────
-
+  // Inicializar listeners
   function initChatListeners() {
     const input = document.getElementById('ybChatInput');
     const btn = document.getElementById('ybChatSend');
