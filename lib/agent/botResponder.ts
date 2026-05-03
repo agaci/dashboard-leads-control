@@ -27,11 +27,11 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
     text: 'E o seu email para receber confirmação? (ou responda *não* para saltar)',
   },
   COLLECTING_NOTAS: {
-    text: 'Tem alguma nota adicional? _(horários especiais, instruções de acesso, pisos, etc.)_\n\nResponda *não* ou *sem notas* para saltar.',
-    quickReplies: ['Sem notas'],
+    text: 'Tem alguma nota adicional para o serviço? _(horários especiais, instruções de acesso, pisos, etc.)_\n\nResponda *não* para saltar | *pronto* para registar de imediato — a nossa equipa contactará para confirmar os restantes detalhes.',
+    quickReplies: ['Sem notas', 'Pronto'],
   },
   COLLECTING_ORIGEM_COMPLETA: {
-    text: 'Para assegurar uma recolha precisa, qual é a morada completa?\n\n_(Rua, número/andar, código postal, localidade)_\n\nCaso prefira não partilhar agora, responda *saltar* — a nossa equipa de coordenação confirmará os detalhes consigo.',
+    text: 'Para assegurar uma recolha precisa, qual é a morada completa?\n\n_(Rua, número/andar, código postal, localidade)_\n\nResponda *saltar* para este campo | *pronto* para registar de imediato.',
   },
   CONFIRMING_ORIGEM_COMPLETA: { text: '' },
   COLLECTING_DESTINO_COMPLETA: {

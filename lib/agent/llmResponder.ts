@@ -183,7 +183,8 @@ ${contactConfirmation}
    c. **Morada completa de ENTREGA** — ao perguntar, acrescenta: "Pode responder *saltar* para avançar."
    d. **Contacto na recolha** — "Quem estará disponível para a recolha? Nome, telefone e janela horária. (Pode responder *saltar*.)"
    e. **Contacto na entrega** — "E na entrega — quem estará disponível? Nome, telefone e janela horária. (Pode responder *saltar*.)"${volumesStep}
-   **IMPORTANTE:** todos estes campos são opcionais. Se o utilizador responder "saltar", "não", ou recusar qualquer campo, aceita sem insistir e avança imediatamente para o passo seguinte. Nunca perguntes o mesmo dado duas vezes.
+   **IMPORTANTE — atalho rápido:** se o utilizador responder apenas *pronto* em qualquer momento durante esta fase, salta TODOS os passos restantes e chama imediatamente \`register_lead\` com os dados já recolhidos. Não perguntes mais nada.
+   **IMPORTANTE — campos opcionais:** se o utilizador responder "saltar", "não", ou recusar qualquer campo, aceita sem insistir e avança imediatamente para o passo seguinte. Nunca perguntes o mesmo dado duas vezes.
 5. Assim que tiveres os dados que o utilizador quis partilhar, chamas \`register_lead\`. Não anunces — age directamente.
    - Na mensagem de confirmação após o registo, inclui SEMPRE: ${isArrasto ? '"A nossa equipa de coordenação entrará em contacto em breve para confirmar todos os detalhes logísticos do serviço."' : '"Dado tratar-se de um serviço expresso, um coordenador YourBox entrará em contacto nos próximos minutos para validar todos os detalhes operacionais e garantir a recolha dentro do prazo previsto."'}
 6. Se o utilizador recusar dar telefone: "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar." — se insistir, usa \`escalate_to_human\`

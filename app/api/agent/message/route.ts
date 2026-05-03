@@ -35,6 +35,17 @@ function isSaltar(text: string): boolean {
   return ['saltar', 'skip', 'avançar', 'avancar', 'passar', 'não', 'nao'].includes(t);
 }
 
+function isPronto(text: string): boolean {
+  return text.trim().toLowerCase() === 'pronto';
+}
+
+// Steps de recolha de dados opcionais onde "pronto" salta tudo para o registo
+const PRONTO_SHORTCUT_STEPS = [
+  'COLLECTING_NOTAS', 'COLLECTING_ORIGEM_COMPLETA', 'CONFIRMING_ORIGEM_COMPLETA',
+  'COLLECTING_DESTINO_COMPLETA', 'CONFIRMING_DESTINO_COMPLETA',
+  'COLLECTING_DETALHES_RECOLHA', 'COLLECTING_DETALHES_ENTREGA',
+] as const;
+
 function isLeadInquiry(text: string): boolean {
   const upper = text.trim().toUpperCase();
   if (upper === 'PSERV' || upper === 'AJUDA' || upper === 'ESTADO') return true;
@@ -191,7 +202,7 @@ export async function POST(request: NextRequest) {
 
       case 'COLLECTING_NOTAS': {
         const lower = mensagem.toLowerCase().trim();
-        const skip = lower === 'não' || lower === 'nao' || lower.startsWith('sem nota') || lower.startsWith('não ') || lower.startsWith('nao ');
+        const skip = lower === 'não' || lower === 'nao' || lower.startsWith('sem nota') || lower.startsWith('não ') || lower.startsWith('nao ') || lower === 'pronto';
         if (!skip) dataUpdate.notas = mensagem.trim();
         break;
       }
@@ -358,6 +369,13 @@ export async function POST(request: NextRequest) {
         conv.data.partnerWindow = price.deliveryWindow;
         response = buildPartnerConfirmedMessage({ ...price, deliveryDescription: chosenTariff.deliveryDescription });
       }
+    }
+
+    // ── Atalho "pronto" — salta todos os passos opcionais e regista de imediato ─
+    if (isPronto(mensagem) && (PRONTO_SHORTCUT_STEPS as readonly string[]).includes(conv.step)) {
+      await setConversationStep(telemovel, 'COLLECTING_DETALHES_ENTREGA');
+      conv.step = 'COLLECTING_DETALHES_ENTREGA' as any;
+      response = { text: '', nextStep: 'LEAD_REGISTERED' };
     }
 
     // ── Morada de recolha — parse LLM + confirmação ──────────────────────────
