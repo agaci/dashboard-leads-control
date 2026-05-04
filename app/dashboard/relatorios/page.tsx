@@ -77,16 +77,34 @@ function HBar({ label, value, max, color = CYAN }: { label: string; value: numbe
   );
 }
 
+const PERIODS = [
+  { key: '7d',  label: '7 dias' },
+  { key: '30d', label: '30 dias' },
+  { key: '90d', label: '90 dias' },
+  { key: 'mes', label: 'Este mês' },
+] as const;
+
+type PeriodKey = typeof PERIODS[number]['key'];
+
+const PERIOD_LABEL: Record<PeriodKey, string> = {
+  '7d': 'últimos 7 dias', '30d': 'últimos 30 dias',
+  '90d': 'últimos 90 dias', 'mes': 'este mês',
+};
+
 export default function RelatoriosPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [period, setPeriod] = useState<PeriodKey>('30d');
 
-  useEffect(() => {
-    fetch('/api/reports').then(r => r.json()).then(d => {
+  const load = (p: PeriodKey) => {
+    setLoading(true);
+    fetch(`/api/reports?period=${p}`).then(r => r.json()).then(d => {
       if (d.success) setData(d);
       setLoading(false);
     });
-  }, []);
+  };
+
+  useEffect(() => { load(period); }, [period]);
 
   if (loading) return <div className="p-8 text-sm text-gray-400">A carregar relatório...</div>;
   if (!data) return <div className="p-8 text-sm text-red-400">Erro ao carregar dados.</div>;
@@ -105,15 +123,32 @@ export default function RelatoriosPage() {
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
             <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: NAVY }}>Relatórios</h1>
-            <p style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>Dados em tempo real · últimos 30 dias</p>
+            <p style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>Dados em tempo real · {PERIOD_LABEL[period]}</p>
           </div>
-          <button onClick={() => { setLoading(true); fetch('/api/reports').then(r => r.json()).then(d => { if (d.success) setData(d); setLoading(false); }); }}
-            style={{ fontSize: 12, color: CYAN, border: `1px solid ${CYAN}`, borderRadius: 8, padding: '6px 14px', background: '#fff', cursor: 'pointer' }}>
-            ↻ Actualizar
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {PERIODS.map(p => (
+              <button
+                key={p.key}
+                onClick={() => setPeriod(p.key)}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s',
+                  border: `1px solid ${period === p.key ? CYAN : BORDER}`,
+                  background: period === p.key ? CYAN : '#fff',
+                  color: period === p.key ? '#fff' : '#666',
+                }}
+              >
+                {p.label}
+              </button>
+            ))}
+            <button
+              onClick={() => load(period)}
+              style={{ fontSize: 12, color: '#aaa', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '5px 10px', background: '#fff', cursor: 'pointer' }}
+              title="Actualizar"
+            >↻</button>
+          </div>
         </div>
 
         {/* KPIs */}
@@ -126,7 +161,7 @@ export default function RelatoriosPage() {
 
         {/* Gráfico leads por dia */}
         <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Leads confirmadas — últimos 30 dias</p>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Leads confirmadas — {PERIOD_LABEL[period]}</p>
           <BarChart data={leadsPerDay} />
         </div>
 
