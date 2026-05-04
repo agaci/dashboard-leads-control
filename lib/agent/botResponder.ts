@@ -61,10 +61,10 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   CLOSED: { text: '' },
 };
 
-// Mensagem de boas-vindas (PSERV)
+// Mensagem de boas-vindas (PSERV / entrada directa WhatsApp)
 export function buildWelcomeMessage(): BotResponse {
   return {
-    text: 'Bem-vindo à *YourBox*!\n\nSou o assistente automático e vou ajudá-lo a calcular o preço e agendar o seu transporte em segundos.\n\nVamos começar:',
+    text: 'Bem-vindo à *YourBox*!\n\nSou o assistente automático e vou ajudá-lo a calcular o preço e agendar o seu transporte em segundos.\n\n' + QUESTIONS.COLLECTING_ORIGEM.text,
     nextStep: 'COLLECTING_ORIGEM',
   };
 }

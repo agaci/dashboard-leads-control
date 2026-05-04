@@ -49,7 +49,14 @@ const PRONTO_SHORTCUT_STEPS = [
 function isLeadInquiry(text: string): boolean {
   const upper = text.trim().toUpperCase();
   if (upper === 'PSERV' || upper === 'AJUDA' || upper === 'ESTADO') return true;
-  const lower = text.toLowerCase();
+  const lower = text.trim().toLowerCase().replace(/[!.,?]+$/, '');
+
+  // Saudações genéricas — qualquer mensagem nova no número de leads é potencial lead
+  const GREETINGS = new Set(['bom dia', 'boa tarde', 'boa noite', 'olá', 'ola', 'oi', 'hey', 'hello', 'hi', 'boas']);
+  if (GREETINGS.has(lower)) return true;
+
+  // Palavras-chave de serviço (início ou inclusão)
+  if (lower.startsWith('servi')) return true; // "serviço", "servico", "serviços"
   return (
     lower.includes('orçamento') ||
     lower.includes('orcamento') ||
@@ -64,7 +71,12 @@ function isLeadInquiry(text: string): boolean {
     lower.includes('quero transportar') ||
     lower.includes('preciso transportar') ||
     lower.includes('quero um transporte') ||
-    lower.includes('preciso de transporte')
+    lower.includes('preciso de transporte') ||
+    lower.includes('solicito') ||
+    lower.includes('quero um serviço') ||
+    lower.includes('quero um servico') ||
+    lower.includes('preciso de um serviço') ||
+    lower.includes('preciso de um servico')
   );
 }
 
