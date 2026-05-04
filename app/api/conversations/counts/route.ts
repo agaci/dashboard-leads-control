@@ -1,3 +1,4 @@
+import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 
 const ACTIVE_STEPS = [
@@ -10,16 +11,28 @@ const ACTIVE_STEPS = [
   'COLLECTING_DETALHES_RECOLHA', 'COLLECTING_DETALHES_ENTREGA', 'AWAITING_PAYMENT',
 ];
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const { searchParams } = new URL(request.url);
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo   = searchParams.get('dateTo');
+
+    const dateMatch: Record<string, unknown> = {};
+    if (dateFrom || dateTo) {
+      const range: Record<string, Date> = {};
+      if (dateFrom) range.$gte = new Date(dateFrom);
+      if (dateTo)   range.$lte = new Date(dateTo);
+      dateMatch.updatedAt = range;
+    }
+
     const db = await getDb();
     const col = db.collection('conversations');
 
     const [active, escalated, closed, all] = await Promise.all([
-      col.countDocuments({ step: { $in: ACTIVE_STEPS } }),
-      col.countDocuments({ step: 'ESCALATED_TO_HUMAN' }),
-      col.countDocuments({ step: { $in: ['CLOSED', 'LEAD_REGISTERED'] } }),
-      col.countDocuments({}),
+      col.countDocuments({ step: { $in: ACTIVE_STEPS }, ...dateMatch }),
+      col.countDocuments({ step: 'ESCALATED_TO_HUMAN', ...dateMatch }),
+      col.countDocuments({ step: { $in: ['CLOSED', 'LEAD_REGISTERED'] }, ...dateMatch }),
+      col.countDocuments({ ...dateMatch }),
     ]);
 
     return Response.json({ success: true, counts: { active, escalated, closed, all } });

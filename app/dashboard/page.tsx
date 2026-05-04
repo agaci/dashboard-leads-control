@@ -167,6 +167,7 @@ export default function DashboardPage() {
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
+  const [leadCounts, setLeadCounts] = useState<{ all: number; leads: number; sims: number; urgente: number }>({ all: 0, leads: 0, sims: 0, urgente: 0 });
   const LIMIT = 20;
   const autoSelectedLeadRef = useRef(false);
 
@@ -188,6 +189,14 @@ export default function DashboardPage() {
     return `&dateFrom=${mondayStr}`;
   }
 
+  const fetchLeadCounts = useCallback(async () => {
+    const dp = buildDateParams(dateFilter);
+    const qs = dp ? `?${dp.slice(1)}` : '';
+    const res = await fetch(`/api/leads/counts${qs}`);
+    const data = await res.json();
+    if (data.success) setLeadCounts(data.counts);
+  }, [dateFilter]);
+
   const fetchLeads = useCallback(async () => {
     setLoading(true); setError(null);
     try {
@@ -205,6 +214,7 @@ export default function DashboardPage() {
   }, [filter, dateFilter, page]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
+  useEffect(() => { fetchLeadCounts(); }, [fetchLeadCounts]);
   useEffect(() => { setPage(0); }, [filter, dateFilter]);
 
   // Auto-seleccionar a lead mais recente na primeira carga
@@ -296,6 +306,7 @@ export default function DashboardPage() {
                 {(['all', 'leads', 'sims', 'urgente'] as const).map((f) => {
                   const label = f === 'all' ? 'Todas' : f === 'leads' ? 'Bot' : f === 'sims' ? 'Manual' : 'Urgente';
                   const active = filter === f;
+                  const count = leadCounts[f];
                   return (
                     <button
                       key={f}
@@ -309,6 +320,11 @@ export default function DashboardPage() {
                       }}
                     >
                       {label}
+                      {count > 0 && (
+                        <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'white', fontWeight: 700, fontSize: 9, minWidth: 16, height: 16, padding: '0 4px', background: f === 'urgente' ? '#ef4444' : '#f97316' }}>
+                          {count > 99 ? '99+' : count}
+                        </span>
+                      )}
                     </button>
                   );
                 })}

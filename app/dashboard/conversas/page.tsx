@@ -123,10 +123,12 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   }
 
   const fetchCounts = useCallback(async () => {
-    const res = await fetch('/api/conversations/counts');
+    const dp = buildDateParams(dateFilter);
+    const qs = dp ? `?${dp.slice(1)}` : '';
+    const res = await fetch(`/api/conversations/counts${qs}`);
     const data = await res.json();
     if (data.success) setCounts(data.counts);
-  }, []);
+  }, [dateFilter]);
 
   const fetchList = useCallback(async () => {
     const dateParams = buildDateParams(dateFilter);
