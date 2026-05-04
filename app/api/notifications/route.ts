@@ -5,16 +5,16 @@ export async function GET(request: Request) {
   const since = new Date(searchParams.get('since') ?? Date.now() - 30000);
 
   const db = await getDb();
-  const [escalations, leads, aggHintConvs] = await Promise.all([
+  const [escalations, leadDocs, aggHintConvs] = await Promise.all([
     db.collection('conversations').countDocuments({
       step: 'ESCALATED_TO_HUMAN',
       updatedAt: { $gte: since },
     }),
-    db.collection('messages').countDocuments({
+    db.collection('messages').find({
       messageType: 'newLead',
       companyProvider: 'Yourbox',
       timeStamp: { $gte: since },
-    }),
+    }, { projection: { 'leadData.urgencia': 1, 'leadData.serviceType': 1 } }).limit(5).toArray(),
     db.collection('conversations').find({
       aggHintsAt: { $gte: since },
       aggHintsSeen: false,
@@ -28,6 +28,12 @@ export async function GET(request: Request) {
     }).limit(10).toArray(),
   ]);
 
+  const leads = leadDocs.length;
+  const leadDetails = leadDocs.map((d: any) => ({
+    urgencia:    d.leadData?.urgencia ?? null,
+    serviceType: d.leadData?.serviceType ?? null,
+  }));
+
   const aggHints = aggHintConvs.map((c: any) => ({
     convId: c._id?.toString(),
     refCode: '#' + (c._id?.toString() ?? '').slice(-5).toUpperCase(),
@@ -39,5 +45,5 @@ export async function GET(request: Request) {
     topDriver: c.aggHints?.[0]?.driver ?? null,
   }));
 
-  return Response.json({ escalations, leads, aggHints });
+  return Response.json({ escalations, leads, leadDetails, aggHints });
 }

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { playLeadSound, playEscalationSound, playAggSound } from './soundManager';
+import { speakEscalation, speakLead, speakAgg } from './ttsManager';
 
 export type AggHintAlert = {
   type: 'aggHint';
@@ -19,9 +20,12 @@ export type NotifAlert =
   | { type: 'escalation' | 'lead' }
   | AggHintAlert;
 
+type LeadDetail = { urgencia: string | null; serviceType: string | null };
+
 type NotifResponse = {
   escalations: number;
   leads: number;
+  leadDetails: LeadDetail[];
   aggHints: Omit<AggHintAlert, 'type'>[];
 };
 
@@ -43,14 +47,18 @@ export function useNotifications(
 
       if (data.escalations > 0) {
         playEscalationSound();
+        speakEscalation();
         onAlertRef.current({ type: 'escalation' });
       }
       if (data.leads > 0) {
         playLeadSound();
+        const first = data.leadDetails?.[0];
+        speakLead(first?.urgencia ?? undefined, first?.serviceType ?? undefined);
         onAlertRef.current({ type: 'lead' });
       }
       for (const hint of data.aggHints ?? []) {
         playAggSound();
+        speakAgg();
         onAlertRef.current({ type: 'aggHint', ...hint });
       }
 

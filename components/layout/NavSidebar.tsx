@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound } from '@/lib/soundManager';
+import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager';
 
 export type NavTab =
   | 'leads' | 'inbox' | 'clientes' | 'servicos'
@@ -277,6 +278,126 @@ function SoundButton() {
   );
 }
 
+// ── Voice Control ─────────────────────────────────────────────────────────────
+
+const VOICE_ITEMS: { key: 'escalation' | 'lead' | 'agg'; label: string }[] = [
+  { key: 'escalation', label: 'Escalamento' },
+  { key: 'lead',       label: 'Nova lead' },
+  { key: 'agg',        label: 'Agregação' },
+];
+
+function VoiceButton() {
+  const [enabled, setEnabled] = useState(false);
+  const [perType, setPerType] = useState({ escalation: true, lead: true, agg: false });
+  const [showPanel, setShowPanel] = useState(false);
+
+  useEffect(() => {
+    setEnabled(getVoiceSetting('enabled'));
+    setPerType({
+      escalation: getVoiceSetting('escalation'),
+      lead:       getVoiceSetting('lead'),
+      agg:        getVoiceSetting('agg'),
+    });
+    const handler = () => {
+      setEnabled(getVoiceSetting('enabled'));
+      setPerType({
+        escalation: getVoiceSetting('escalation'),
+        lead:       getVoiceSetting('lead'),
+        agg:        getVoiceSetting('agg'),
+      });
+    };
+    window.addEventListener('ybvoicechange', handler);
+    return () => window.removeEventListener('ybvoicechange', handler);
+  }, []);
+
+  function toggleEnabled() {
+    const next = !enabled;
+    setVoiceSetting('enabled', next);
+    setEnabled(next);
+    if (next) setTimeout(previewVoice, 80);
+  }
+
+  function toggleType(key: 'escalation' | 'lead' | 'agg') {
+    const next = !perType[key];
+    setVoiceSetting(key, next);
+    setPerType((p) => ({ ...p, [key]: next }));
+  }
+
+  return (
+    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+      <button
+        onClick={toggleEnabled}
+        onContextMenu={(e) => { e.preventDefault(); setShowPanel((s) => !s); }}
+        title={`Voz: ${enabled ? 'ON' : 'OFF'} — clique para ligar/desligar, clique-direito para opções`}
+        style={{
+          width: 44, height: 32, borderRadius: 8, border: 'none',
+          background: 'transparent', cursor: 'pointer',
+          fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: enabled ? '#00bcd4' : 'rgba(255,255,255,0.2)',
+          transition: 'color 0.2s',
+        }}
+      >
+        🎤
+      </button>
+
+      {showPanel && (
+        <div style={{
+          position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
+          background: '#1a2332', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 10, padding: '10px 12px', width: 150, zIndex: 200,
+          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: 0 }}>Voz — {enabled ? 'ON' : 'OFF'}</p>
+            <button
+              onClick={toggleEnabled}
+              style={{
+                fontSize: 9, padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
+                border: `1px solid ${enabled ? '#00bcd4' : 'rgba(255,255,255,0.15)'}`,
+                background: enabled ? 'rgba(0,188,212,0.15)' : 'rgba(255,255,255,0.05)',
+                color: enabled ? '#00bcd4' : 'rgba(255,255,255,0.4)',
+                fontWeight: 700,
+              }}
+            >{enabled ? 'Desligar' : 'Ligar'}</button>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 8 }}>
+            {VOICE_ITEMS.map(({ key, label }) => (
+              <label key={key} style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', opacity: enabled ? 1 : 0.35 }}>
+                <input
+                  type="checkbox"
+                  checked={perType[key]}
+                  disabled={!enabled}
+                  onChange={() => toggleType(key)}
+                  style={{ accentColor: '#00bcd4', width: 13, height: 13 }}
+                />
+                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{label}</span>
+              </label>
+            ))}
+          </div>
+          <button
+            onClick={() => { if (enabled) previewVoice(); }}
+            disabled={!enabled}
+            style={{
+              width: '100%', fontSize: 9, padding: '4px', borderRadius: 5,
+              border: '1px solid rgba(255,255,255,0.12)',
+              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
+              cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.3,
+              marginBottom: 6,
+            }}>▶ Testar voz</button>
+          <button
+            onClick={() => setShowPanel(false)}
+            style={{
+              width: '100%', fontSize: 10, padding: '4px', borderRadius: 5,
+              border: '1px solid rgba(255,255,255,0.1)',
+              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)',
+              cursor: 'pointer',
+            }}>fechar</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Divider ───────────────────────────────────────────────────────────────────
 
 function Divider() {
@@ -443,6 +564,7 @@ export default function NavSidebar({
       </div>
 
       <SoundButton />
+      <VoiceButton />
       <Divider />
 
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
