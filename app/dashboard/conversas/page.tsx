@@ -182,6 +182,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   }, [conversations, initialConvId, fetchSelected]);
 
   async function openConv(id: string) {
+    setPendingStep(null);
     await fetchSelected(id);
   }
 
@@ -220,12 +221,20 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
   const canReply = selected && !['LEAD_REGISTERED', 'CLOSED'].includes(selected.step);
 
-  async function setStep(step: ConvStep) {
+  const [pendingStep, setPendingStep] = useState<'LEAD_REGISTERED' | 'CLOSED' | null>(null);
+
+  const CLOSE_REASONS: Record<'LEAD_REGISTERED' | 'CLOSED', string[]> = {
+    LEAD_REGISTERED: ['Confirmou e pagou', 'Confirmou sem pagamento', 'Retomou mais tarde', 'Outro'],
+    CLOSED:          ['Preço alto', 'Não disponível', 'Desistiu', 'Lead duplicada', 'Outro'],
+  };
+
+  async function confirmClose(step: 'LEAD_REGISTERED' | 'CLOSED', reason?: string) {
     if (!selected?._id) return;
+    setPendingStep(null);
     await fetch(`/api/conversations/${selected._id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ step }),
+      body: JSON.stringify({ step, closeReason: reason ?? null }),
     });
     await fetchSelected(selected._id);
     fetchList();
@@ -413,10 +422,10 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 <div className="hidden md:flex items-center gap-2 flex-shrink-0">
                   {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                     <>
-                      <button onClick={() => setStep('LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
+                      <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
                         ✓ Resolvida
                       </button>
-                      <button onClick={() => setStep('CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
+                      <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
                         ✕ Fechar
                       </button>
                     </>
@@ -430,10 +439,10 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               <div className="flex md:hidden items-center gap-2 mt-2">
                 {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                   <>
-                    <button onClick={() => setStep('LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
+                    <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
                       ✓ Resolvida
                     </button>
-                    <button onClick={() => setStep('CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
+                    <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
                       ✕ Fechar
                     </button>
                   </>
@@ -443,6 +452,31 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 </span>
               </div>
             </div>
+
+            {/* Picker de motivo inline */}
+            {pendingStep && (
+              <div style={{
+                background: pendingStep === 'LEAD_REGISTERED' ? '#f0fdf4' : '#f9fafb',
+                borderBottom: `1px solid ${pendingStep === 'LEAD_REGISTERED' ? '#bbf7d0' : '#e5e7eb'}`,
+                padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0,
+              }}>
+                <span style={{ fontSize: 11, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}>Motivo:</span>
+                {CLOSE_REASONS[pendingStep].map(reason => (
+                  <button key={reason} onClick={() => confirmClose(pendingStep, reason)}
+                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                    {reason}
+                  </button>
+                ))}
+                <button onClick={() => confirmClose(pendingStep)}
+                  style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid transparent', background: 'transparent', color: '#9ca3af', cursor: 'pointer', marginLeft: 4 }}>
+                  Sem motivo →
+                </button>
+                <button onClick={() => setPendingStep(null)}
+                  style={{ fontSize: 14, background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', marginLeft: 'auto', lineHeight: 1 }}>
+                  ✕
+                </button>
+              </div>
+            )}
 
             {/* Banner de agregação */}
             {selected.aggHints && selected.aggHints.length > 0 && (

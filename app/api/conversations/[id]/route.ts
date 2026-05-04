@@ -20,6 +20,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       const allowed = ['CLOSED', 'LEAD_REGISTERED', 'ESCALATED_TO_HUMAN'];
       if (!allowed.includes(body.step)) return Response.json({ error: 'Step inválido' }, { status: 400 });
       $set.step = body.step;
+      if (['CLOSED', 'LEAD_REGISTERED'].includes(body.step)) {
+        $set.closedAt = new Date().toISOString();
+        $set.closeReason = body.closeReason ?? null;
+      }
     }
     if ('aggHintsSeen' in body) {
       $set.aggHintsSeen = Boolean(body.aggHintsSeen);
