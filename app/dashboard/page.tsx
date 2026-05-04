@@ -164,6 +164,7 @@ export default function DashboardPage() {
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'leads' | 'sims' | 'urgente'>('all');
   const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'semana'>('all');
+  const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
   const LIMIT = 20;
@@ -280,7 +281,9 @@ export default function DashboardPage() {
               {/* Search */}
               <input
                 type="text"
-                placeholder="Pesquisar..."
+                placeholder="Nome, telefone, rota..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
                 style={{
                   width: '100%', height: 32, padding: '0 10px',
                   background: YB_BG, border: `1px solid ${BORDER}`,
@@ -341,7 +344,20 @@ export default function DashboardPage() {
               {!loading && leads.length === 0 && (
                 <div style={{ padding: '32px 12px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>Sem resultados</div>
               )}
-              {leads.map((lead) => {
+              {(() => {
+                const q = search.trim().toLowerCase();
+                const visibleLeads = q
+                  ? leads.filter((l) => {
+                      const nome = (l.leadData.nome ?? '').toLowerCase();
+                      const tel  = (l.leadData.telefone ?? '').toLowerCase();
+                      const orig = (l.leadData.origem ?? '').toLowerCase();
+                      const dest = (l.leadData.destino ?? '').toLowerCase();
+                      return nome.includes(q) || tel.includes(q) || orig.includes(q) || dest.includes(q);
+                    })
+                  : leads;
+                if (!loading && q && visibleLeads.length === 0)
+                  return <div style={{ padding: '32px 12px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>Sem resultados para "{search}"</div>;
+                return visibleLeads.map((lead) => {
                 const isSelected = selected?.id === lead.id;
                 const isBot = lead.variante === 'BOT';
                 const nome = lead.leadData.nome ?? lead.leadData.telefone ?? 'Sem nome';
@@ -418,7 +434,7 @@ export default function DashboardPage() {
                     </div>
                   </button>
                 );
-              })}
+              });})()}
             </div>
 
             {/* Pagination */}
