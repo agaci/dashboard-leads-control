@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { sendEscalationEmail } from '@/lib/email/resend';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -26,6 +27,25 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
     const db = await getDb();
     await db.collection('conversations').updateOne({ _id: oid }, { $set });
+
+    if (body.step === 'ESCALATED_TO_HUMAN') {
+      const conv = await db.collection('conversations').findOne(
+        { _id: oid },
+        { projection: { telemovel: 1, data: 1, history: { $slice: -1 } } }
+      );
+      if (conv) {
+        const lastMsg = (conv.history as any[])?.[0]?.text as string | undefined;
+        sendEscalationEmail({
+          convId:    id,
+          telemovel: conv.telemovel,
+          nome:      conv.data?.nome,
+          origem:    conv.data?.origem,
+          destino:   conv.data?.destino,
+          lastMsg,
+        });
+      }
+    }
+
     return Response.json({ success: true });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });

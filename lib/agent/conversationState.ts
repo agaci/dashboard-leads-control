@@ -1,5 +1,6 @@
 import { getDb } from '@/lib/mongodb';
 import type { Conversation, ConversationStep, ConversationData, ConversationMessage } from '@/types/agent';
+import { sendEscalationEmail } from '@/lib/email/resend';
 
 export async function getConversation(telemovel: string): Promise<Conversation | null> {
   const db = await getDb();
@@ -122,4 +123,19 @@ export async function escalateConversation(telemovel: string): Promise<void> {
     { telemovel, step: { $nin: ['CLOSED', 'LEAD_REGISTERED'] } },
     { $set: { step: 'ESCALATED_TO_HUMAN', escalatedAt: new Date(), updatedAt: new Date() } }
   );
+  const conv = await db.collection('conversations').findOne(
+    { telemovel, step: 'ESCALATED_TO_HUMAN' },
+    { projection: { _id: 1, data: 1, history: { $slice: -1 } } }
+  );
+  if (conv) {
+    const lastMsg = (conv.history as any[])?.[0]?.text as string | undefined;
+    sendEscalationEmail({
+      convId:    conv._id.toString(),
+      telemovel,
+      nome:      conv.data?.nome,
+      origem:    conv.data?.origem,
+      destino:   conv.data?.destino,
+      lastMsg,
+    });
+  }
 }
