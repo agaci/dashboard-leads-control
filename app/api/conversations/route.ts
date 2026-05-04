@@ -4,8 +4,10 @@ import { getDb } from '@/lib/mongodb';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') ?? 'all'; // active | escalated | closed | all
-    const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
+    const status   = searchParams.get('status') ?? 'all'; // active | escalated | closed | all
+    const limit    = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo   = searchParams.get('dateTo');
 
     const db = await getDb();
 
@@ -13,6 +15,13 @@ export async function GET(request: NextRequest) {
     if (status === 'active')    filter.step = { $nin: ['CLOSED', 'LEAD_REGISTERED', 'ESCALATED_TO_HUMAN'] };
     if (status === 'escalated') filter.step = 'ESCALATED_TO_HUMAN';
     if (status === 'closed')    filter.step = { $in: ['CLOSED', 'LEAD_REGISTERED'] };
+
+    if (dateFrom || dateTo) {
+      const range: Record<string, Date> = {};
+      if (dateFrom) range.$gte = new Date(dateFrom);
+      if (dateTo)   range.$lte = new Date(dateTo);
+      filter.updatedAt = range;
+    }
 
     const conversations = await db
       .collection('conversations')

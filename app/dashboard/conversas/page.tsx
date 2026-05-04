@@ -90,6 +90,8 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [selected, setSelected] = useState<ConvFull | null>(null);
   const [filter, setFilter] = useState<'active' | 'escalated' | 'closed' | 'all'>('active');
+  const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'semana'>('all');
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
@@ -98,6 +100,23 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
 
+  function buildDateParams(df: 'all' | 'hoje' | 'semana'): string {
+    if (df === 'all') return '';
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T00:00:00.000Z`;
+    if (df === 'hoje') {
+      const todayEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T23:59:59.999Z`;
+      return `&dateFrom=${todayStart}&dateTo=${todayEnd}`;
+    }
+    const day = now.getDay();
+    const diff = day === 0 ? -6 : 1 - day;
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    const mondayStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}T00:00:00.000Z`;
+    return `&dateFrom=${mondayStr}`;
+  }
+
   const fetchCounts = useCallback(async () => {
     const res = await fetch('/api/conversations/counts');
     const data = await res.json();
@@ -105,12 +124,13 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   }, []);
 
   const fetchList = useCallback(async () => {
-    const res = await fetch(`/api/conversations?status=${filter}&limit=60`);
+    const dateParams = buildDateParams(dateFilter);
+    const res = await fetch(`/api/conversations?status=${filter}&limit=60${dateParams}`);
     const data = await res.json();
     if (data.success) setConversations(data.conversations);
     setLoading(false);
     fetchCounts();
-  }, [filter, fetchCounts]);
+  }, [filter, dateFilter, fetchCounts]);
 
   const fetchSelected = useCallback(async (id: string) => {
     const res = await fetch(`/api/conversations/${id}`);
@@ -138,7 +158,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [selected?._id, selected?.step, fetchSelected]);
 
-  useEffect(() => { setLoading(true); }, [filter]);
+  useEffect(() => { setLoading(true); }, [filter, dateFilter]);
 
   // Abrir conversa específica quando vindo do toast de agregação
   useEffect(() => {
@@ -210,8 +230,8 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     <div className="flex h-full neu-bg">
       {/* ── Lista de conversas ──────────────────────────────── */}
       <div className="flex flex-col flex-shrink-0 neu-bg" style={{ width: isMobile ? '100%' : 320, borderRight: '1px solid hsl(240 10% 88%)', display: isMobile && selected ? 'none' : 'flex' }}>
-        {/* Filtros */}
-        <div className="px-3 py-2 flex gap-1 flex-wrap" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+        {/* Filtros de estado */}
+        <div className="px-3 pt-2 pb-1 flex gap-1 flex-wrap" style={{ borderBottom: 'none' }}>
           {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
             const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
             const count = counts[f];
@@ -236,6 +256,43 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
             );
           })}
         </div>
+        {/* Filtros de data + pesquisa */}
+        <div className="px-3 pb-2" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+          <div className="flex gap-1 mb-2">
+            {(['all', 'hoje', 'semana'] as const).map((df) => {
+              const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
+              const active = dateFilter === df;
+              return (
+                <button
+                  key={df}
+                  onClick={() => setDateFilter(df)}
+                  className="px-2 py-0.5 rounded text-xs font-semibold transition-all"
+                  style={{
+                    border: `1px solid ${active ? '#7c3aed' : 'hsl(240 10% 88%)'}`,
+                    background: active ? '#7c3aed' : 'transparent',
+                    color: active ? '#fff' : 'var(--neu-muted)',
+                    fontSize: 10,
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+          <input
+            type="text"
+            placeholder="Nome, telefone, rota..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full text-xs outline-none rounded-md px-2.5 py-1.5"
+            style={{
+              border: '1px solid hsl(240 10% 88%)',
+              background: 'hsl(240 10% 97%)',
+              color: 'var(--neu-fg)',
+              fontSize: 11,
+            }}
+          />
+        </div>
 
         {/* Lista */}
         <div className="flex-1 overflow-y-auto">
@@ -243,7 +300,20 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
           {!loading && conversations.length === 0 && (
             <p className="p-6 text-center text-sm text-[--neu-muted]">Sem conversas</p>
           )}
-          {conversations.map((conv) => {
+          {(() => {
+            const q = search.trim().toLowerCase();
+            const visible = q
+              ? conversations.filter((c) => {
+                  const nome  = (c.data?.nome ?? '').toLowerCase();
+                  const tel   = (c.telemovel ?? '').toLowerCase();
+                  const orig  = (c.data?.origem ?? '').toLowerCase();
+                  const dest  = (c.data?.destino ?? '').toLowerCase();
+                  return nome.includes(q) || tel.includes(q) || orig.includes(q) || dest.includes(q);
+                })
+              : conversations;
+            if (!loading && q && visible.length === 0)
+              return <p className="p-6 text-center text-sm text-[--neu-muted]">Sem resultados para &ldquo;{search}&rdquo;</p>;
+            return visible.map((conv) => {
             const lastMsg = conv.history?.[0];
             const isSelected = selected?._id === conv._id;
             return (
@@ -292,7 +362,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 )}
               </button>
             );
-          })}
+          });})()}
         </div>
       </div>
 
