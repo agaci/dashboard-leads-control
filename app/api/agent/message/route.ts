@@ -57,6 +57,13 @@ function isLeadInquiry(text: string): boolean {
 
   // Palavras-chave de serviço (início ou inclusão)
   if (lower.startsWith('servi')) return true; // "serviço", "servico", "serviços"
+
+  // Pedidos pós-registo / nova encomenda
+  if (lower.includes('amanhã') || lower.includes('amanha')) return true;
+  if (lower.includes('nova encomenda') || lower.includes('novo pedido') || lower.includes('outro envio')) return true;
+  if (lower.includes('entregar') || lower.includes('recolher')) return true;
+  if (lower.includes('enviar') || lower.includes('transportar')) return true;
+
   return (
     lower.includes('orçamento') ||
     lower.includes('orcamento') ||

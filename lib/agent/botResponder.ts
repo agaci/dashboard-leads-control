@@ -339,26 +339,27 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       return buildPriceMessage(conv);
 
     case 'PRESENTING_PRICE': {
-      const lower = mensagem.toLowerCase();
-      if (lower.includes('sim') || lower.includes('avançar')) {
-        return {
-          text: QUESTIONS.COLLECTING_NOME.text,
-          nextStep: 'COLLECTING_NOME',
-        };
-      }
-      if (lower.includes('não') || lower.includes('cancelar')) {
-        return {
-          text: 'Sem problema! Se precisar de ajuda no futuro, estamos disponíveis.',
-          nextStep: 'CLOSED',
-        };
-      }
-      if (lower.includes('amanhã') || lower.includes('amanha') || lower.includes('24h') || lower.includes('ver entrega')) {
+      const lower = mensagem.toLowerCase().replace(/[!.,?]+$/, '').trim();
+      const isYes = /\b(sim|ok|okay|quero|aceito|aceitar|avançar|avancar|vamos|prosseguir|confirmo|confirmar|concordo|ótimo|otimo|perfeito|boa|yes)\b/.test(lower);
+      const isNo  = /\b(não|nao|nope|cancelar|desistir|esqueça|esqueca|deixa|para|stop)\b/.test(lower) || lower === 'n';
+      const is24h = lower.includes('amanhã') || lower.includes('amanha') || lower.includes('24h') || lower.includes('ver entrega');
+
+      if (is24h) {
         return {
           text: 'Para calcular o preço de entrega para amanhã, indique o *peso total* do envio (em kg):',
           nextStep: 'COLLECTING_WEIGHT',
         };
       }
-      // Dúvida ou objecção
+      if (isYes) {
+        return { text: QUESTIONS.COLLECTING_NOME.text, nextStep: 'COLLECTING_NOME' };
+      }
+      if (isNo) {
+        return {
+          text: 'Sem problema! Se precisar de ajuda no futuro, estamos disponíveis.',
+          nextStep: 'CLOSED',
+        };
+      }
+      // Dúvida ou objecção genuína
       return buildObjectionResponse(conv);
     }
 
