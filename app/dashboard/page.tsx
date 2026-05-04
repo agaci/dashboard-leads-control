@@ -261,7 +261,7 @@ export default function DashboardPage() {
         <>
           {/* Lista — hidden on mobile when a lead is selected */}
           <div style={{
-            width: isMobile ? '100%' : 276,
+            width: isMobile ? '100%' : 360,
             flexShrink: 0,
             background: '#fff',
             borderRight: isMobile ? 'none' : `1px solid ${BORDER}`,

@@ -2,6 +2,11 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react';
 
+const CYAN   = '#00bcd4';
+const NAVY   = '#1a2332';
+const YB_BG  = '#f5f6fa';
+const BORDER = '#dde1e8';
+
 type ConvStep =
   | 'INIT' | 'COLLECTING_ORIGEM' | 'COLLECTING_DESTINO' | 'COLLECTING_VIATURA'
   | 'COLLECTING_URGENCIA' | 'COLLECTING_WEIGHT' | 'CALCULATING_PRICE'
@@ -229,36 +234,46 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   return (
     <div className="flex h-full neu-bg">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div className="flex flex-col flex-shrink-0 neu-bg" style={{ width: isMobile ? '100%' : 320, borderRight: '1px solid hsl(240 10% 88%)', display: isMobile && selected ? 'none' : 'flex' }}>
-        {/* Filtros de estado */}
-        <div className="px-3 pt-2 pb-1 flex gap-1 flex-wrap" style={{ borderBottom: 'none' }}>
-          {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
-            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
-            const count = counts[f];
-            const isEscalated = f === 'escalated';
-            return (
-              <button
-                key={f}
-                onClick={() => setFilter(f)}
-                className={`relative px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                  filter === f ? 'neu-pill-active' : 'neu-pill text-[--neu-muted] hover:text-[--neu-fg]'
-                }`}
-              >
-                {label}
-                {count > 0 && (
-                  <span className={`ml-1 inline-flex items-center justify-center rounded-full text-white font-bold ${
-                    isEscalated ? 'bg-red-500' : 'bg-orange-400'
-                  }`} style={{ fontSize: 9, minWidth: 16, height: 16, padding: '0 4px' }}>
-                    {count > 99 ? '99+' : count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {/* Filtros de data + pesquisa */}
-        <div className="px-3 pb-2" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
-          <div className="flex gap-1 mb-2">
+      <div style={{ width: isMobile ? '100%' : 360, flexShrink: 0, background: '#fff', borderRight: isMobile ? 'none' : `1px solid ${BORDER}`, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column' }}>
+        {/* Header */}
+        <div style={{ background: '#fff', padding: '12px 12px 0', borderBottom: `1px solid ${BORDER}` }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+            <span style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>Inbox</span>
+            <button onClick={fetchList} style={{ fontSize: 14, color: '#aaa', border: 'none', background: 'none', cursor: 'pointer', padding: '2px 6px' }} title="Actualizar">↻</button>
+          </div>
+          {/* Pesquisa */}
+          <input
+            type="text"
+            placeholder="Nome, telefone, rota..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: '100%', height: 32, padding: '0 10px', background: YB_BG, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, outline: 'none', boxSizing: 'border-box', color: NAVY }}
+          />
+          {/* Filtros de estado */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0 4px' }}>
+            {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
+              const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
+              const count = counts[f];
+              const active = filter === f;
+              const isEscalated = f === 'escalated';
+              return (
+                <button
+                  key={f}
+                  onClick={() => setFilter(f)}
+                  style={{ padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: `1px solid ${active ? CYAN : BORDER}`, background: active ? CYAN : '#fff', color: active ? '#fff' : '#666' }}
+                >
+                  {label}
+                  {count > 0 && (
+                    <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'white', fontWeight: 700, fontSize: 9, minWidth: 16, height: 16, padding: '0 4px', background: isEscalated ? '#ef4444' : '#f97316' }}>
+                      {count > 99 ? '99+' : count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+          {/* Filtros de data */}
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0 10px' }}>
             {(['all', 'hoje', 'semana'] as const).map((df) => {
               const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
               const active = dateFilter === df;
@@ -266,32 +281,13 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 <button
                   key={df}
                   onClick={() => setDateFilter(df)}
-                  className="px-2 py-0.5 rounded text-xs font-semibold transition-all"
-                  style={{
-                    border: `1px solid ${active ? '#7c3aed' : 'hsl(240 10% 88%)'}`,
-                    background: active ? '#7c3aed' : 'transparent',
-                    color: active ? '#fff' : 'var(--neu-muted)',
-                    fontSize: 10,
-                  }}
+                  style={{ padding: '3px 9px', borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: `1px solid ${active ? '#7c3aed' : BORDER}`, background: active ? '#7c3aed' : '#fff', color: active ? '#fff' : '#999' }}
                 >
                   {label}
                 </button>
               );
             })}
           </div>
-          <input
-            type="text"
-            placeholder="Nome, telefone, rota..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-full text-xs outline-none rounded-md px-2.5 py-1.5"
-            style={{
-              border: '1px solid hsl(240 10% 88%)',
-              background: 'hsl(240 10% 97%)',
-              color: 'var(--neu-fg)',
-              fontSize: 11,
-            }}
-          />
         </div>
 
         {/* Lista */}
