@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
       leadsMonth, leadsAllTime, simsMonth,
       leadsPerDayRaw, leadsPerSourceRaw, leadsPerUrgencyRaw,
       topRoutesRaw, revenueRaw, prevPeriodLeads,
-      convStats, botStepStats,
+      convStats, botStepStats, closeReasonsRaw,
     ] = await Promise.all([
       // Leads confirmadas no período
       db.collection('messages').countDocuments({
@@ -99,6 +99,12 @@ export async function GET(request: NextRequest) {
         { $sort: { count: -1 } },
         { $limit: 5 },
       ]).toArray(),
+      // Motivos de fecho no período
+      db.collection('conversations').aggregate([
+        { $match: { step: { $in: ['CLOSED', 'LEAD_REGISTERED'] }, updatedAt: { $gte: dateFrom, $lte: dateTo }, closeReason: { $ne: null, $exists: true } } },
+        { $group: { _id: { reason: '$closeReason', step: '$step' }, count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+      ]).toArray(),
     ]);
 
     // Preencher todos os dias do período com 0
@@ -138,6 +144,11 @@ export async function GET(request: NextRequest) {
         closed: botClosed, active: botTotal - botCompleted - botEscalated - botClosed,
         topActiveSteps: (botStepStats as any[]).map((s: any) => ({ step: s._id, count: s.count })),
       },
+      closeReasons: (closeReasonsRaw as any[]).map((r: any) => ({
+        reason: r._id.reason as string,
+        step:   r._id.step as string,
+        count:  r.count as number,
+      })),
     });
   } catch (err: any) {
     return Response.json({ success: false, error: err.message, stack: err.stack?.slice(0, 300) }, { status: 500 });

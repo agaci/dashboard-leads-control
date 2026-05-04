@@ -13,6 +13,7 @@ type ReportData = {
   leadsPerUrgency: { urgency: string; count: number }[];
   topRoutes: { origem: string; destino: string; count: number; avgPrice: number }[];
   bot: { total: number; completed: number; escalated: number; closed: number; active: number; topActiveSteps: { step: string; count: number }[] };
+  closeReasons: { reason: string; step: string; count: number }[];
 };
 
 const STEP_PT: Record<string, string> = {
@@ -109,7 +110,7 @@ export default function RelatoriosPage() {
   if (loading) return <div className="p-8 text-sm text-gray-400">A carregar relatório...</div>;
   if (!data) return <div className="p-8 text-sm text-red-400">Erro ao carregar dados.</div>;
 
-  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot } = data;
+  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons } = data;
   const maxSource = Math.max(...leadsPerSource.map(s => s.count), 1);
   const maxUrgency = Math.max(...leadsPerUrgency.map(u => u.count), 1);
   const botCompletionRate = bot.total > 0 ? Math.round((bot.completed / bot.total) * 100) : 0;
@@ -209,6 +210,28 @@ export default function RelatoriosPage() {
             </div>
           )}
         </div>
+
+        {/* Motivos de fecho */}
+        {closeReasons.length > 0 && (
+          <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 14 }}>Motivos de fecho</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+              {closeReasons.map((r, i) => {
+                const isResolved = r.step === 'LEAD_REGISTERED';
+                return (
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: isResolved ? '#f0fdf4' : '#f9fafb', border: `1px solid ${isResolved ? '#bbf7d0' : '#e5e7eb'}` }}>
+                    <span style={{ fontSize: 18 }}>{isResolved ? '✓' : '✕'}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: '#1a2332', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.reason}</p>
+                      <p style={{ fontSize: 10, color: '#aaa', margin: 0 }}>{isResolved ? 'Resolvida' : 'Fechada'}</p>
+                    </div>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: isResolved ? '#22c55e' : '#6b7280', flexShrink: 0 }}>{r.count}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Top rotas */}
         <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 24 }}>
