@@ -679,7 +679,9 @@
         acO.addListener('place_changed', function () {
           var p = acO.getPlace();
           if (p && p.formatted_address) document.getElementById('origem').value = p.formatted_address;
-          scrollToNext(document.getElementById('destino'));
+          var dest = document.getElementById('destino');
+          scrollToNext(dest);
+          if (dest) dest.focus();
         });
         acD.addListener('place_changed', function () {
           var p = acD.getPlace();
