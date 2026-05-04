@@ -163,15 +163,35 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'leads' | 'sims' | 'urgente'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'semana'>('all');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
   const LIMIT = 20;
   const autoSelectedLeadRef = useRef(false);
 
+  function buildDateParams(df: 'all' | 'hoje' | 'semana'): string {
+    if (df === 'all') return '';
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const todayStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T00:00:00.000Z`;
+    if (df === 'hoje') {
+      const todayEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T23:59:59.999Z`;
+      return `&dateFrom=${todayStart}&dateTo=${todayEnd}`;
+    }
+    // semana — desde segunda-feira desta semana
+    const day = now.getDay(); // 0=dom, 1=seg...
+    const diff = (day === 0 ? -6 : 1 - day);
+    const monday = new Date(now);
+    monday.setDate(now.getDate() + diff);
+    const mondayStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}T00:00:00.000Z`;
+    return `&dateFrom=${mondayStr}`;
+  }
+
   const fetchLeads = useCallback(async () => {
     setLoading(true); setError(null);
     try {
-      const res = await fetch(`/api/leads?type=${filter}&limit=${LIMIT}&skip=${page * LIMIT}`);
+      const dateParams = buildDateParams(dateFilter);
+      const res = await fetch(`/api/leads?type=${filter}&limit=${LIMIT}&skip=${page * LIMIT}${dateParams}`);
       const data = await res.json();
       if (!data.success) throw new Error(data.error ?? 'Erro desconhecido');
       setLeads(data.leads);
@@ -181,10 +201,10 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [filter, page]);
+  }, [filter, dateFilter, page]);
 
   useEffect(() => { fetchLeads(); }, [fetchLeads]);
-  useEffect(() => { setPage(0); }, [filter]);
+  useEffect(() => { setPage(0); }, [filter, dateFilter]);
 
   // Auto-seleccionar a lead mais recente na primeira carga
   useEffect(() => {
@@ -268,8 +288,8 @@ export default function DashboardPage() {
                   boxSizing: 'border-box', color: NAVY,
                 }}
               />
-              {/* Filters */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0 10px' }}>
+              {/* Filters — tipo */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0 4px' }}>
                 {(['all', 'leads', 'sims', 'urgente'] as const).map((f) => {
                   const label = f === 'all' ? 'Todas' : f === 'leads' ? 'Bot' : f === 'sims' ? 'Manual' : 'Urgente';
                   const active = filter === f;
@@ -282,6 +302,28 @@ export default function DashboardPage() {
                         border: `1px solid ${active ? CYAN : BORDER}`,
                         background: active ? CYAN : '#fff',
                         color: active ? '#fff' : '#666',
+                        transition: 'all 0.15s',
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Filters — data */}
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0 10px' }}>
+                {(['all', 'hoje', 'semana'] as const).map((df) => {
+                  const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
+                  const active = dateFilter === df;
+                  return (
+                    <button
+                      key={df}
+                      onClick={() => setDateFilter(df)}
+                      style={{
+                        padding: '3px 9px', borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: 'pointer',
+                        border: `1px solid ${active ? '#7c3aed' : BORDER}`,
+                        background: active ? '#7c3aed' : '#fff',
+                        color: active ? '#fff' : '#999',
                         transition: 'all 0.15s',
                       }}
                     >

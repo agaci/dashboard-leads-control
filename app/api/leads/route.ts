@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get('type') ?? 'all';
     const limit = Math.min(parseInt(searchParams.get('limit') ?? '50'), 200);
     const skip = parseInt(searchParams.get('skip') ?? '0');
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo   = searchParams.get('dateTo');
 
     const db = await getDb();
 
@@ -14,6 +16,13 @@ export async function GET(request: NextRequest) {
     if (type === 'leads')        filter.variante = 'BOT';
     else if (type === 'sims')    filter.variante = { $ne: 'BOT' };
     else if (type === 'urgente') filter['leadData.urgencia'] = '1 Hora';
+
+    if (dateFrom || dateTo) {
+      const range: Record<string, Date> = {};
+      if (dateFrom) range.$gte = new Date(dateFrom);
+      if (dateTo)   range.$lte = new Date(dateTo);
+      filter.timeStamp = range;
+    }
 
     const [docs, total] = await Promise.all([
       db.collection('messages')

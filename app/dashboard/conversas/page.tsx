@@ -93,16 +93,24 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
+  const [counts, setCounts] = useState<{ active: number; escalated: number; closed: number; all: number }>({ active: 0, escalated: 0, closed: 0, all: 0 });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
+
+  const fetchCounts = useCallback(async () => {
+    const res = await fetch('/api/conversations/counts');
+    const data = await res.json();
+    if (data.success) setCounts(data.counts);
+  }, []);
 
   const fetchList = useCallback(async () => {
     const res = await fetch(`/api/conversations?status=${filter}&limit=60`);
     const data = await res.json();
     if (data.success) setConversations(data.conversations);
     setLoading(false);
-  }, [filter]);
+    fetchCounts();
+  }, [filter, fetchCounts]);
 
   const fetchSelected = useCallback(async (id: string) => {
     const res = await fetch(`/api/conversations/${id}`);
@@ -204,17 +212,29 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
       <div className="flex flex-col flex-shrink-0 neu-bg" style={{ width: isMobile ? '100%' : 320, borderRight: '1px solid hsl(240 10% 88%)', display: isMobile && selected ? 'none' : 'flex' }}>
         {/* Filtros */}
         <div className="px-3 py-2 flex gap-1 flex-wrap" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
-          {(['active', 'escalated', 'all', 'closed'] as const).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
-                filter === f ? 'neu-pill-active' : 'neu-pill text-[--neu-muted] hover:text-[--neu-fg]'
-              }`}
-            >
-              {f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas'}
-            </button>
-          ))}
+          {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
+            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
+            const count = counts[f];
+            const isEscalated = f === 'escalated';
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`relative px-2.5 py-1 rounded-full text-xs font-medium transition-all ${
+                  filter === f ? 'neu-pill-active' : 'neu-pill text-[--neu-muted] hover:text-[--neu-fg]'
+                }`}
+              >
+                {label}
+                {count > 0 && (
+                  <span className={`ml-1 inline-flex items-center justify-center rounded-full text-white font-bold ${
+                    isEscalated ? 'bg-red-500' : 'bg-orange-400'
+                  }`} style={{ fontSize: 9, minWidth: 16, height: 16, padding: '0 4px' }}>
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Lista */}
