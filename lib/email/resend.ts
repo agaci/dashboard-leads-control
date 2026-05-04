@@ -1,7 +1,5 @@
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 const FROM    = process.env.ALERT_FROM_EMAIL ?? 'YourBox <noreply@yourbox.com.pt>';
 const TO      = (process.env.ALERT_EMAIL ?? '').split(',').map(e => e.trim()).filter(Boolean);
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.yourbox.com.pt').replace(/\/$/, '');
@@ -16,6 +14,7 @@ export async function sendEscalationEmail(opts: {
 }) {
   if (!process.env.RESEND_API_KEY || TO.length === 0) return;
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const ref  = '#' + opts.convId.slice(-5).toUpperCase();
   const nome = opts.nome ?? opts.telemovel;
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
