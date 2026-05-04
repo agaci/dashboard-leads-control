@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { sendWhatsAppMessage } from '@/lib/whatsapp/evolution';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -17,6 +18,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!text?.trim()) return Response.json({ error: 'Texto obrigatório' }, { status: 400 });
 
     const db = await getDb();
+    const conv = await db.collection('conversations').findOne({ _id: oid }, { projection: { canal: 1, telemovel: 1 } });
+    if (!conv) return Response.json({ error: 'Conversa não encontrada' }, { status: 404 });
+
     const now = new Date();
 
     await db.collection('conversations').updateOne(
@@ -27,7 +31,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     );
 
-    return Response.json({ success: true });
+    let waSent = false;
+    if (conv.canal === 'whatsapp' && conv.telemovel) {
+      waSent = await sendWhatsAppMessage(conv.telemovel, text.trim());
+    }
+
+    return Response.json({ success: true, waSent });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
