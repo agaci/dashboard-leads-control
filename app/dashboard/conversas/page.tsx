@@ -234,7 +234,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   return (
     <div className="flex h-full neu-bg">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div style={{ width: isMobile ? '100%' : 360, flexShrink: 0, background: '#fff', borderRight: isMobile ? 'none' : `1px solid ${BORDER}`, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column' }}>
+      <div style={{ width: isMobile ? '100%' : 400, flexShrink: 0, background: '#fff', borderRight: isMobile ? 'none' : `1px solid ${BORDER}`, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column' }}>
         {/* Header */}
         <div style={{ background: '#fff', padding: '12px 12px 0', borderBottom: `1px solid ${BORDER}` }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
