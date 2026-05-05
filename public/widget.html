@@ -69,7 +69,7 @@
     }
     .vehicle-option input:checked + .vehicle-label,
     .urgency-option  input:checked + .urgency-label {
-      border-color: var(--primary); background: rgba(190,214,47,.08);
+      border-color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent);
     }
     .vehicle-icon, .urgency-icon {
       font-size: 1.2rem; display: flex; align-items: center; justify-content: center;
@@ -259,9 +259,9 @@
     .yb-done--escalated { color: #e65100; }
 
     @keyframes ybFocusPulse {
-      0%   { box-shadow: 0 0 0 0   rgba(190,214,47,.65); }
-      65%  { box-shadow: 0 0 0 10px rgba(190,214,47,.0);  }
-      100% { box-shadow: 0 0 0 0   rgba(190,214,47,.0);  }
+      0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--primary) 65%, transparent); }
+      65%  { box-shadow: 0 0 0 10px transparent; }
+      100% { box-shadow: 0 0 0 0   transparent; }
     }
     .yb-field input:focus, .yb-field textarea:focus,
     .form-input:focus, #ybChatInput:focus { animation: ybFocusPulse 0.55s ease-out; }
