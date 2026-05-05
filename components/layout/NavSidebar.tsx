@@ -216,12 +216,6 @@ function SoundButton() {
     }
   }
 
-  const icon =
-    vol === 0 ? '🔇'
-    : vol <= 0.3 ? '🔈'
-    : vol <= 0.65 ? '🔉'
-    : '🔊';
-
   const volPct = Math.round(vol * 100);
 
   return (
@@ -233,12 +227,34 @@ function SoundButton() {
         style={{
           width: 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
-          fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: vol === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)',
           transition: 'color 0.2s',
         }}
       >
-        {icon}
+        {vol === 0 ? (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/>
+          </svg>
+        ) : vol <= 0.3 ? (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          </svg>
+        ) : vol <= 0.65 ? (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        ) : (
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        )}
       </button>
 
       {showSlider && (
@@ -343,12 +359,17 @@ function VoiceButton() {
         style={{
           width: 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
-          fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
           color: enabled ? '#00bcd4' : 'rgba(255,255,255,0.2)',
           transition: 'color 0.2s',
         }}
       >
-        🎤
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+          <line x1="12" y1="19" x2="12" y2="23"/>
+          <line x1="8" y1="23" x2="16" y2="23"/>
+        </svg>
       </button>
 
       {showPanel && (
