@@ -70,7 +70,7 @@ export async function registerLead(
       timeStamp: new Date(),
       converted: true,
       convertedAt: new Date(),
-      source: 'bot',
+      source: conv.data.source ?? 'bot',
     },
   });
 

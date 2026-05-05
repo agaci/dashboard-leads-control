@@ -492,6 +492,7 @@
 
     var API_BASE = window.location.origin;
     var _clientId = null;
+    var _ref = null;
     var _formLoadTime = Date.now();
     var state = { nome:'', email:'', telefone:'', observacoes:'', origem:'', destino:'', viatura:'Moto', urgencia:'1 Hora' };
 
@@ -511,6 +512,7 @@
     async function loadConfig() {
       var params = new URLSearchParams(window.location.search);
       _clientId = params.get('clientId');
+      _ref      = params.get('ref') || null;
       if (!_clientId) { showError(); return; }
       try {
         var res  = await fetch(API_BASE + '/api/widget-config/' + encodeURIComponent(_clientId));
@@ -618,7 +620,7 @@
       if (g) { g.textContent = 'Olá ' + nome.split(' ')[0] + '! Já temos os seus dados. O assistente vai calcular o preço agora.'; g.style.display = 'block'; }
 
       showStep(2);
-      await ybChatW.start({ nome: state.nome, email: state.email, telemovel: state.telefone, origem: state.origem, destino: state.destino, viatura: state.viatura, urgencia: state.urgencia, observacoes: state.observacoes || undefined });
+      await ybChatW.start({ nome: state.nome, email: state.email, telemovel: state.telefone, origem: state.origem, destino: state.destino, viatura: state.viatura, urgencia: state.urgencia, observacoes: state.observacoes || undefined, source: _ref || undefined });
       btn.disabled = false; btn.textContent = 'Ver Preço e Falar com Assistente';
     }
 
@@ -655,7 +657,7 @@
       if (g) { g.textContent = 'Olá ' + nome.split(' ')[0] + '! Vamos preparar um orçamento para o seu envio.'; g.style.display = 'block'; }
 
       showStep(2);
-      await ybChatW.start({ nome: state.nome, email: state.email, telemovel: state.telefone, origem: origem, destino: destino, viatura: state.viatura, urgencia: 'Internacional', observacoes: state.observacoes || undefined });
+      await ybChatW.start({ nome: state.nome, email: state.email, telemovel: state.telefone, origem: origem, destino: destino, viatura: state.viatura, urgencia: 'Internacional', observacoes: state.observacoes || undefined, source: _ref || undefined });
       btn.disabled = false;
       btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px;flex-shrink:0"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg> Internacional / Ilhas';
     }
@@ -805,7 +807,7 @@
           try {
             var res = await fetch(API_BASE + '/api/conversations/start', {
               method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ origem: formData.origem, destino: formData.destino, viatura: formData.viatura, urgencia: formData.urgencia, telemovel: formData.telemovel, nome: formData.nome || undefined, email: formData.email || undefined, observacoes: formData.observacoes || undefined }),
+              body: JSON.stringify({ origem: formData.origem, destino: formData.destino, viatura: formData.viatura, urgencia: formData.urgencia, telemovel: formData.telemovel, nome: formData.nome || undefined, email: formData.email || undefined, observacoes: formData.observacoes || undefined, source: formData.source || undefined }),
             });
             var data = await res.json(); removeTyping();
             if (!data.success) { addBubble('bot', 'Erro ao ligar ao assistente: ' + (data.error || 'resposta inválida')); setDisabled(false); return; }

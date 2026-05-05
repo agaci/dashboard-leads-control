@@ -13,7 +13,7 @@ import type { PartnerTariff } from '@/types/partner';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { origem, destino, viatura, urgencia, sessionId, nome, email, telemovel: phoneFromForm } = body as {
+    const { origem, destino, viatura, urgencia, sessionId, nome, email, telemovel: phoneFromForm, source } = body as {
       origem: string;
       destino: string;
       viatura: string;
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       nome?: string;
       email?: string;
       telemovel?: string;
+      source?: string;
     };
 
     // web-b passa telemovel real; web-a passa sessionId (identificador aleatório)
@@ -43,8 +44,9 @@ export async function POST(request: NextRequest) {
       urgencia,
       serviceType,
       objectionCount: 0,
-      ...(nome  ? { nome: nome.trim()  } : {}),
-      ...(email ? { email: email.trim() } : {}),
+      ...(nome   ? { nome:   nome.trim()   } : {}),
+      ...(email  ? { email:  email.trim()  } : {}),
+      ...(source ? { source: source.trim() } : {}),
     };
 
     let firstBotMessage: string;

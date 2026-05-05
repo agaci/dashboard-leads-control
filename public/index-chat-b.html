@@ -285,6 +285,69 @@
     }
     .yb-or::before { left: 0; }
     .yb-or::after { right: 0; }
+
+    /* ── Focus pulse — todos os inputs ── */
+    @keyframes ybFocusPulse {
+      0%   { box-shadow: 0 0 0 0   rgba(190,214,47,.65); }
+      65%  { box-shadow: 0 0 0 10px rgba(190,214,47,.0);  }
+      100% { box-shadow: 0 0 0 0   rgba(190,214,47,.0);  }
+    }
+    .yb-field input:focus,
+    .yb-field textarea:focus,
+    .form-input:focus,
+    #ybChatInput:focus {
+      animation: ybFocusPulse 0.55s ease-out;
+    }
+
+    /* ── Animação: shimmer no CTA principal ── */
+    .btn-primary { position: relative; overflow: hidden; }
+    .btn-primary::after {
+      content: '';
+      position: absolute;
+      top: 0; left: -120%;
+      width: 60%; height: 100%;
+      background: linear-gradient(105deg, transparent 25%, rgba(255,255,255,0.38) 50%, transparent 75%);
+      animation: ybShine 4.5s ease-in-out infinite;
+    }
+    @keyframes ybShine {
+      0%, 25%  { left: -120%; }
+      65%, 100% { left: 160%; }
+    }
+
+    /* ── Animação: ring pulsante no botão de telefone ── */
+    .btn-phone { animation: ybPhoneRing 3s ease-in-out infinite; }
+    @keyframes ybPhoneRing {
+      0%   { box-shadow: 0 0 0 0   rgba(190,214,47,.7); }
+      60%  { box-shadow: 0 0 0 11px rgba(190,214,47,.0); }
+      100% { box-shadow: 0 0 0 0   rgba(190,214,47,.0); }
+    }
+
+    /* ── Mobile header compacto ── */
+    @media (max-width: 768px) {
+      .header { box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+      .header-content {
+        padding: 0.35rem 0.9rem !important;
+        min-height: 0 !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        flex-wrap: nowrap !important;
+      }
+      .header-content a img { height: 2rem !important; }
+      .btn-platform { display: none !important; }
+      .header-actions {
+        flex-direction: row !important;
+        align-items: center !important;
+        gap: 0 !important;
+        flex-shrink: 0 !important;
+      }
+      .btn-phone {
+        font-size: 0.78rem !important;
+        padding: 0.35rem 0.75rem !important;
+        white-space: nowrap !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -299,7 +362,7 @@
         <img src="assets/images/logotipo2021-fina-pr-upload-317x95.webp" alt="YOURBOX-ESTAFETAS" style="height: 4.4rem;">
       </a>
       <div class="header-actions">
-        <a href="area_de_clientes.html" class="btn-platform">Area de Clientes</a>
+        <a href="area_de_clientes.html" class="btn-platform">Área de Clientes</a>
         <a href="tel:+351214304546" class="btn-phone">&#9990; 214 304 546</a>
       </div>
     </div>
@@ -313,22 +376,22 @@
 
     <div class="hero-container">
       <div class="hero-content">
-        <div class="hero-badge">DISPONIVEL 24/7</div>
+        <div class="hero-badge">DISPONÍVEL 24/7</div>
         <h1 class="hero-title">
           Entrega<br>
-          <span class="highlight">Ultra-Rapida</span> em<br>
+          <span class="highlight">Ultra-Rápida</span> em<br>
           Todo Portugal
         </h1>
         <p class="hero-subtitle">
-          Entregas urgentes em 1 hora ou 4 horas. Rastreamento em tempo real. Sem complicacoes.
+          Entregas urgentes em 1 hora ou 4 horas. Rastreamento em tempo real. Sem complicações.
         </p>
         <div class="hero-buttons">
-          <button class="btn-primary" onclick="ybFormB.focusNome()">Calcular Preco</button>
+          <button class="btn-primary" onclick="ybFormB.focusNome()">Calcular Preço</button>
           <a href="https://wa.me/351961220881?text=Ol%C3%A1!%20Quero%20um%20or%C3%A7amento%20de%20transporte." class="btn-secondary">WhatsApp</a>
         </div>
         <div class="hero-stats">
-          <div class="stat"><div class="stat-number">10000+</div><div class="stat-label">Entregas/Mes</div></div>
-          <div class="stat"><div class="stat-number">4.9&#9733;</div><div class="stat-label">Avaliacao Media</div></div>
+          <div class="stat"><div class="stat-number">10000+</div><div class="stat-label">Entregas/Mês</div></div>
+          <div class="stat"><div class="stat-number">4.9&#9733;</div><div class="stat-label">Avaliação Média</div></div>
           <div class="stat"><div class="stat-number">24/7</div><div class="stat-label">Disponibilidade</div></div>
         </div>
       </div>
@@ -336,7 +399,7 @@
       <!-- FORMULÁRIO PROGRESSIVO -->
       <div class="pricing-form" id="form">
         <h2 class="form-title" id="formTitle">Calcule Agora</h2>
-        <p class="form-subtitle" id="formSubtitle">Preco instantaneo e sem compromisso</p>
+        <p class="form-subtitle" id="formSubtitle">Preço instantâneo e sem compromisso</p>
 
         <!-- Barra de progresso -->
         <div class="yb-progress">
@@ -536,7 +599,7 @@
   <!-- Services Section -->
   <section class="services" id="servicos">
     <div class="container">
-      <div class="section-tag">NOSSOS SERVICOS</div>
+      <div class="section-tag">NOSSOS SERVIÇOS</div>
       <h2 class="section-title">Escolha a Velocidade</h2>
       <div class="services-grid">
         <div class="service-card">
@@ -545,7 +608,7 @@
           <div class="service-price"><span class="price-prefix">desde</span> &euro;6</div>
           <ul class="service-features">
             <li>&#10003; Recolha imediata</li>
-            <li>&#10003; Servico personalizado</li>
+            <li>&#10003; Serviço personalizado</li>
             <li>&#10003; GPS tracking</li>
             <li>&#10003; Mesmo estafeta</li>
           </ul>
@@ -557,9 +620,9 @@
           <div class="service-price"><span class="price-prefix">desde</span> &euro;10</div>
           <ul class="service-features">
             <li>&#10003; Janela 4 horas</li>
-            <li>&#10003; Ate 150kg</li>
-            <li>&#10003; Furgao dedicado</li>
-            <li>&#10003; Seguro incluido</li>
+            <li>&#10003; Até 150 kg</li>
+            <li>&#10003; Furgão dedicado</li>
+            <li>&#10003; Seguro incluído</li>
           </ul>
           <button class="btn-calculate" onclick="ybFormB.focusComUrgencia('urg4','furgao1')">PEDIR AGORA</button>
         </div>
@@ -568,10 +631,10 @@
           <h3 class="service-title">24H Nacional</h3>
           <div class="service-price"><span class="price-prefix">desde</span> &euro;3.50</div>
           <ul class="service-features">
-            <li>&#10003; Todo o pais</li>
+            <li>&#10003; Todo o país</li>
             <li>&#10003; Entrega no dia seguinte</li>
-            <li>&#10003; Ate 300kg</li>
-            <li>&#10003; Confirmacao digital</li>
+            <li>&#10003; Até 300 kg</li>
+            <li>&#10003; Confirmação digital</li>
           </ul>
           <button class="btn-calculate" onclick="ybFormB.focusComUrgencia('urg24')">PEDIR PROPOSTA</button>
         </div>
@@ -585,7 +648,7 @@
       <div>
         <div class="logo" style="margin-bottom: 1.5rem; color: white;">Your<span>box</span></div>
         <p style="color: #999; margin-bottom: 1.5rem; line-height: 1.6;">
-          Solucoes de transporte urgente em Portugal Continental e Ilhas.
+          Soluções de transporte urgente em Portugal Continental e Ilhas.
         </p>
       </div>
       <div>
@@ -656,9 +719,15 @@
       document.querySelectorAll('input[name="viatura"]').forEach(function (r) {
         r.addEventListener('change', function () { scrollToNext(uGroup); });
       });
-      // Urgência → Nome (campo de contacto)
+      // Urgência → Nome (campo de contacto): scroll + focus
       document.querySelectorAll('input[name="urgencia"]').forEach(function (r) {
-        r.addEventListener('change', function () { scrollToNext(nomeField); });
+        r.addEventListener('change', function () {
+          scrollToNext(nomeField);
+          setTimeout(function () {
+            var nomeInput = document.getElementById('ybNome');
+            if (nomeInput) nomeInput.focus();
+          }, 380);
+        });
       });
 
       // Formatar telefone ao digitar
@@ -809,7 +878,7 @@
       });
 
       btn.disabled = false;
-      btn.textContent = 'Ver Preco e Falar com Assistente';
+      btn.textContent = 'Ver Preço e Falar com Assistente';
     }
 
     function back() {

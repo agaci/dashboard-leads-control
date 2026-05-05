@@ -125,8 +125,9 @@
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
     if (step === 'ESCALATED_TO_HUMAN') {
-      setInputDisabled(false);
-      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">Um agente vai entrar em contacto. Pode deixar uma mensagem adicional aqui.</p>';
+      setInputDisabled(true);
+      stopPolling();
+      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A nossa equipa entrará em contacto consigo o mais brevemente possível.</p>';
       return;
     }
     setInputDisabled(true);

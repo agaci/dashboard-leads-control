@@ -433,6 +433,16 @@ export default function DashboardPage() {
                           type={lead.leadData.urgencia === '1 Hora' ? 'urgente' : 'auto'}
                         />
                       )}
+                      {lead.leadData.source && lead.leadData.source !== 'bot' && (
+                        <span style={{
+                          fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
+                          background: '#ede7f6', color: '#6a1b9a', letterSpacing: '0.02em',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                          maxWidth: 90, flexShrink: 0,
+                        }} title={lead.leadData.source}>
+                          {lead.leadData.source}
+                        </span>
+                      )}
                       {lead.clientId && (
                         <span style={{
                           fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
@@ -1289,6 +1299,11 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
               const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['#f0f0f0', '#555'];
               return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: bg, color: fg }}>{VARIANTE_LABELS[lead.variante] ?? lead.variante}</span>;
             })()}
+            {lead.leadData.source && lead.leadData.source !== 'bot' && (
+              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: '#ede7f6', color: '#6a1b9a' }}>
+                {lead.leadData.source}
+              </span>
+            )}
           </div>
           <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 2px' }}>{nome}</h2>
           <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>{fmt(lead.timeStamp)}</p>

@@ -25,8 +25,10 @@
   var base  = (s.getAttribute('data-ybw-base')  || 'https://leads.comgo.pt').replace(/\/$/, '');
   var width = s.getAttribute('data-ybw-width') || '100%';
 
+  var ref = window.location.hostname;
+
   var iframe = document.createElement('iframe');
-  iframe.src = base + '/widget.html?clientId=' + encodeURIComponent(clientId);
+  iframe.src = base + '/widget.html?clientId=' + encodeURIComponent(clientId) + '&ref=' + encodeURIComponent(ref);
   iframe.id  = 'ybw-' + clientId;
   iframe.setAttribute('scrolling', 'no');
   iframe.setAttribute('allowtransparency', 'true');
