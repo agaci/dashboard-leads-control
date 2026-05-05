@@ -7,7 +7,7 @@ import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager
 export type NavTab =
   | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
-  | 'routing' | 'config';
+  | 'routing' | 'widgets' | 'config';
 
 interface NavSidebarProps {
   activeTab: NavTab;
@@ -109,6 +109,17 @@ function IcoPerfil() {
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
+    </svg>
+  );
+}
+
+function IcoWidgets() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="7" height="7"/>
+      <rect x="14" y="3" width="7" height="7"/>
+      <rect x="14" y="14" width="7" height="7"/>
+      <rect x="3" y="14" width="7" height="7"/>
     </svg>
   );
 }
@@ -439,6 +450,7 @@ export default function NavSidebar({
       { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
       { id: 'baseIA',     label: 'Base IA',    icon: <IcoBaseIA /> },
       { id: 'relatorios', label: 'Relatórios', icon: <IcoRelatorios /> },
+      { id: 'widgets',    label: 'Widgets',    icon: <IcoWidgets /> },
       { id: 'config',     label: 'Perfil',     icon: <IcoPerfil /> },
     ];
 
@@ -550,6 +562,7 @@ export default function NavSidebar({
       <Divider />
 
       <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
+      <NavItem id="widgets"    label="Widgets"    icon={<IcoWidgets />}    active={activeTab === 'widgets'}    onClick={() => onTabChange('widgets')} />
 
       <div style={{ flex: 1 }} />
 

@@ -9,6 +9,7 @@ import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
 import ClientesPage from './clientes/page';
+import WidgetsPage from './widgets/page';
 import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
@@ -554,6 +555,12 @@ export default function DashboardPage() {
           <div style={{ maxWidth: 600 }}>
             <RoutingPanel />
           </div>
+        </div>
+      )}
+
+      {tab === 'widgets' && (
+        <div style={{ flex: 1, overflowY: 'auto', height: '100%' }}>
+          <WidgetsPage />
         </div>
       )}
 
