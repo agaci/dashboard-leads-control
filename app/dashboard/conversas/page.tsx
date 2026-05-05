@@ -243,69 +243,87 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   }
 
   return (
-    <div className="flex h-full neu-bg">
+    <div className="flex h-full bg-background">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div style={{ width: isMobile ? '100%' : 400, flexShrink: 0, background: '#fff', borderRight: isMobile ? 'none' : `1px solid ${BORDER}`, display: isMobile && selected ? 'none' : 'flex', flexDirection: 'column' }}>
+      <div className={`${isMobile ? 'w-full' : 'w-[360px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
         {/* Header */}
-        <div style={{ background: '#fff', padding: '12px 12px 0', borderBottom: `1px solid ${BORDER}` }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <span style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>Inbox</span>
-            <button onClick={fetchList} style={{ fontSize: 14, color: '#aaa', border: 'none', background: 'none', cursor: 'pointer', padding: '2px 6px' }} title="Actualizar">↻</button>
-          </div>
-          {/* Pesquisa */}
-          <input
-            type="text"
-            placeholder="Nome, telefone, rota..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%', height: 32, padding: '0 10px', background: YB_BG, border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: 12, outline: 'none', boxSizing: 'border-box', color: NAVY }}
-          />
-          {/* Filtros de estado */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0 4px' }}>
-            {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
-              const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
-              const count = counts[f];
-              const active = filter === f;
-              const isEscalated = f === 'escalated';
-              return (
-                <button
-                  key={f}
-                  onClick={() => setFilter(f)}
-                  style={{ padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: `1px solid ${active ? CYAN : BORDER}`, background: active ? CYAN : '#fff', color: active ? '#fff' : '#666' }}
-                >
-                  {label}
-                  {count > 0 && (
-                    <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'white', fontWeight: 700, fontSize: 9, minWidth: 16, height: 16, padding: '0 4px', background: isEscalated ? '#ef4444' : '#f97316' }}>
-                      {count > 99 ? '99+' : count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-          {/* Filtros de data */}
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0 10px' }}>
-            {(['all', 'hoje', 'semana'] as const).map((df) => {
-              const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
-              const active = dateFilter === df;
-              return (
-                <button
-                  key={df}
-                  onClick={() => setDateFilter(df)}
-                  style={{ padding: '3px 9px', borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: 'pointer', transition: 'all 0.15s', border: `1px solid ${active ? '#7c3aed' : BORDER}`, background: active ? '#7c3aed' : '#fff', color: active ? '#fff' : '#999' }}
-                >
-                  {label}
-                </button>
-              );
-            })}
+        <div className="flex items-center justify-between px-5 pt-5 pb-3">
+          <h1 className="text-xl font-bold tracking-tight text-foreground">Inbox</h1>
+          <button onClick={fetchList} className="text-muted-foreground hover:text-foreground" title="Actualizar">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Pesquisa */}
+        <div className="px-5 pb-3">
+          <div className="relative">
+            <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+            <input
+              type="text"
+              placeholder="Nome, telefone, rota..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-10 w-full rounded-lg border border-border bg-secondary/60 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:bg-background"
+            />
           </div>
         </div>
 
+        {/* Filtros de estado */}
+        <div className="flex flex-wrap gap-1.5 px-5 pb-2">
+          {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
+            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
+            const count = counts[f];
+            const active = filter === f;
+            const isEscalated = f === 'escalated';
+            return (
+              <button
+                key={f}
+                onClick={() => setFilter(f)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                  active ? 'bg-cyan text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                }`}
+              >
+                {label}
+                {count > 0 && (
+                  <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                    active ? 'bg-white/25 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
+                  }`}>
+                    {count > 99 ? '99+' : count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Filtros de data */}
+        <div className="flex flex-wrap gap-1.5 px-5 pb-4">
+          {(['all', 'hoje', 'semana'] as const).map((df) => {
+            const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
+            const active = dateFilter === df;
+            return (
+              <button
+                key={df}
+                onClick={() => setDateFilter(df)}
+                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                  active ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {/* Lista */}
-        <div className="flex-1 overflow-y-auto">
-          {loading && <p className="p-4 text-sm text-[--neu-muted]">A carregar...</p>}
+        <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
+          {loading && <p className="py-8 text-center text-sm text-muted-foreground">A carregar...</p>}
           {!loading && conversations.length === 0 && (
-            <p className="p-6 text-center text-sm text-[--neu-muted]">Sem conversas</p>
+            <p className="py-10 text-center text-sm text-muted-foreground">Sem conversas</p>
           )}
           {(() => {
             const q = search.trim().toLowerCase();
@@ -319,92 +337,88 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 })
               : conversations;
             if (!loading && q && visible.length === 0)
-              return <p className="p-6 text-center text-sm text-[--neu-muted]">Sem resultados para &ldquo;{search}&rdquo;</p>;
+              return <p className="py-10 text-center text-sm text-muted-foreground">Sem resultados para &ldquo;{search}&rdquo;</p>;
             return visible.map((conv) => {
-            const lastMsg = conv.history?.[0];
-            const isSelected = selected?._id === conv._id;
-            return (
-              <button
-                key={conv._id}
-                onClick={() => openConv(conv._id)}
-                className={`w-full text-left px-4 py-3 transition-all ${
-                  isSelected ? 'neu-pressed border-l-3 border-l-orange-500' : 'hover:neu-raised-sm'
-                }`}
-                style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}
-              >
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-sm font-semibold" style={{ color: 'var(--neu-fg)' }}>
-                    {conv.data?.nome ?? refCode(conv._id)}
-                  </span>
-                  <span className="text-xs text-[--neu-muted]">{formatTime(conv.updatedAt)}</span>
-                </div>
-                <div className="flex items-center gap-1.5 mb-1">
-                  <span className={`text-xs px-1.5 py-0.5 rounded-full font-medium ${stepColor(conv.step)}`}>
-                    {STEP_LABEL[conv.step]}
-                  </span>
-                  <span className="text-xs text-[--neu-muted]">{conv.canal}</span>
-                </div>
-                {lastMsg && (
-                  <p className="text-xs text-gray-500 truncate">
-                    <span className={`inline-block w-3 h-3 rounded-full mr-1 ${lastMsg.role === 'lead' ? 'bg-gray-400' : lastMsg.role === 'bo' ? 'bg-blue-400' : 'bg-orange-400'}`} />
-                    {lastMsg.text.replace(/\*/g, '').replace(/\n/g, ' ').slice(0, 55)}
-                  </p>
-                )}
-                {conv.data?.origem && (
-                  <p className="text-xs text-gray-400 mt-0.5 truncate">
-                    {conv.data.origem} → {conv.data.destino ?? '...'}
-                  </p>
-                )}
-                {conv.aggHints && conv.aggHints.length > 0 && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <span style={{
-                      fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 4,
-                      background: conv.aggHintsSeen ? '#f5f5f5' : '#fff8e1',
-                      color: conv.aggHintsSeen ? '#aaa' : '#e65100',
-                      border: `1px solid ${conv.aggHintsSeen ? '#e0e0e0' : '#ffe082'}`,
-                    }}>
-                      ◈ {conv.aggHints.length} agreg.
+              const lastMsg = conv.history?.[0];
+              const isSelected = selected?._id === conv._id;
+              return (
+                <button
+                  key={conv._id}
+                  onClick={() => openConv(conv._id)}
+                  className={`w-full rounded-xl p-4 text-left transition-all shadow-card ${
+                    isSelected
+                      ? 'bg-cyan-soft border-l-[3px] border-cyan'
+                      : 'bg-card hover:shadow-elevated border-l-[3px] border-transparent'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-[15px] font-semibold text-foreground truncate">
+                      {conv.data?.nome ?? refCode(conv._id)}
                     </span>
+                    <span className="text-xs text-muted-foreground shrink-0">{formatTime(conv.updatedAt)}</span>
                   </div>
-                )}
-              </button>
-            );
-          });})()}
+                  <div className="flex items-center gap-1.5 mb-1.5">
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${stepColor(conv.step)}`}>
+                      {STEP_LABEL[conv.step]}
+                    </span>
+                    <span className="text-[11px] text-muted-foreground">{conv.canal}</span>
+                  </div>
+                  {lastMsg && (
+                    <p className="text-xs text-muted-foreground truncate">
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle ${lastMsg.role === 'lead' ? 'bg-secondary-foreground/40' : lastMsg.role === 'bo' ? 'bg-cyan' : 'bg-orange'}`} />
+                      {lastMsg.text.replace(/\*/g, '').replace(/\n/g, ' ').slice(0, 55)}
+                    </p>
+                  )}
+                  {conv.data?.origem && (
+                    <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
+                      {conv.data.origem.split(',')[0]} → {(conv.data.destino ?? '...').split(',')[0]}
+                    </p>
+                  )}
+                  {conv.aggHints && conv.aggHints.length > 0 && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold border ${conv.aggHintsSeen ? 'bg-secondary text-muted-foreground border-border' : 'bg-warning-soft text-warning border-warning/30'}`}>
+                        ◈ {conv.aggHints.length} agreg.
+                      </span>
+                    </div>
+                  )}
+                </button>
+              );
+            });
+          })()}
         </div>
       </div>
 
       {/* ── Painel de chat ──────────────────────────────────── */}
       {(!isMobile || selected) && (
-      <div className="flex-1 flex flex-col neu-bg overflow-hidden" style={{ display: isMobile && !selected ? 'none' : 'flex' }}>
+      <div className="flex-1 flex flex-col bg-background overflow-hidden" style={{ display: isMobile && !selected ? 'none' : 'flex' }}>
         {!selected ? (
-          <div className="flex-1 flex items-center justify-center text-[--neu-muted] text-sm">
+          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
             Seleccione uma conversa
           </div>
         ) : (
           <>
             {/* Header da conversa */}
-            <div className="neu-bg px-4 py-3 flex-shrink-0" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
-              {/* Linha 1: voltar + nome/ref + badge + (botões e meta em desktop) */}
+            <div className="bg-card px-5 py-3 flex-shrink-0 border-b border-border">
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-start gap-2 min-w-0">
                   {isMobile && (
-                    <button onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#888', padding: '2px 4px 0 0', lineHeight: 1, flexShrink: 0 }}>
+                    <button onClick={() => setSelected(null)} className="text-muted-foreground text-lg leading-none pt-0.5 pr-1 shrink-0 bg-transparent border-none cursor-pointer">
                       ←
                     </button>
                   )}
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 flex-wrap">
-                      <span className="font-semibold" style={{ color: 'var(--neu-fg)' }}>
+                      <span className="font-semibold text-foreground">
                         {selected.data?.nome ?? refCode(selected._id)}
                       </span>
                       {selected.data?.nome && (
-                        <span className="text-xs text-[--neu-muted] font-mono">{refCode(selected._id)}</span>
+                        <span className="text-xs text-muted-foreground font-mono">{refCode(selected._id)}</span>
                       )}
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stepColor(selected.step)}`}>
                         {STEP_LABEL[selected.step]}
                       </span>
                     </div>
-                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-[--neu-muted] mt-0.5">
+                    <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
                       {selected.data?.origem && (
                         <span className="truncate max-w-[200px] md:max-w-none">
                           {selected.data.origem.split(',')[0]} → {(selected.data.destino ?? '').split(',')[0]}
@@ -413,43 +427,41 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       {selected.data?.urgencia && <span>{selected.data.urgencia}</span>}
                       {selected.data?.weightKg && <span>{selected.data.weightKg} kg</span>}
                       {(selected.data?.priceWithDiscount ?? selected.data?.partnerFinalPrice) && (
-                        <span className="text-green-600 font-medium">
+                        <span className="text-success font-semibold">
                           €{(selected.data.priceWithDiscount ?? selected.data.partnerFinalPrice).toFixed(2)}
                         </span>
                       )}
                     </div>
                   </div>
                 </div>
-                {/* Botões + meta — em desktop ficam aqui; em mobile passam para linha 2 */}
-                <div className="hidden md:flex items-center gap-2 flex-shrink-0">
+                <div className="hidden md:flex items-center gap-2 shrink-0">
                   {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                     <>
-                      <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
+                      <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors">
                         ✓ Resolvida
                       </button>
-                      <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
+                      <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-secondary text-muted-foreground hover:bg-muted transition-colors">
                         ✕ Fechar
                       </button>
                     </>
                   )}
-                  <span className="text-xs text-[--neu-muted]">
+                  <span className="text-xs text-muted-foreground">
                     {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
                   </span>
                 </div>
               </div>
-              {/* Linha 2 (só mobile): botões de acção + meta */}
               <div className="flex md:hidden items-center gap-2 mt-2">
                 {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                   <>
-                    <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-green-100 text-green-700 hover:bg-green-200 transition-all">
+                    <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors">
                       ✓ Resolvida
                     </button>
-                    <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-all">
+                    <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-secondary text-muted-foreground hover:bg-muted transition-colors">
                       ✕ Fechar
                     </button>
                   </>
                 )}
-                <span className="text-xs text-[--neu-muted] ml-auto">
+                <span className="text-xs text-muted-foreground ml-auto">
                   {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
                 </span>
               </div>
@@ -457,24 +469,20 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
             {/* Picker de motivo inline */}
             {pendingStep && (
-              <div style={{
-                background: pendingStep === 'LEAD_REGISTERED' ? '#f0fdf4' : '#f9fafb',
-                borderBottom: `1px solid ${pendingStep === 'LEAD_REGISTERED' ? '#bbf7d0' : '#e5e7eb'}`,
-                padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', flexShrink: 0,
-              }}>
-                <span style={{ fontSize: 11, fontWeight: 600, color: '#555', whiteSpace: 'nowrap' }}>Motivo:</span>
+              <div className={`flex items-center gap-2 flex-wrap px-5 py-2 shrink-0 border-b ${pendingStep === 'LEAD_REGISTERED' ? 'bg-success-soft border-success/20' : 'bg-secondary border-border'}`}>
+                <span className="text-xs font-semibold text-muted-foreground whitespace-nowrap">Motivo:</span>
                 {CLOSE_REASONS[pendingStep].map(reason => (
                   <button key={reason} onClick={() => confirmClose(pendingStep, reason)}
-                    style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', background: '#fff', color: '#374151', cursor: 'pointer' }}>
+                    className="text-xs px-2.5 py-1 rounded-lg border border-border bg-card text-foreground hover:bg-muted cursor-pointer transition-colors">
                     {reason}
                   </button>
                 ))}
                 <button onClick={() => confirmClose(pendingStep)}
-                  style={{ fontSize: 11, padding: '3px 10px', borderRadius: 6, border: '1px solid transparent', background: 'transparent', color: '#9ca3af', cursor: 'pointer', marginLeft: 4 }}>
+                  className="text-xs px-2.5 py-1 text-muted-foreground cursor-pointer bg-transparent border-none hover:text-foreground">
                   Sem motivo →
                 </button>
                 <button onClick={() => setPendingStep(null)}
-                  style={{ fontSize: 14, background: 'none', border: 'none', color: '#9ca3af', cursor: 'pointer', marginLeft: 'auto', lineHeight: 1 }}>
+                  className="ml-auto text-muted-foreground bg-transparent border-none cursor-pointer text-base leading-none hover:text-foreground">
                   ✕
                 </button>
               </div>
@@ -482,30 +490,21 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
             {/* Banner de agregação */}
             {selected.aggHints && selected.aggHints.length > 0 && (
-              <div style={{
-                background: '#fffde7', borderBottom: '1.5px solid #ffe082',
-                padding: '8px 20px', display: 'flex', alignItems: 'center', gap: 12,
-                flexShrink: 0,
-              }}>
-                <span style={{ fontSize: 9, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', background: '#ffc107', color: '#1a2332', padding: '2px 6px', borderRadius: 4 }}>AGREGAÇÃO</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#e65100' }}>
+              <div className="flex items-center gap-3 flex-wrap px-5 py-2 shrink-0 bg-warning-soft border-b border-warning/30">
+                <span className="text-[9px] font-extrabold tracking-[0.1em] uppercase bg-warning text-foreground px-1.5 py-0.5 rounded shrink-0">AGREGAÇÃO</span>
+                <span className="text-xs font-bold text-warning">
                   {selected.aggHints.length} hipótese{selected.aggHints.length > 1 ? 's' : ''} · melhor {selected.aggHints[0].score}%
                 </span>
-                <span style={{ fontSize: 11, color: '#888' }}>
+                <span className="text-xs text-muted-foreground">
                   {selected.aggHints[0].pickup?.split(',')[0]} → {selected.aggHints[0].delivery?.split(',')[0]}
                   {selected.aggHints[0].driver && (
-                    <span style={{ marginLeft: 8, color: '#555', fontWeight: 600 }}>· {selected.aggHints[0].driver.name}</span>
+                    <span className="ml-2 font-semibold text-foreground">· {selected.aggHints[0].driver.name}</span>
                   )}
                 </span>
                 {onGoToAgg && (
                   <button
                     onClick={() => onGoToAgg(selected._id)}
-                    style={{
-                      marginLeft: 'auto', padding: '4px 12px', borderRadius: 6,
-                      background: '#ffc107', color: '#1a2332',
-                      border: 'none', fontSize: 11, fontWeight: 800, cursor: 'pointer',
-                      whiteSpace: 'nowrap',
-                    }}
+                    className="ml-auto px-3 py-1 rounded-lg bg-warning text-foreground text-xs font-bold cursor-pointer border-none whitespace-nowrap hover:bg-warning/80 transition-colors"
                   >
                     Ver agregações →
                   </button>
@@ -523,11 +522,11 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
             {/* Campo de resposta */}
             {canReply ? (
-              <div className="neu-bg px-4 pt-2 pb-3 flex-shrink-0" style={{ borderTop: '1px solid hsl(240 10% 88%)' }}>
+              <div className="bg-card px-4 pt-2 pb-3 shrink-0 border-t border-border">
                 {selected.canal === 'whatsapp' && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                  <div className="flex items-center gap-1 mb-1.5">
                     <svg viewBox="0 0 24 24" width={13} height={13} fill="#25d366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.123.554 4.117 1.528 5.845L.057 23.571a.75.75 0 00.919.919l5.726-1.471A11.943 11.943 0 0012 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 21.75a9.714 9.714 0 01-4.962-1.362l-.355-.212-3.683.945.963-3.585-.232-.369A9.714 9.714 0 012.25 12C2.25 6.615 6.615 2.25 12 2.25S21.75 6.615 21.75 12 17.385 21.75 12 21.75z"/></svg>
-                    <span style={{ fontSize: 10, color: '#25d366', fontWeight: 600 }}>Enviará via WhatsApp</span>
+                    <span className="text-[10px] font-semibold" style={{ color: '#25d366' }}>Enviará via WhatsApp</span>
                   </div>
                 )}
                 <div className="flex gap-2">
@@ -537,19 +536,19 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                     onChange={(e) => setReply(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && sendReply()}
                     placeholder={selected.canal === 'whatsapp' ? 'Responder via WhatsApp (Enter para enviar)...' : 'Responder manualmente (Enter para enviar)...'}
-                    className="flex-1 neu-input rounded-xl px-4 py-2 text-sm"
+                    className="flex-1 h-10 rounded-lg border border-border bg-background px-4 text-sm outline-none placeholder:text-muted-foreground focus:border-ring"
                   />
                   <button
                     onClick={sendReply}
                     disabled={sending || !reply.trim()}
-                    className="px-4 py-2 neu-btn-primary text-sm rounded-xl disabled:opacity-40"
+                    className="px-4 py-2 bg-cyan text-white text-sm font-semibold rounded-lg disabled:opacity-40 hover:bg-cyan/90 transition-colors cursor-pointer"
                   >
                     {sending ? '...' : 'Enviar'}
                   </button>
                 </div>
               </div>
             ) : (
-              <div className="neu-bg px-4 py-2 text-xs text-center text-[--neu-muted] flex-shrink-0" style={{ borderTop: '1px solid hsl(240 10% 88%)' }}>
+              <div className="bg-card px-4 py-2.5 text-xs text-center text-muted-foreground shrink-0 border-t border-border">
                 {selected.step === 'LEAD_REGISTERED' ? 'Lead registada — conversa concluída' : 'Conversa fechada'}
               </div>
             )}
@@ -565,7 +564,6 @@ function ChatBubble({ msg, timeStr }: { msg: Message; timeStr: string }) {
   const isLead = msg.role === 'lead';
   const isBO = msg.role === 'bo';
 
-  // Converter markdown simples para display
   const formatted = msg.text
     .replace(/\*([^*]+)\*/g, '<strong>$1</strong>')
     .replace(/~~([^~]+)~~/g, '<del>$1</del>')
@@ -574,18 +572,17 @@ function ChatBubble({ msg, timeStr }: { msg: Message; timeStr: string }) {
   if (isLead) {
     return (
       <div className="flex items-end gap-2">
-        <div className="w-7 h-7 rounded-full bg-gray-200 flex items-center justify-center flex-shrink-0">
-          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+        <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
+          <svg className="w-4 h-4 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
           </svg>
         </div>
         <div className="max-w-[70%]">
           <div
-            className="neu-raised rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm"
-            style={{ color: 'var(--neu-fg)' }}
+            className="bg-card shadow-card rounded-2xl rounded-bl-sm px-4 py-2.5 text-sm text-foreground"
             dangerouslySetInnerHTML={{ __html: formatted }}
           />
-          <p className="text-xs text-[--neu-muted] mt-1 ml-1">{timeStr}</p>
+          <p className="text-xs text-muted-foreground mt-1 ml-1">{timeStr}</p>
         </div>
       </div>
     );
@@ -595,22 +592,20 @@ function ChatBubble({ msg, timeStr }: { msg: Message; timeStr: string }) {
     <div className="flex items-end gap-2 justify-end">
       <div className="max-w-[70%]">
         <div
-          className={`rounded-2xl rounded-br-sm px-4 py-2.5 text-sm shadow-sm ${
-            isBO ? 'bg-blue-500 text-white' : 'bg-orange-500 text-white'
-          }`}
+          className={`rounded-2xl rounded-br-sm px-4 py-2.5 text-sm text-white shadow-card ${isBO ? 'bg-cyan' : 'bg-orange'}`}
           dangerouslySetInnerHTML={{ __html: formatted }}
         />
-        <p className="text-xs text-[--neu-muted] mt-1 mr-1 text-right">
+        <p className="text-xs text-muted-foreground mt-1 mr-1 text-right">
           {isBO ? 'BO' : 'Bot'} · {timeStr}
         </p>
       </div>
-      <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 ${isBO ? 'bg-blue-100' : 'bg-orange-100'}`}>
+      <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isBO ? 'bg-cyan-soft' : 'bg-orange-soft'}`}>
         {isBO ? (
-          <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-cyan" fill="currentColor" viewBox="0 0 24 24">
             <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
           </svg>
         ) : (
-          <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+          <svg className="w-4 h-4 text-orange" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
             <rect x="3" y="8" width="18" height="12" rx="2"/>
             <path d="M8 8V6a4 4 0 018 0v2"/>
             <circle cx="9" cy="14" r="1" fill="currentColor"/>
