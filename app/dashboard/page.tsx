@@ -271,95 +271,85 @@ export default function DashboardPage() {
       {tab === 'leads' && (
         <>
           {/* Lista — hidden on mobile when a lead is selected */}
-          <div style={{
-            width: isMobile ? '100%' : 400,
-            flexShrink: 0,
-            background: '#fff',
-            borderRight: isMobile ? 'none' : `1px solid ${BORDER}`,
-            display: isMobile && selected ? 'none' : 'flex',
-            flexDirection: 'column',
-          }}>
+          <div className={`${isMobile ? 'w-full' : 'w-[360px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
             {/* Header */}
-            <div style={{ background: '#fff', padding: '12px 12px 0', borderBottom: `1px solid ${BORDER}` }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                <span style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>Leads</span>
-                <button
-                  onClick={fetchLeads}
-                  style={{ fontSize: 14, color: '#aaa', border: 'none', background: 'none', cursor: 'pointer', padding: '2px 6px' }}
-                  title="Actualizar"
-                >↻</button>
-              </div>
-              {/* Search */}
-              <input
-                type="text"
-                placeholder="Nome, telefone, rota..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={{
-                  width: '100%', height: 32, padding: '0 10px',
-                  background: YB_BG, border: `1px solid ${BORDER}`,
-                  borderRadius: 6, fontSize: 12, outline: 'none',
-                  boxSizing: 'border-box', color: NAVY,
-                }}
-              />
-              {/* Filters — tipo */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '8px 0 4px' }}>
-                {(['all', 'leads', 'sims', 'urgente'] as const).map((f) => {
-                  const label = f === 'all' ? 'Todas' : f === 'leads' ? 'Bot' : f === 'sims' ? 'Manual' : 'Urgente';
-                  const active = filter === f;
-                  const count = leadCounts[f];
-                  return (
-                    <button
-                      key={f}
-                      onClick={() => setFilter(f as any)}
-                      style={{
-                        padding: '4px 10px', borderRadius: 4, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                        border: `1px solid ${active ? CYAN : BORDER}`,
-                        background: active ? CYAN : '#fff',
-                        color: active ? '#fff' : '#666',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {label}
-                      {count > 0 && (
-                        <span style={{ marginLeft: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', borderRadius: 999, color: 'white', fontWeight: 700, fontSize: 9, minWidth: 16, height: 16, padding: '0 4px', background: f === 'urgente' ? '#ef4444' : '#f97316' }}>
-                          {count > 99 ? '99+' : count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Filters — data */}
-              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', padding: '4px 0 10px' }}>
-                {(['all', 'hoje', 'semana'] as const).map((df) => {
-                  const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
-                  const active = dateFilter === df;
-                  return (
-                    <button
-                      key={df}
-                      onClick={() => setDateFilter(df)}
-                      style={{
-                        padding: '3px 9px', borderRadius: 4, fontSize: 10, fontWeight: 600, cursor: 'pointer',
-                        border: `1px solid ${active ? '#7c3aed' : BORDER}`,
-                        background: active ? '#7c3aed' : '#fff',
-                        color: active ? '#fff' : '#999',
-                        transition: 'all 0.15s',
-                      }}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
+            <div className="flex items-center justify-between px-5 pt-5 pb-3">
+              <h1 className="text-xl font-bold tracking-tight text-foreground">Leads</h1>
+              <button onClick={fetchLeads} className="text-muted-foreground hover:text-foreground" title="Actualizar">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+                </svg>
+              </button>
+            </div>
+
+            {/* Search */}
+            <div className="px-5 pb-3">
+              <div className="relative">
+                <svg className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Nome, telefone, rota..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="h-10 w-full rounded-lg border border-border bg-secondary/60 pl-9 pr-3 text-sm outline-none placeholder:text-muted-foreground focus:border-ring focus:bg-background"
+                />
               </div>
             </div>
 
+            {/* Filters — tipo */}
+            <div className="flex flex-wrap gap-1.5 px-5 pb-2">
+              {(['all', 'leads', 'sims', 'urgente'] as const).map((f) => {
+                const label = f === 'all' ? 'Todas' : f === 'leads' ? 'Bot' : f === 'sims' ? 'Manual' : 'Urgente';
+                const active = filter === f;
+                const count = leadCounts[f];
+                return (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f as any)}
+                    className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                      active ? 'bg-orange text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {label}
+                    {count > 0 && (
+                      <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
+                        active ? 'bg-white/25 text-white' : f === 'urgente' ? 'bg-destructive text-white' : 'bg-orange text-white'
+                      }`}>
+                        {count > 99 ? '99+' : count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Filters — data */}
+            <div className="flex flex-wrap gap-1.5 px-5 pb-4">
+              {(['all', 'hoje', 'semana'] as const).map((df) => {
+                const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
+                const active = dateFilter === df;
+                return (
+                  <button
+                    key={df}
+                    onClick={() => setDateFilter(df)}
+                    className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                      active ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Lead items */}
-            <div style={{ flex: 1, overflowY: 'auto' }}>
-              {loading && <div style={{ padding: '20px 12px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>A carregar...</div>}
-              {error && <div style={{ padding: '12px', fontSize: 12, color: '#e53e3e' }}>{error}</div>}
+            <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-1.5">
+              {loading && <div className="py-8 text-center text-sm text-muted-foreground">A carregar...</div>}
+              {error && <div className="p-3 text-sm text-destructive">{error}</div>}
               {!loading && leads.length === 0 && (
-                <div style={{ padding: '32px 12px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>Sem resultados</div>
+                <div className="py-10 text-center text-sm text-muted-foreground">Sem resultados</div>
               )}
               {(() => {
                 const q = search.trim().toLowerCase();
@@ -373,108 +363,82 @@ export default function DashboardPage() {
                     })
                   : leads;
                 if (!loading && q && visibleLeads.length === 0)
-                  return <div style={{ padding: '32px 12px', textAlign: 'center', fontSize: 12, color: '#aaa' }}>Sem resultados para "{search}"</div>;
+                  return <div className="py-10 text-center text-sm text-muted-foreground">Sem resultados para &ldquo;{search}&rdquo;</div>;
                 return visibleLeads.map((lead) => {
-                const isSelected = selected?.id === lead.id;
-                const isBot = lead.variante === 'BOT';
-                const nome = lead.leadData.nome ?? lead.leadData.telefone ?? 'Sem nome';
-                const rota = lead.leadData.origem
-                  ? `${lead.leadData.origem.split(',')[0]} → ${(lead.leadData.destino ?? '?').split(',')[0]}`
-                  : lead.senderName;
-                const price = lead.leadData.priceWithDiscount ?? lead.leadData.partnerFinalPrice;
-                const unread = !lead.closed && lead.messageType === 'newLead';
+                  const isSelected = selected?.id === lead.id;
+                  const isBot = lead.variante === 'BOT';
+                  const nome = lead.leadData.nome ?? lead.leadData.telefone ?? 'Sem nome';
+                  const rota = lead.leadData.origem
+                    ? `${lead.leadData.origem.split(',')[0]} → ${(lead.leadData.destino ?? '?').split(',')[0]}`
+                    : lead.senderName;
+                  const price = lead.leadData.priceWithDiscount ?? lead.leadData.partnerFinalPrice;
+                  const unread = !lead.closed && lead.messageType === 'newLead';
 
-                return (
-                  <button
-                    key={lead.id}
-                    onClick={() => setSelected(lead)}
-                    style={{
-                      width: '100%', textAlign: 'left',
-                      padding: '10px 12px',
-                      background: isSelected ? '#f0f8ff' : '#fff',
-                      borderLeft: isSelected ? `3px solid ${CYAN}` : '3px solid transparent',
-                      borderBottom: `1px solid #e8eaf0`,
-                      borderTop: 'none', borderRight: 'none',
-                      cursor: 'pointer',
-                    }}
-                    onMouseEnter={(e) => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = '#f0f8ff'; }}
-                    onMouseLeave={(e) => { if (!isSelected) (e.currentTarget as HTMLButtonElement).style.background = '#fff'; }}
-                  >
-                    {/* Row 1: nome + tempo */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 2 }}>
-                      <span style={{
-                        fontSize: 13, fontWeight: 600,
-                        color: isSelected ? '#007a8a' : NAVY,
-                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140,
-                      }}>
-                        {nome}
-                      </span>
-                      <span style={{ fontSize: 11, color: '#aaa', flexShrink: 0 }}>{relTime(lead.timeStamp)}</span>
-                    </div>
-                    {/* Row 2: rota + preço */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                      <span style={{ fontSize: 11, color: '#666', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 140 }}>
-                        {rota}
-                      </span>
-                      {price != null ? (
-                        <span style={{ fontSize: 12, fontWeight: 700, color: CYAN, flexShrink: 0 }}>
-                          {price.toFixed(0)}€
+                  return (
+                    <button
+                      key={lead.id}
+                      onClick={() => setSelected(lead)}
+                      className={`w-full rounded-xl p-4 text-left transition-all shadow-card ${
+                        isSelected
+                          ? 'bg-orange-warm border-l-[3px] border-orange'
+                          : 'bg-card hover:shadow-elevated border-l-[3px] border-transparent'
+                      }`}
+                    >
+                      {/* Row 1: nome + tempo */}
+                      <div className="flex items-start justify-between gap-2 mb-1">
+                        <div className="text-[15px] font-semibold text-foreground truncate">{nome}</div>
+                        <span className="text-xs font-medium text-muted-foreground shrink-0">{relTime(lead.timeStamp)}</span>
+                      </div>
+                      {/* Row 2: rota + preço */}
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="text-[13px] text-muted-foreground truncate">{rota}</div>
+                        {price != null ? (
+                          <div className="text-[15px] font-bold text-orange shrink-0">{price.toFixed(0)}€</div>
+                        ) : (
+                          <span className="text-xs text-muted-foreground shrink-0">—</span>
+                        )}
+                      </div>
+                      {/* Row 3: badges + dot */}
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${isBot ? 'bg-orange-soft text-orange' : 'bg-secondary text-muted-foreground'}`}>
+                          {isBot ? 'Bot' : 'Manual'}
                         </span>
-                      ) : (
-                        <span style={{ fontSize: 11, color: '#aaa', flexShrink: 0 }}>—</span>
-                      )}
-                    </div>
-                    {/* Row 3: badges + dot */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Tag label={isBot ? 'Bot' : 'Manual'} type={isBot ? 'bot' : 'manual'} />
-                      {lead.leadData.urgencia && (
-                        <Tag
-                          label={lead.leadData.urgencia}
-                          type={lead.leadData.urgencia === '1 Hora' ? 'urgente' : 'auto'}
-                        />
-                      )}
-                      {lead.leadData.source && lead.leadData.source !== 'bot' && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 700, padding: '1px 6px', borderRadius: 3,
-                          background: '#ede7f6', color: '#6a1b9a', letterSpacing: '0.02em',
-                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                          maxWidth: 90, flexShrink: 0,
-                        }} title={lead.leadData.source}>
-                          {lead.leadData.source}
-                        </span>
-                      )}
-                      {lead.clientId && (
-                        <span style={{
-                          fontSize: 9, fontWeight: 800, padding: '1px 5px', borderRadius: 3,
-                          background: '#e8f5e9', color: '#2e7d32', letterSpacing: '0.04em',
-                          textTransform: 'uppercase', flexShrink: 0,
-                        }}>
-                          Cliente
-                        </span>
-                      )}
-                      {unread && (
-                        <span style={{
-                          marginLeft: 'auto', width: 8, height: 8, borderRadius: '50%',
-                          background: YELLOW, flexShrink: 0, display: 'inline-block',
-                        }} />
-                      )}
-                    </div>
-                  </button>
-                );
-              });})()}
+                        {lead.leadData.urgencia && (
+                          <span className={`rounded-full px-2.5 py-0.5 text-[10px] font-semibold ${lead.leadData.urgencia === '1 Hora' ? 'bg-destructive/10 text-destructive' : 'bg-success-soft text-success'}`}>
+                            {lead.leadData.urgencia}
+                          </span>
+                        )}
+                        {lead.leadData.source && lead.leadData.source !== 'bot' && (
+                          <span className="rounded-full bg-brand-purple-soft px-2.5 py-0.5 text-[10px] font-semibold text-brand-purple truncate max-w-[90px]" title={lead.leadData.source}>
+                            {lead.leadData.source}
+                          </span>
+                        )}
+                        {lead.clientId && (
+                          <span className="rounded-full bg-success-soft px-2.5 py-0.5 text-[10px] font-semibold text-success uppercase tracking-wide">
+                            Cliente
+                          </span>
+                        )}
+                        {unread && <span className="ml-auto h-2 w-2 rounded-full bg-orange shrink-0 inline-block" />}
+                      </div>
+                    </button>
+                  );
+                });
+              })()}
             </div>
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <div style={{ padding: '8px 12px', borderTop: `1px solid ${BORDER}`, display: 'flex', justifyContent: 'space-between' }}>
+              <div className="flex justify-between items-center px-5 py-3 border-t border-border">
                 <button
-                  onClick={() => setPage((p) => Math.max(0, p - 1))} disabled={page === 0}
-                  style={{ fontSize: 11, color: '#aaa', border: 'none', background: 'none', cursor: page === 0 ? 'default' : 'pointer', opacity: page === 0 ? 0.3 : 1 }}
+                  onClick={() => setPage((p) => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className="text-xs text-muted-foreground disabled:opacity-30"
                 >← Anterior</button>
-                <span style={{ fontSize: 11, color: '#aaa' }}>{page + 1}/{totalPages}</span>
+                <span className="text-xs text-muted-foreground">{page + 1}/{totalPages}</span>
                 <button
-                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
-                  style={{ fontSize: 11, color: '#aaa', border: 'none', background: 'none', cursor: page >= totalPages - 1 ? 'default' : 'pointer', opacity: page >= totalPages - 1 ? 0.3 : 1 }}
+                  onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className="text-xs text-muted-foreground disabled:opacity-30"
                 >Próximo →</button>
               </div>
             )}
@@ -482,22 +446,22 @@ export default function DashboardPage() {
 
           {/* Detail */}
           {(!isMobile || selected) && (
-            <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? 16 : 24, background: YB_BG }}>
+            <div className={`flex-1 overflow-y-auto bg-background ${isMobile ? 'p-4' : 'p-6'}`}>
               {isMobile && selected && (
                 <button
                   onClick={() => setSelected(null)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16, background: 'none', border: 'none', cursor: 'pointer', color: NAVY, fontSize: 13, fontWeight: 600, padding: 0 }}
+                  className="flex items-center gap-1.5 mb-4 bg-transparent border-none text-sm font-semibold text-foreground cursor-pointer p-0"
                 >
                   ← Voltar
                 </button>
               )}
               {!selected ? (
-                <div style={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 8, color: '#bbb' }}>
+                <div className="h-full flex flex-col items-center justify-center gap-2 text-muted-foreground">
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
                     <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
                   </svg>
-                  <p style={{ fontSize: 13 }}>Seleccione uma lead para ver detalhes</p>
+                  <p className="text-sm">Seleccione uma lead para ver detalhes</p>
                 </div>
               ) : (
                 <DetailPanel
@@ -1239,6 +1203,15 @@ const VARIANTE_TAG: Record<string, [string, string]> = {
   BOT: ['#e3f2fd', '#1565c0'],
 };
 
+function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">{label}</div>
+      <div className="mt-1 text-sm font-medium text-foreground">{children}</div>
+    </div>
+  );
+}
+
 function DetailPanel({ lead, onClose, onClientConverted }: {
   lead: Lead;
   onClose: () => void;
@@ -1252,7 +1225,7 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
   async function convertToClient() {
     setConverting(true);
     try {
-      const res  = await fetch('/api/clients', {
+      const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId: lead.id }),
@@ -1272,96 +1245,135 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
     return new Date(ts).toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
   }
 
-  const cardS: React.CSSProperties = {
-    background: '#fff', borderRadius: 10, border: `1px solid ${BORDER}`,
-    padding: '14px 18px', marginBottom: 10,
-  };
-  const sectionTitle: React.CSSProperties = {
-    fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.07em', color: '#aaa', marginBottom: 10,
-  };
-
   return (
-    <div style={{ maxWidth: 600, margin: '0 auto' }}>
+    <div className="mx-auto max-w-3xl space-y-4">
       {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 20 }}>
-        <Avatar name={nome} size={44} bot={lead.variante === 'BOT'} />
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', gap: 5, marginBottom: 4, flexWrap: 'wrap' }}>
-            <span style={{
-              fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4,
-              background: lead.messageType === 'newLead' ? '#e8f5e9' : '#e3f2fd',
-              color: lead.messageType === 'newLead' ? '#2e7d32' : '#1565c0',
-            }}>
-              {lead.messageType === 'newLead' ? 'Lead Confirmada' : 'Simulação'}
-            </span>
-            {lead.variante && (() => {
-              const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['#f0f0f0', '#555'];
-              return <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: bg, color: fg }}>{VARIANTE_LABELS[lead.variante] ?? lead.variante}</span>;
-            })()}
-            {lead.leadData.source && lead.leadData.source !== 'bot' && (
-              <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: '#ede7f6', color: '#6a1b9a' }}>
-                {lead.leadData.source}
-              </span>
-            )}
+      <div className="flex items-start justify-between">
+        <div className="flex items-start gap-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-soft text-sm font-bold text-orange shrink-0">
+            {lead.variante === 'BOT' ? 'AI' : nome.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
           </div>
-          <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 2px' }}>{nome}</h2>
-          <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>{fmt(lead.timeStamp)}</p>
+          <div>
+            <div className="mb-2 flex flex-wrap gap-1.5">
+              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${lead.messageType === 'newLead' ? 'bg-success-soft text-success' : 'bg-cyan-soft text-cyan'}`}>
+                {lead.messageType === 'newLead' ? 'Lead Confirmada' : 'Simulação'}
+              </span>
+              {lead.variante && (() => {
+                const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['#f0f0f0', '#555'];
+                return (
+                  <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, background: bg, color: fg }}>
+                    {VARIANTE_LABELS[lead.variante] ?? lead.variante}
+                  </span>
+                );
+              })()}
+              {lead.leadData.source && lead.leadData.source !== 'bot' && (
+                <span className="rounded-full bg-brand-purple-soft px-2.5 py-0.5 text-[11px] font-semibold text-brand-purple">
+                  {lead.leadData.source}
+                </span>
+              )}
+            </div>
+            <h2 className="text-2xl font-bold tracking-tight text-foreground">{nome}</h2>
+            <div className="mt-1 text-xs text-muted-foreground">{fmt(lead.timeStamp)}</div>
+          </div>
         </div>
-        <button onClick={onClose} style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${BORDER}`, background: '#fff', cursor: 'pointer', fontSize: 16, color: '#aaa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>×</button>
+        <button
+          onClick={onClose}
+          className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
       </div>
 
       {/* Contacto */}
-      <div style={cardS}>
-        <p style={sectionTitle}>Contacto</p>
-        <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
-          <F label="Telefone" value={d.telefone} cyan />
-          <F label="Email" value={d.email} />
-          <F label="Fonte" value={d.source} />
-          <F label="Convertida" value={d.converted ? 'Sim' : undefined} green={d.converted} />
-        </dl>
-      </div>
+      <section className="rounded-xl bg-card p-5 shadow-card">
+        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Contacto</div>
+        <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+          <DetailField label="Telefone">
+            {d.telefone ? <a className="text-cyan hover:underline" href={`tel:${d.telefone}`}>{d.telefone}</a> : <span className="text-muted-foreground">—</span>}
+          </DetailField>
+          <DetailField label="Email">
+            <span className={d.email ? 'text-foreground' : 'text-muted-foreground'}>{d.email ?? '—'}</span>
+          </DetailField>
+          <DetailField label="Fonte">{d.source ?? '—'}</DetailField>
+          <DetailField label="Convertida">
+            {d.converted ? <span className="text-success font-semibold">Sim</span> : <span className="text-muted-foreground">Não</span>}
+          </DetailField>
+        </div>
+      </section>
 
       {/* Serviço */}
-      <div style={cardS}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-          <p style={{ ...sectionTitle, margin: 0 }}>Serviço</p>
+      <section className="rounded-xl bg-card p-5 shadow-card">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Serviço</div>
           {d.serviceType && (
-            <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 4, background: '#e0f7fa', color: '#006064' }}>
+            <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${d.serviceType === 'direto' ? 'bg-orange-soft text-orange' : 'bg-cyan-soft text-cyan'}`}>
               {d.serviceType === 'arrasto' ? 'Entrega Amanhã' : d.serviceType === 'internacional' ? 'Internacional' : 'Direto'}
             </span>
           )}
         </div>
-        <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 20px' }}>
-          <div style={{ gridColumn: '1/-1' }}><F label="Trajecto" value={`${d.origem ?? '—'} → ${d.destino ?? '—'}`} /></div>
-          {d.serviceType === 'arrasto' ? (
-            <><F label="Peso" value={d.weightKg != null ? `${d.weightKg} kg` : undefined} /><F label="Janela" value={d.partnerWindow ? `Amanhã ${d.partnerWindow}` : undefined} /></>
-          ) : (
-            <><F label="Viatura" value={d.viatura} /><F label="Urgência" value={d.urgencia} />{d.distance != null && <F label="Distância" value={`${d.distance} km`} />}</>
-          )}
-        </dl>
-      </div>
+        <div className="space-y-4">
+          <DetailField label="Trajecto">{`${d.origem ?? '—'} → ${d.destino ?? '—'}`}</DetailField>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-4">
+            {d.serviceType === 'arrasto' ? (
+              <>
+                <DetailField label="Peso">{d.weightKg != null ? `${d.weightKg} kg` : '—'}</DetailField>
+                <DetailField label="Janela">{d.partnerWindow ? `Amanhã ${d.partnerWindow}` : '—'}</DetailField>
+              </>
+            ) : (
+              <>
+                <DetailField label="Viatura">{d.viatura ?? '—'}</DetailField>
+                <DetailField label="Urgência">
+                  {d.urgencia ? (
+                    <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${d.urgencia === '1 Hora' ? 'bg-destructive/10 text-destructive' : 'bg-success-soft text-success'}`}>
+                      {d.urgencia}
+                    </span>
+                  ) : '—'}
+                </DetailField>
+                {d.distance != null && <DetailField label="Distância">{`${d.distance} km`}</DetailField>}
+              </>
+            )}
+          </div>
+        </div>
+      </section>
 
       {/* Preço */}
       {d.priceCalculated != null && (
-        <div style={cardS}>
-          <p style={sectionTitle}>Preço</p>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <PB label="Base" value={`€${d.priceCalculated.toFixed(2)}`} strike />
-            <PB label="Desconto" value={`-€${d.discount?.toFixed(2)}`} color="#e53e3e" />
-            <PB label="Final" value={`€${d.priceWithDiscount?.toFixed(2)}`} color="#2e7d32" large />
+        <section className="rounded-xl bg-card p-5 shadow-card">
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+          <div className="flex gap-6 items-end">
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Base</div>
+              <div className="text-sm line-through text-muted-foreground">€{d.priceCalculated.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Desconto</div>
+              <div className="text-sm text-destructive">-€{d.discount?.toFixed(2)}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Final</div>
+              <div className="text-xl font-bold text-orange">€{d.priceWithDiscount?.toFixed(2)}</div>
+            </div>
           </div>
-        </div>
+        </section>
       )}
       {d.partnerFinalPrice != null && !d.priceCalculated && (
-        <div style={cardS}>
-          <p style={sectionTitle}>Preço</p>
-          <div style={{ display: 'flex', gap: 24, alignItems: 'center' }}>
-            <PB label="Serviço" value={`Entrega ${d.partnerWindow}`} />
-            <PB label="Peso" value={`${d.weightKg} kg`} />
-            <PB label="Total" value={`€${d.partnerFinalPrice.toFixed(2)}`} color="#2e7d32" large />
+        <section className="rounded-xl bg-card p-5 shadow-card">
+          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+          <div className="flex gap-6 items-end">
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Serviço</div>
+              <div className="text-sm text-foreground">Entrega {d.partnerWindow}</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Peso</div>
+              <div className="text-sm text-foreground">{d.weightKg} kg</div>
+            </div>
+            <div>
+              <div className="text-[11px] text-muted-foreground mb-1">Total</div>
+              <div className="text-xl font-bold text-orange">€{d.partnerFinalPrice.toFixed(2)}</div>
+            </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Hipóteses de agregação */}
@@ -1371,31 +1383,24 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
 
       {/* Converter para Cliente */}
       {lead.messageType === 'newLead' && (
-        <div style={{ ...cardS, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ flex: 1 }}>
-            <p style={{ ...sectionTitle, margin: 0 }}>CRM</p>
+        <div className="flex items-center justify-between rounded-xl bg-card p-5 shadow-card">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">CRM</div>
             {clientId
-              ? <p style={{ fontSize: 12, color: '#2e7d32', margin: '4px 0 0', fontWeight: 600 }}>✓ Lead convertida para cliente</p>
-              : <p style={{ fontSize: 12, color: '#888', margin: '4px 0 0' }}>Guarda este contacto na lista de Clientes</p>
+              ? <p className="mt-1 text-sm text-success font-semibold">✓ Lead convertida para cliente</p>
+              : <p className="mt-1 text-sm text-muted-foreground">Guarda este contacto na lista de Clientes</p>
             }
           </div>
           {!clientId ? (
             <button
               onClick={convertToClient}
               disabled={converting}
-              style={{
-                padding: '7px 16px', borderRadius: 7, border: 'none',
-                background: CYAN, color: '#fff', fontSize: 12, fontWeight: 700,
-                cursor: converting ? 'wait' : 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
-              }}
+              className="rounded-lg bg-orange px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-transform hover:-translate-y-px disabled:opacity-60 shrink-0 cursor-pointer"
             >
               {converting ? 'A converter...' : 'Converter para Cliente'}
             </button>
           ) : (
-            <span style={{
-              fontSize: 11, padding: '5px 12px', borderRadius: 6,
-              background: '#e8f5e9', color: '#2e7d32', fontWeight: 700, flexShrink: 0,
-            }}>
+            <span className="rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success shrink-0">
               Cliente criado ✓
             </span>
           )}
@@ -1403,14 +1408,13 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       )}
 
       {/* Mensagem sistema */}
-      <div style={cardS}>
-        <p style={sectionTitle}>Mensagem Sistema</p>
+      <section className="rounded-xl bg-card p-5 shadow-card">
+        <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Mensagem Sistema</div>
         <div
-          className="sys-msg"
-          style={{ fontSize: 12, color: '#555' }}
+          className="sys-msg text-sm text-foreground"
           dangerouslySetInnerHTML={{ __html: lead.message.replace(/line-height\s*:\s*[\d.]+\s*;?/gi, 'line-height:1.8;').replace(/<p/gi, '<p style="margin:0 0 7px 0"') }}
         />
-      </div>
+      </section>
     </div>
   );
 }

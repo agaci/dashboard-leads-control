@@ -39,6 +39,11 @@
   --purple:            262 83% 58%;
   --purple-soft:       262 83% 95%;
 
+  /* ── Orange ── */
+  --orange:      24 95% 53%;
+  --orange-soft: 24 100% 96%;
+  --orange-warm: 28 100% 98%;
+
   /* ── Shadows ── */
   --shadow-card:     0 1px 3px 0 hsl(218 30% 16% / 0.04),
                      0 1px 2px -1px hsl(218 30% 16% / 0.04);
@@ -108,6 +113,9 @@
   --color-warning-soft:      hsl(var(--warning-soft));
   --color-brand-purple:      hsl(var(--purple));
   --color-brand-purple-soft: hsl(var(--purple-soft));
+  --color-orange:            hsl(var(--orange));
+  --color-orange-soft:       hsl(var(--orange-soft));
+  --color-orange-warm:       hsl(var(--orange-warm));
 
   /* ── Sidebar tokens ── */
   --color-sidebar:                    hsl(var(--sidebar-background));
