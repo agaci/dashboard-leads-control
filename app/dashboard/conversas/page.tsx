@@ -573,8 +573,9 @@ function ChatBubble({ msg, timeStr }: { msg: Message; timeStr: string }) {
     return (
       <div className="flex items-end gap-2">
         <div className="w-7 h-7 rounded-full bg-secondary flex items-center justify-center shrink-0">
-          <svg className="w-4 h-4 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          <svg className="w-4 h-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
           </svg>
         </div>
         <div className="max-w-[70%]">
@@ -601,15 +602,15 @@ function ChatBubble({ msg, timeStr }: { msg: Message; timeStr: string }) {
       </div>
       <div className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 ${isBO ? 'bg-cyan-soft' : 'bg-orange-soft'}`}>
         {isBO ? (
-          <svg className="w-4 h-4 text-cyan" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M12 12c2.7 0 4.8-2.1 4.8-4.8S14.7 2.4 12 2.4 7.2 4.5 7.2 7.2 9.3 12 12 12zm0 2.4c-3.2 0-9.6 1.6-9.6 4.8v2.4h19.2v-2.4c0-3.2-6.4-4.8-9.6-4.8z"/>
+          <svg className="w-4 h-4 text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
           </svg>
         ) : (
-          <svg className="w-4 h-4 text-orange" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-            <rect x="3" y="8" width="18" height="12" rx="2"/>
-            <path d="M8 8V6a4 4 0 018 0v2"/>
-            <circle cx="9" cy="14" r="1" fill="currentColor"/>
-            <circle cx="15" cy="14" r="1" fill="currentColor"/>
+          <svg className="w-4 h-4 text-orange" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2a2 2 0 0 1 2 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 0 1 7 7h1a1 1 0 0 1 1 1v3a1 1 0 0 1-1 1h-1v1a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-1H2a1 1 0 0 1-1-1v-3a1 1 0 0 1 1-1h1a7 7 0 0 1 7-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 0 1 2-2z"/>
+            <circle cx="9" cy="14" r="1" fill="currentColor" stroke="none"/>
+            <circle cx="15" cy="14" r="1" fill="currentColor" stroke="none"/>
           </svg>
         )}
       </div>
