@@ -245,7 +245,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   return (
     <div className="flex h-full bg-background">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div className={`${isMobile ? 'w-full' : 'w-[360px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
+      <div className={`${isMobile ? 'w-full' : 'w-[460px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h1 className="text-xl font-bold tracking-tight text-foreground">Inbox</h1>
