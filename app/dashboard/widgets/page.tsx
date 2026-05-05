@@ -12,6 +12,7 @@ const BASE_URL = 'https://leads.comgo.pt';
 type WidgetClient = {
   _id: string;
   clientId: string;
+  secretToken?: string;
   name: string;
   primaryColor: string;
   darkColor: string;
@@ -68,6 +69,9 @@ export default function WidgetsPage() {
   const [saving, setSaving] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [revealedToken, setRevealedToken] = useState<string | null>(null);
+  const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -135,6 +139,31 @@ export default function WidgetsPage() {
     copyToClipboard(embedCode(clientId));
     setCopiedId(clientId);
     setTimeout(() => setCopiedId(null), 2000);
+  }
+
+  function handleCopyToken(token: string, id: string) {
+    copyToClipboard(token);
+    setCopiedToken(id);
+    setTimeout(() => setCopiedToken(null), 2000);
+  }
+
+  async function handleRegenerateToken(c: WidgetClient) {
+    if (!confirm(`Regenerar o token de "${c.name}"?\nO token anterior ficará inválido imediatamente.`)) return;
+    setRegenerating(c._id);
+    try {
+      const res = await fetch('/api/admin/widget-clients', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ _id: c._id, regenerateToken: true }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setRevealedToken(c._id);
+        await load();
+      }
+    } finally {
+      setRegenerating(null);
+    }
   }
 
   const inputStyle: React.CSSProperties = {
@@ -240,6 +269,81 @@ export default function WidgetsPage() {
                 <code style={{ fontSize: 11, color: '#444', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   {`<script src="${BASE_URL}/embed.js" data-ybw-client="${c.clientId}"><\/script>`}
                 </code>
+              </div>
+
+              {/* API Stats token */}
+              <div style={{ marginTop: 8, background: '#f8f4ff', border: '1px solid #e0d4f7', borderRadius: 8, padding: '10px 12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                      Token API de Estatísticas
+                    </span>
+                    <span style={{ fontSize: 10, color: '#999', marginLeft: 8 }}>
+                      GET {BASE_URL}/api/v1/stats?month=MM&year=YYYY
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {c.secretToken && (
+                      <button
+                        onClick={() => handleCopyToken(c.secretToken!, c._id)}
+                        title="Copiar token"
+                        style={{
+                          fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+                          border: '1px solid #c4b5fd',
+                          background: copiedToken === c._id ? '#ede9fe' : '#fff',
+                          color: copiedToken === c._id ? '#6d28d9' : '#7c3aed',
+                          fontWeight: 600,
+                        }}
+                      >
+                        {copiedToken === c._id ? '✓ Copiado' : 'Copiar token'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setRevealedToken(revealedToken === c._id ? null : c._id)}
+                      title={revealedToken === c._id ? 'Ocultar' : 'Revelar token'}
+                      style={{
+                        fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+                        border: '1px solid #e0d4f7', background: '#fff', color: '#7c3aed', fontWeight: 600,
+                      }}
+                    >
+                      {revealedToken === c._id ? 'Ocultar' : 'Revelar'}
+                    </button>
+                    <button
+                      onClick={() => handleRegenerateToken(c)}
+                      disabled={regenerating === c._id}
+                      title="Gerar novo token (invalida o anterior)"
+                      style={{
+                        fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+                        border: '1px solid #fca5a5', background: '#fff7f7', color: '#dc2626', fontWeight: 600,
+                        opacity: regenerating === c._id ? 0.5 : 1,
+                      }}
+                    >
+                      {regenerating === c._id ? '...' : 'Regenerar'}
+                    </button>
+                  </div>
+                </div>
+
+                {c.secretToken ? (
+                  <code style={{
+                    fontSize: 11, fontFamily: 'monospace', wordBreak: 'break-all',
+                    color: revealedToken === c._id ? '#4c1d95' : 'transparent',
+                    background: revealedToken === c._id ? 'transparent' : '#e0d4f7',
+                    borderRadius: 4, padding: revealedToken === c._id ? 0 : '0 4px',
+                    userSelect: revealedToken === c._id ? 'all' : 'none',
+                  }}>
+                    {c.secretToken}
+                  </code>
+                ) : (
+                  <p style={{ fontSize: 11, color: '#999', margin: 0, fontStyle: 'italic' }}>
+                    Sem token — clique em "Regenerar" para criar um.
+                  </p>
+                )}
+
+                {revealedToken === c._id && c.secretToken && (
+                  <p style={{ fontSize: 10, color: '#9ca3af', margin: '6px 0 0' }}>
+                    Exemplo: <code style={{ fontFamily: 'monospace' }}>Authorization: Bearer {c.secretToken.slice(0, 8)}…</code>
+                  </p>
+                )}
               </div>
             </div>
           ))}
