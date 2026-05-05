@@ -1,55 +1,140 @@
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700;800&family=Space+Grotesk:wght@300;400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
+@plugin "tailwindcss-animate";
 
-/* ── Design tokens — comgo flat system ───────────────────── */
+/* ── Design tokens ────────────────────────────────────────── */
 :root {
-  --background:        240 23% 96%;
-  --foreground:        235 21% 21%;
-  --card:              0 0% 100%;
-  --primary:           13 100% 65%;
-  --primary-fg:        0 0% 100%;
-  --muted:             240 10% 91%;
-  --muted-fg:          235 15% 46%;
-  --border:            240 10% 88%;
-  --radius:            0.75rem;
+  /* ── Base palette (Lovable design system) ── */
+  --background:              228 20% 97%;
+  --foreground:              218 30% 16%;
+  --card:                    0 0% 100%;
+  --card-foreground:         218 30% 16%;
+  --popover:                 0 0% 100%;
+  --popover-foreground:      218 30% 16%;
+  --primary:                 187 100% 42%;
+  --primary-foreground:      0 0% 100%;
+  --secondary:               220 16% 96%;
+  --secondary-foreground:    218 30% 16%;
+  --muted:                   220 14% 94%;
+  --muted-foreground:        220 9% 46%;
+  --accent:                  187 100% 95%;
+  --accent-foreground:       187 100% 25%;
+  --destructive:             0 84% 60%;
+  --destructive-foreground:  0 0% 100%;
+  --border:                  220 14% 91%;
+  --input:                   220 14% 91%;
+  --ring:                    187 100% 42%;
+  --radius:                  0.75rem;
 
-  /* Legacy aliases — mantidos para inline styles nos TSX */
+  /* ── Semantic colours ── */
+  --navy:              218 36% 15%;
+  --navy-foreground:   220 14% 88%;
+  --navy-muted:        218 25% 28%;
+  --cyan:              187 100% 42%;
+  --cyan-soft:         187 100% 95%;
+  --success:           142 71% 45%;
+  --success-soft:      142 71% 92%;
+  --warning:           38 92% 50%;
+  --warning-soft:      38 92% 92%;
+  --purple:            262 83% 58%;
+  --purple-soft:       262 83% 95%;
+
+  /* ── Shadows ── */
+  --shadow-card:     0 1px 3px 0 hsl(218 30% 16% / 0.04),
+                     0 1px 2px -1px hsl(218 30% 16% / 0.04);
+  --shadow-elevated: 0 4px 12px -2px hsl(218 30% 16% / 0.08),
+                     0 2px 4px -2px hsl(218 30% 16% / 0.04);
+
+  /* ── Sidebar ── */
+  --sidebar-background:         218 36% 15%;
+  --sidebar-foreground:         220 14% 88%;
+  --sidebar-primary:            187 100% 42%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:             218 25% 22%;
+  --sidebar-accent-foreground:  0 0% 100%;
+  --sidebar-border:             218 25% 22%;
+  --sidebar-ring:               187 100% 42%;
+
+  /* ── Legacy aliases — mantidos para inline styles nos TSX ── */
+  --primary-fg:        hsl(var(--primary-foreground));
+  --muted-fg:          hsl(var(--muted-foreground));
   --neu-bg:            hsl(var(--background));
   --neu-fg:            hsl(var(--foreground));
-  --neu-muted:         hsl(var(--muted-fg));
+  --neu-muted:         hsl(var(--muted-foreground));
   --neu-accent:        hsl(var(--primary));
-  --neu-accent-fg:     hsl(var(--primary-fg));
+  --neu-accent-fg:     hsl(var(--primary-foreground));
   --neu-border:        hsl(var(--border));
 
-  /* Shadows neumórficas → zeradas (compat) */
-  --shadow-light:     none;
-  --shadow-dark:      none;
-  --shadow-light-sm:  none;
-  --shadow-dark-sm:   0 1px 3px rgba(0,0,0,0.12);
-  --shadow-in-light:  none;
-  --shadow-in-dark:   none;
+  /* ── Legacy shadow compat ── */
+  --shadow-light:    none;
+  --shadow-dark:     none;
+  --shadow-light-sm: none;
+  --shadow-dark-sm:  0 1px 3px rgba(0,0,0,0.12);
+  --shadow-in-light: none;
+  --shadow-in-dark:  none;
 }
 
 @theme inline {
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
-  --font-sans:        "Nunito", system-ui, sans-serif;
-  --font-display:     "Space Grotesk", sans-serif;
+  --color-card:       hsl(var(--card));
+  --color-popover:    hsl(var(--popover));
+  --color-primary:    hsl(var(--primary));
+  --color-secondary:  hsl(var(--secondary));
+  --color-muted:      hsl(var(--muted));
+  --color-accent:     hsl(var(--accent));
+  --color-destructive: hsl(var(--destructive));
+  --color-border:     hsl(var(--border));
+  --color-input:      hsl(var(--input));
+  --color-ring:       hsl(var(--ring));
 
-  /* ── YourBox design system ── */
+  /* ── YourBox legacy tokens ── */
   --color-yb-navy:   #1a2332;
   --color-yb-cyan:   #00bcd4;
   --color-yb-yellow: #ffc107;
   --color-yb-bg:     #f5f6fa;
   --color-yb-card:   #ffffff;
   --color-yb-border: #dde1e8;
+
+  /* ── Semantic colour tokens ── */
+  --color-navy:              hsl(var(--navy));
+  --color-navy-foreground:   hsl(var(--navy-foreground));
+  --color-navy-muted:        hsl(var(--navy-muted));
+  --color-cyan:              hsl(var(--cyan));
+  --color-cyan-soft:         hsl(var(--cyan-soft));
+  --color-success:           hsl(var(--success));
+  --color-success-soft:      hsl(var(--success-soft));
+  --color-warning:           hsl(var(--warning));
+  --color-warning-soft:      hsl(var(--warning-soft));
+  --color-brand-purple:      hsl(var(--purple));
+  --color-brand-purple-soft: hsl(var(--purple-soft));
+
+  /* ── Sidebar tokens ── */
+  --color-sidebar:                    hsl(var(--sidebar-background));
+  --color-sidebar-foreground:         hsl(var(--sidebar-foreground));
+  --color-sidebar-primary:            hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent:             hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground:  hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border:             hsl(var(--sidebar-border));
+  --color-sidebar-ring:               hsl(var(--sidebar-ring));
+
+  /* ── Shadows ── */
+  --shadow-card:     var(--shadow-card);
+  --shadow-elevated: var(--shadow-elevated);
+
+  /* ── Typography ── */
+  --font-sans:    "Inter", "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+  --font-nunito:  "Nunito", sans-serif;
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
 body {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-  font-family: "Nunito", system-ui, sans-serif;
+  font-family: "Inter", "Nunito", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  font-feature-settings: 'cv11', 'ss01';
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -69,7 +154,7 @@ h1, h2, h3, h4, h5, h6 {
   /* Card branco com sombra subtil */
   .neu-raised {
     background: hsl(var(--card));
-    box-shadow: 0 1px 3px rgba(0,0,0,0.07), 0 0 0 1px hsl(var(--border));
+    box-shadow: var(--shadow-card);
   }
   .neu-raised-sm {
     background: hsl(var(--card));
@@ -83,13 +168,13 @@ h1, h2, h3, h4, h5, h6 {
   }
 
   /* Compat — não usados activamente */
-  .neu-convex { background: hsl(var(--card)); }
+  .neu-convex  { background: hsl(var(--card)); }
   .neu-concave { background: hsl(var(--muted)); }
 
-  /* Botão primário laranja */
+  /* Botão primário */
   .neu-btn-primary {
     background: hsl(var(--primary));
-    color: hsl(var(--primary-fg));
+    color: hsl(var(--primary-foreground));
     box-shadow: 0 2px 8px hsl(var(--primary) / 35%);
     transition: opacity .15s, box-shadow .15s;
   }
@@ -106,7 +191,7 @@ h1, h2, h3, h4, h5, h6 {
 
   .neu-pill-active {
     background: hsl(var(--primary));
-    color: hsl(var(--primary-fg));
+    color: hsl(var(--primary-foreground));
     border: 1.5px solid hsl(var(--primary));
   }
 
