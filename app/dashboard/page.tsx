@@ -164,7 +164,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<'all' | 'leads' | 'sims' | 'urgente'>('all');
-  const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'semana'>('all');
+  const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'ontem' | 'semana' | 'custom'>('hoje');
+  const [customDate, setCustomDate] = useState('');
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState<Lead | null>(null);
   const [page, setPage] = useState(0);
@@ -172,22 +173,29 @@ export default function DashboardPage() {
   const LIMIT = 20;
   const autoSelectedLeadRef = useRef(false);
 
-  function buildDateParams(df: 'all' | 'hoje' | 'semana'): string {
+  function buildDateParams(df: 'all' | 'hoje' | 'ontem' | 'semana' | 'custom'): string {
     if (df === 'all') return '';
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
-    const todayStart = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T00:00:00.000Z`;
+    const dayStr = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
     if (df === 'hoje') {
-      const todayEnd = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}T23:59:59.999Z`;
-      return `&dateFrom=${todayStart}&dateTo=${todayEnd}`;
+      const s = dayStr(now);
+      return `&dateFrom=${s}T00:00:00.000Z&dateTo=${s}T23:59:59.999Z`;
+    }
+    if (df === 'ontem') {
+      const y = new Date(now); y.setDate(now.getDate() - 1);
+      const s = dayStr(y);
+      return `&dateFrom=${s}T00:00:00.000Z&dateTo=${s}T23:59:59.999Z`;
+    }
+    if (df === 'custom' && customDate) {
+      return `&dateFrom=${customDate}T00:00:00.000Z&dateTo=${customDate}T23:59:59.999Z`;
     }
     // semana — desde segunda-feira desta semana
-    const day = now.getDay(); // 0=dom, 1=seg...
+    const day = now.getDay();
     const diff = (day === 0 ? -6 : 1 - day);
     const monday = new Date(now);
     monday.setDate(now.getDate() + diff);
-    const mondayStr = `${monday.getFullYear()}-${pad(monday.getMonth() + 1)}-${pad(monday.getDate())}T00:00:00.000Z`;
-    return `&dateFrom=${mondayStr}`;
+    return `&dateFrom=${dayStr(monday)}T00:00:00.000Z`;
   }
 
   const fetchLeadCounts = useCallback(async () => {
@@ -327,8 +335,8 @@ export default function DashboardPage() {
 
             {/* Filters — data */}
             <div className="flex flex-wrap gap-1.5 px-5 pb-4">
-              {(['all', 'hoje', 'semana'] as const).map((df) => {
-                const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : 'Semana';
+              {(['all', 'hoje', 'ontem', 'semana'] as const).map((df) => {
+                const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : df === 'ontem' ? 'Ontem' : 'Semana';
                 const active = dateFilter === df;
                 return (
                   <button
@@ -342,6 +350,25 @@ export default function DashboardPage() {
                   </button>
                 );
               })}
+              {/* Date picker */}
+              <label
+                className={`relative inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
+                  dateFilter === 'custom' ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                }`}
+                title={dateFilter === 'custom' && customDate ? customDate : 'Escolher data'}
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                {dateFilter === 'custom' && customDate ? customDate.slice(5).replace('-', '/') : 'Data'}
+                <input
+                  type="date"
+                  value={customDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom'); }}
+                  style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' }}
+                />
+              </label>
             </div>
 
             {/* Lead items */}
