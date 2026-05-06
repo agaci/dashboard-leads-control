@@ -53,6 +53,20 @@
     }
     .form-input:focus { border-color: var(--primary); }
 
+    /* GPS button */
+    .input-geo-wrap { position: relative; }
+    .input-geo-wrap .form-input { padding-right: 2.6rem; }
+    .btn-gps {
+      position: absolute; right: 0.6rem; top: 50%; transform: translateY(-50%);
+      background: none; border: none; cursor: pointer; color: #bbb; padding: 0.2rem;
+      display: flex; align-items: center; justify-content: center; border-radius: 5px;
+      transition: color 0.2s, background 0.2s; line-height: 1;
+    }
+    .btn-gps:hover { color: var(--primary); background: color-mix(in srgb, var(--primary) 10%, transparent); }
+    .btn-gps svg { width: 16px; height: 16px; }
+    .btn-gps.gps-loading svg { animation: gpspin 1s linear infinite; }
+    @keyframes gpspin { to { transform: rotate(360deg); } }
+
     /* Grids */
     .vehicle-grid, .urgency-grid {
       display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px;
@@ -308,11 +322,21 @@
       <div class="form-step active" id="step1">
         <div class="form-group">
           <label class="form-label">De onde?</label>
-          <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
+          <div class="input-geo-wrap">
+            <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
+            <button type="button" class="btn-gps" id="gps-origem" onclick="window.ybWidget.geolocate('origem')" title="Usar a minha localização" aria-label="Usar localização GPS">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Para onde?</label>
-          <input type="text" class="form-input" id="destino" placeholder="Ex: Porto, Rua de Santa Catarina">
+          <div class="input-geo-wrap">
+            <input type="text" class="form-input" id="destino" placeholder="Ex: Porto, Rua de Santa Catarina">
+            <button type="button" class="btn-gps" id="gps-destino" onclick="window.ybWidget.geolocate('destino')" title="Usar a minha localização" aria-label="Usar localização GPS">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="2" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="22"/><line x1="2" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="22" y2="12"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
         </div>
 
         <div class="form-group">
@@ -663,7 +687,48 @@
     }
 
     function back() { showStep(1); }
-    window.ybWidget = { submit: submit, back: back, submitInternacional: submitInternacional };
+
+    function geolocate(inputId) {
+      var btn   = document.getElementById('gps-' + inputId);
+      var input = document.getElementById(inputId);
+      if (!btn || !input) return;
+      if (!navigator.geolocation) { showGeoToast('Geolocalização não suportada neste browser.'); return; }
+      btn.classList.add('gps-loading');
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var lat = pos.coords.latitude, lng = pos.coords.longitude;
+          fetch('https://maps.googleapis.com/maps/api/geocode/json?latlng=' + lat + ',' + lng + '&key=AIzaSyBlVG8t_l0lW7fwOg97LrNYD7vTn4_ZrM4&language=pt&region=pt')
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+              btn.classList.remove('gps-loading');
+              if (data.status === 'OK' && data.results && data.results.length > 0) {
+                var best =
+                  data.results.find(function (r) { return r.types.includes('street_address') || r.types.includes('premise'); }) ||
+                  data.results.find(function (r) { return r.types.includes('route'); }) ||
+                  data.results[0];
+                input.value = best.formatted_address;
+                input.focus();
+              } else { showGeoToast('Não foi possível determinar o endereço.'); }
+            })
+            .catch(function () { btn.classList.remove('gps-loading'); showGeoToast('Erro ao processar localização.'); });
+        },
+        function (err) {
+          btn.classList.remove('gps-loading');
+          showGeoToast(err.code === 1 ? 'Permissão de localização negada.' : 'Não foi possível obter a sua localização.');
+        },
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    function showGeoToast(msg) {
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:4rem;left:50%;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:0.5rem 1rem;border-radius:8px;font-size:0.8rem;z-index:9999;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+      document.body.appendChild(t);
+      setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity .4s'; setTimeout(function () { t.remove(); }, 400); }, 3000);
+    }
+
+    window.ybWidget = { submit: submit, back: back, submitInternacional: submitInternacional, geolocate: geolocate };
 
     // ── Chat engine ───────────────────────────────────────────────────────────
     var ybChatW = (function () {
