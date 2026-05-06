@@ -322,6 +322,18 @@
       100% { box-shadow: 0 0 0 0   rgba(190,214,47,.0); }
     }
 
+    /* ── Normalizar espaçamento: remover margin-bottom do form-group dentro do lead form ── */
+    .yb-lead-form .form-group { margin-bottom: 0; }
+
+    /* ── Gap interno dos botões de viatura entre nome e capacidade ── */
+    .vehicle-label { gap: 0.35rem; }
+    .vehicle-name  { margin-bottom: 0; }
+
+    /* ── Mobile: separação nome ↔ capacidade no layout em linha ── */
+    @media (max-width: 968px) {
+      .vehicle-capacity { margin-left: 0.4rem; }
+    }
+
     /* ── Mobile header compacto ── */
     @media (max-width: 768px) {
       .header { box-shadow: 0 1px 4px rgba(0,0,0,.08); }
