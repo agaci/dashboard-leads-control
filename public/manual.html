@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual de Utilizador — YourBox Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1a2332;
+      --navy2:  #0f1724;
+      --cyan:   #00bcd4;
+      --green:  #bed62f;
+      --text:   #1e293b;
+      --muted:  #64748b;
+      --border: #e2e8f0;
+      --bg:     #f8fafc;
+      --white:  #ffffff;
+      --sidebar-w: 260px;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.65;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 52px; background: var(--navy2);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 10px;
+      color: #fff; font-size: 0.95rem; font-weight: 700; text-decoration: none;
+    }
+    .topbar-brand span { color: var(--cyan); }
+    .topbar-links { display: flex; align-items: center; gap: 8px; }
+    .topbar-link {
+      color: rgba(255,255,255,0.6); font-size: 0.8rem; text-decoration: none;
+      padding: 5px 12px; border-radius: 6px;
+      border: 1px solid rgba(255,255,255,0.12);
+      transition: all 0.2s;
+    }
+    .topbar-link:hover { color: #fff; border-color: var(--cyan); }
+    .topbar-link.back {
+      background: var(--cyan); color: var(--navy2); border-color: var(--cyan);
+      font-weight: 700;
+    }
+    .topbar-link.back:hover { background: #00acc1; }
+
+    /* ── Layout ── */
+    .layout { display: flex; padding-top: 52px; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--navy);
+      position: fixed; top: 52px; bottom: 0; left: 0;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 20px 0 30px;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 4px; }
+
+    .sidebar-section { padding: 0 12px; margin-bottom: 6px; }
+    .sidebar-section-title {
+      font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em;
+      color: rgba(255,255,255,0.3); text-transform: uppercase;
+      padding: 10px 10px 4px;
+    }
+    .sidebar a {
+      display: block; padding: 7px 10px; border-radius: 7px;
+      color: rgba(255,255,255,0.6); font-size: 0.82rem;
+      text-decoration: none; transition: all 0.15s;
+    }
+    .sidebar a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .sidebar a.active { color: var(--cyan); background: rgba(0,188,212,0.12); font-weight: 600; }
+
+    /* ── Content ── */
+    .content {
+      margin-left: var(--sidebar-w);
+      flex: 1; padding: 40px 48px 80px;
+      max-width: 900px;
+    }
+
+    /* ── Sections ── */
+    .section { margin-bottom: 56px; }
+    .section-anchor { display: block; height: 80px; margin-top: -80px; pointer-events: none; }
+
+    h1 { font-size: 2rem; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+    h1 span { color: var(--cyan); }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--navy); margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+    h3 { font-size: 1.05rem; font-weight: 700; color: var(--navy); margin: 24px 0 10px; }
+    h4 { font-size: 0.9rem; font-weight: 700; color: var(--muted); margin: 16px 0 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    p { margin-bottom: 12px; font-size: 0.92rem; }
+    ul, ol { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 0.92rem; margin-bottom: 5px; }
+
+    /* ── Hero ── */
+    .hero {
+      background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 100%);
+      border-radius: 16px; padding: 36px 40px; margin-bottom: 40px; color: #fff;
+    }
+    .hero h1 { color: #fff; margin-bottom: 8px; }
+    .hero p { color: rgba(255,255,255,0.7); font-size: 1rem; margin-bottom: 0; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(0,188,212,0.2); color: var(--cyan);
+      border: 1px solid rgba(0,188,212,0.3); border-radius: 20px;
+      padding: 4px 12px; font-size: 0.75rem; font-weight: 700;
+      margin-bottom: 16px; letter-spacing: 0.04em;
+    }
+
+    /* ── Cards ── */
+    .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px; margin: 20px 0; }
+    .card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: 10px; padding: 16px 18px;
+    }
+    .card-title { font-size: 0.8rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .card-desc { font-size: 0.78rem; color: var(--muted); line-height: 1.45; }
+
+    /* ── Callouts ── */
+    .callout {
+      border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-size: 0.88rem;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .callout-icon { font-size: 1.1rem; flex-shrink: 0; margin-top: 1px; }
+    .callout.info { background: #e0f7fa; border-left: 4px solid var(--cyan); color: #006064; }
+    .callout.tip  { background: #f0fdf4; border-left: 4px solid #22c55e; color: #14532d; }
+    .callout.warn { background: #fffbeb; border-left: 4px solid #f59e0b; color: #78350f; }
+    .callout strong { font-weight: 700; }
+
+    /* ── Tables ── */
+    .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+    th { background: var(--navy); color: #fff; padding: 10px 14px; text-align: left; font-size: 0.78rem; font-weight: 700; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* ── Badges ── */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 20px;
+      font-size: 0.72rem; font-weight: 700; vertical-align: middle;
+    }
+    .badge-cyan   { background: #e0f7fa; color: #006064; }
+    .badge-green  { background: #ecfccb; color: #3f6212; }
+    .badge-orange { background: #fff7ed; color: #9a3412; }
+    .badge-navy   { background: #e0e7ff; color: #1e1b4b; }
+    .badge-red    { background: #fef2f2; color: #991b1b; }
+
+    /* ── Steps ── */
+    .steps { counter-reset: step; margin: 20px 0; }
+    .step {
+      display: flex; gap: 16px; margin-bottom: 18px;
+      align-items: flex-start;
+    }
+    .step-num {
+      counter-increment: step;
+      width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+      background: var(--cyan); color: var(--navy2); font-weight: 800; font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .step-body { flex: 1; }
+    .step-title { font-weight: 700; font-size: 0.92rem; margin-bottom: 4px; }
+    .step-desc { font-size: 0.88rem; color: var(--muted); }
+
+    /* ── State machine ── */
+    .states { display: flex; flex-wrap: wrap; gap: 8px; margin: 14px 0; }
+    .state-pill {
+      padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;
+      background: #f1f5f9; color: #475569; border: 1px solid #e2e8f0;
+    }
+    .state-pill.terminal { background: #ecfccb; color: #3f6212; border-color: #a3e635; }
+    .state-pill.escalated { background: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+
+    /* ── Kbd ── */
+    kbd {
+      background: #f1f5f9; border: 1px solid #cbd5e1; border-radius: 5px;
+      padding: 2px 7px; font-size: 0.8rem; font-family: monospace; font-weight: 600;
+    }
+
+    /* ── Code ── */
+    code {
+      background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 5px;
+      padding: 2px 6px; font-size: 0.8rem; font-family: monospace; color: #0f766e;
+    }
+
+    /* ── Divider ── */
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+
+    /* ── Footer ── */
+    .doc-footer {
+      margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between; flex-wrap: gap;
+      font-size: 0.8rem; color: var(--muted);
+    }
+
+    /* ── Mobile ── */
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 24px 20px 60px; }
+      .hero { padding: 24px 20px; }
+    }
+
+    /* ── Print ── */
+    @media print {
+      .topbar, .sidebar { display: none; }
+      .content { margin-left: 0; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Top bar -->
+<header class="topbar">
+  <a class="topbar-brand" href="/dashboard">
+    YourBox <span>Dashboard</span>
+  </a>
+  <div class="topbar-links">
+    <a class="topbar-link" href="/roadmap.html" target="_blank">Roadmap</a>
+    <a class="topbar-link back" href="/dashboard">← Voltar à App</a>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Introdução</div>
+    <a href="#intro">O que é o Dashboard</a>
+    <a href="#acesso">Acesso e Login</a>
+    <a href="#layout">Layout e Navegação</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Módulos</div>
+    <a href="#inbox">Inbox — Conversas</a>
+    <a href="#leads">Leads</a>
+    <a href="#clientes">Clientes</a>
+    <a href="#precos">Preços e Motor</a>
+    <a href="#baseIA">Base IA</a>
+    <a href="#agregacoes">Agregações</a>
+    <a href="#relatorios">Relatórios</a>
+    <a href="#widgets">Widgets</a>
+    <a href="#config">Configuração</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Integrações</div>
+    <a href="#widget-embed">Widget para Sites</a>
+    <a href="#api-stats">API de Estatísticas</a>
+    <a href="#pagamentos">Pagamentos</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Referência</div>
+    <a href="#bot-estados">Estados do Bot</a>
+    <a href="#glossario">Glossário</a>
+    <a href="#atalhos">Atalhos e Dicas</a>
+  </div>
+</nav>
+
+<!-- Main content -->
+<div class="layout">
+  <main class="content">
+
+    <!-- Hero -->
+    <div class="hero">
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.0</div>
+      <h1>Dashboard <span>YourBox</span></h1>
+      <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- INTRODUÇÃO -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="intro"></span>
+    <div class="section">
+      <h2>O que é o Dashboard YourBox</h2>
+      <p>O Dashboard YourBox é a plataforma central de gestão de leads e operações da YourBox — empresa de entregas urgentes em Portugal. Através desta plataforma é possível:</p>
+      <div class="cards">
+        <div class="card"><div class="card-title">Gerir Leads</div><div class="card-desc">Receber, filtrar e acompanhar simulações e pedidos de clientes.</div></div>
+        <div class="card"><div class="card-title">Bot IA</div><div class="card-desc">Conversa automática com clientes via WhatsApp e formulários web.</div></div>
+        <div class="card"><div class="card-title">Calcular Preços</div><div class="card-desc">Motor de preços automático por cidade, distância e urgência.</div></div>
+        <div class="card"><div class="card-title">Parceiros</div><div class="card-desc">Gerir tarifas de parceiros logísticos para serviços de arrasto (24h).</div></div>
+        <div class="card"><div class="card-title">Widgets</div><div class="card-desc">Configurar formulários de cálculo de preço para sites de terceiros.</div></div>
+        <div class="card"><div class="card-title">Pagamentos</div><div class="card-desc">Processar pagamentos MB Way, Multibanco e Pay By Link.</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="acesso"></span>
+    <div class="section">
+      <h2>Acesso e Login</h2>
+      <h3>Entrar no sistema</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Aceder ao endereço da aplicação</div><div class="step-desc">Abrir o browser e ir ao endereço fornecido pelo administrador (ex: <code>https://leads.comgo.pt/dashboard</code>).</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Introduzir credenciais</div><div class="step-desc">Inserir o email e a password atribuídos pelo administrador e clicar em <strong>Entrar</strong>.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Dashboard carregado</div><div class="step-desc">Após autenticação, o dashboard abre automaticamente na aba <strong>Inbox</strong>.</div></div></div>
+      </div>
+
+      <h3>Perfis de Utilizador</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Perfil</th><th>Permissões</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">administrator</span></td><td>Acesso total: configuração, preços, utilizadores, widgets, relatórios.</td></tr>
+            <tr><td><span class="badge badge-cyan">Operator</span></td><td>Gerir leads, conversas, responder ao bot. Sem acesso a configurações críticas.</td></tr>
+            <tr><td><span class="badge badge-navy">commissionOperator</span></td><td>Visualização de leads e relatórios. Sem edição de configurações.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout info"><div class="callout-icon">ℹ️</div><div>A criação de novos utilizadores é feita pelo administrador através da rota <code>/api/auth/signup</code>. Se precisar de acesso, contacte o administrador da plataforma.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="layout"></span>
+    <div class="section">
+      <h2>Layout e Navegação</h2>
+      <h3>Barra lateral (Desktop)</h3>
+      <p>No desktop, a navegação é feita pela barra lateral esquerda com ícones e etiquetas. Cada ícone corresponde a um módulo:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Ícone / Etiqueta</th><th>Módulo</th><th>Descrição rápida</th></tr></thead>
+          <tbody>
+            <tr><td>Inbox</td><td>Conversas ativas</td><td>Chat em tempo real com clientes</td></tr>
+            <tr><td>Leads</td><td>Gestão de leads</td><td>Simulações e pedidos de cotação</td></tr>
+            <tr><td>Clientes</td><td>Base de clientes</td><td>Clientes com histórico de leads</td></tr>
+            <tr><td>Serviços</td><td>Serviços ativos</td><td>Entregas em curso</td></tr>
+            <tr><td>Preços</td><td>Motor de preços</td><td>Configuração de tarifas e cálculo</td></tr>
+            <tr><td>Base IA</td><td>Situações de conhecimento</td><td>100+ situações para o bot</td></tr>
+            <tr><td>Agreg.</td><td>Agregações</td><td>Sugestões de viatura partilhada</td></tr>
+            <tr><td>Relatórios</td><td>Analytics</td><td>Gráficos e métricas de performance</td></tr>
+            <tr><td>Widgets</td><td>Gestão de widgets</td><td>Formulários para sites externos</td></tr>
+            <tr><td>Perfil</td><td>Configurações</td><td>Conta, notificações, roteamento</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Barra de navegação móvel</h3>
+      <p>Em dispositivos móveis, a navegação aparece na barra inferior com os mesmos ícones. A barra suporta scroll horizontal para aceder a todos os módulos.</p>
+
+      <h3>Controlos de Som e Voz</h3>
+      <p>Na parte inferior da barra lateral há dois controlos importantes:</p>
+      <ul>
+        <li><strong>Som</strong> — clique para ciclar entre níveis (mudo, baixo, médio, alto). Clique direito para controlo fino com slider. Toca alertas sonoros para nova lead, escalamento e agregação.</li>
+        <li><strong>Voz</strong> — activa notificações por voz (TTS). Clique direito para activar/desactivar por tipo de evento.</li>
+      </ul>
+
+      <h3>Notificações em tempo real</h3>
+      <p>O sistema faz polling automático e exibe notificações no canto superior direito quando:</p>
+      <ul>
+        <li>Uma nova lead é recebida <span class="badge badge-cyan">Nova Lead</span></li>
+        <li>Uma conversa é escalada para humano <span class="badge badge-red">Escalamento</span></li>
+        <li>É detectada uma sugestão de agregação <span class="badge badge-green">Agregação</span></li>
+      </ul>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="inbox"></span>
+    <div class="section">
+      <h2>Inbox — Conversas em Tempo Real</h2>
+      <p>O Inbox é o módulo central para gerir conversas ativas com clientes. O bot responde automaticamente, mas o operador pode intervir a qualquer momento.</p>
+
+      <h3>Lista de conversas</h3>
+      <p>No painel esquerdo surgem todas as conversas filtradas por estado. Cada entrada mostra:</p>
+      <ul>
+        <li>Nome do cliente (ou número de telemóvel)</li>
+        <li>Rota (Origem → Destino)</li>
+        <li>Estado atual <span class="badge badge-cyan">ACTIVE</span> <span class="badge badge-orange">ESCALATED</span> <span class="badge badge-green">CLOSED</span></li>
+        <li>Data/hora de início</li>
+      </ul>
+
+      <h3>Detalhe da conversa</h3>
+      <p>Clicar numa conversa abre o histórico de mensagens. O operador pode:</p>
+      <ul>
+        <li><strong>Ler</strong> o diálogo completo entre bot e cliente</li>
+        <li><strong>Responder</strong> manualmente usando a caixa de texto no fundo</li>
+        <li><strong>Escalar</strong> para humano se a conversa precisar de atenção especial</li>
+        <li><strong>Fechar</strong> a conversa quando o serviço está concluído</li>
+      </ul>
+
+      <h3>Filtros disponíveis</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Filtro</th><th>Mostra</th></tr></thead>
+          <tbody>
+            <tr><td>Ativas</td><td>Conversas com bot ainda a responder</td></tr>
+            <tr><td>Escaladas</td><td>Conversas que requerem atenção humana</td></tr>
+            <tr><td>Fechadas</td><td>Conversas concluídas ou com lead registada</td></tr>
+            <tr><td>Todas</td><td>Todas as conversas sem filtro</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip"><div class="callout-icon">💡</div><div><strong>Dica:</strong> conversas com estado <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas antes das restantes.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="leads"></span>
+    <div class="section">
+      <h2>Leads</h2>
+      <p>Uma <strong>lead</strong> é um contacto ou pedido de cotação recebido através do site, widget ou WhatsApp.</p>
+
+      <h3>Tipos de Lead</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Descrição</th><th>Contacto?</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-navy">preLeadSimulation</span></td><td>Pessoa calculou preço mas não deixou dados de contacto</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-cyan">newLead</span></td><td>Pessoa calculou preço e deixou nome, telefone e/ou email</td><td>Sim</td></tr>
+            <tr><td><span class="badge badge-green">clientSimulation</span></td><td>Simulação feita por cliente existente (widget com variante)</td><td>Sim</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Filtros e Pesquisa</h3>
+      <ul>
+        <li><strong>Tipo</strong>: Todas / Bot (com contacto) / Manual (sem contacto) / Urgente</li>
+        <li><strong>Data</strong>: Todas / Hoje / Esta semana</li>
+        <li><strong>Pesquisa</strong>: por nome, telefone ou rota (origem/destino)</li>
+      </ul>
+
+      <h3>Detalhe de Lead</h3>
+      <p>Ao clicar numa lead, o painel direito mostra:</p>
+      <ul>
+        <li>Dados de contacto: nome, telefone, email</li>
+        <li>Rota: origem → destino, distância (km), duração estimada</li>
+        <li>Serviço: tipo de viatura, urgência</li>
+        <li>Preço calculado: base, desconto, preço final com IVA</li>
+        <li>Canal de origem (widget, site, WhatsApp)</li>
+        <li>Timestamp de receção</li>
+      </ul>
+
+      <h3>Urgência das Leads</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Urgência</th><th>Prazo</th><th>Fluxo</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">1 Hora</span></td><td>Entrega em 1 hora</td><td>Cálculo automático → Bot/Operador</td></tr>
+            <tr><td><span class="badge badge-orange">4 Horas</span></td><td>Entrega em 4 horas</td><td>Cálculo automático → Bot/Operador</td></tr>
+            <tr><td><span class="badge badge-navy">24 Horas</span></td><td>Serviço de arrasto (parceiros)</td><td>Tarifas de parceiros → Manual</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn"><div class="callout-icon">⚠️</div><div><strong>Atenção:</strong> leads com urgência <strong>1 Hora</strong> devem ser tratadas imediatamente. O sistema toca um alerta sonoro distinto para este tipo de lead.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="clientes"></span>
+    <div class="section">
+      <h2>Clientes</h2>
+      <p>A aba Clientes agrega o histórico de contactos que já interagiram com a plataforma (via widgets de clientes específicos). Permite:</p>
+      <ul>
+        <li>Ver todas as leads de um cliente por ordem cronológica</li>
+        <li>Filtrar por cliente widget (site de origem)</li>
+        <li>Consultar preços, rotas e estados de cada pedido</li>
+        <li>Pesquisar por nome, email ou telefone</li>
+      </ul>
+
+      <h3>Widget Clients</h3>
+      <p>Um <strong>widget client</strong> é uma empresa parceira que tem o widget YourBox integrado no seu site. Cada client tem:</p>
+      <ul>
+        <li>Um <strong>clientId</strong> único para identificação</li>
+        <li>Um <strong>secretToken</strong> para autenticação da API de estatísticas</li>
+        <li>Domínios permitidos (<code>allowedOrigins</code>) para restringir de onde aceita leads</li>
+        <li>Personalização visual: cor primária, logotipo, número WhatsApp</li>
+      </ul>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="precos"></span>
+    <div class="section">
+      <h2>Preços e Motor de Cálculo</h2>
+      <p>O motor de preços calcula automaticamente o custo de cada envio com base em múltiplos factores.</p>
+
+      <h3>Como funciona o cálculo</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">fixCityPrice — Preço base por cidade</div><div class="step-desc">Verifica se existe uma tarifa fixa configurada para a combinação origem/destino.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Cálculo por distância</div><div class="step-desc">Se não houver tarifa fixa, calcula distância via Google Maps Distance Matrix e aplica a tarifa por km configurada.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Desconto automático</div><div class="step-desc">Aplica desconto padrão (normalmente 10%) para incentivar conversão.</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><div class="step-title">IVA</div><div class="step-desc">Adiciona IVA (configurável, padrão 23%) ao preço final.</div></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><div class="step-title">Roteamento</div><div class="step-desc">Decide se a lead vai para Bot (automático) ou fica para o Operador tratar manualmente.</div></div></div>
+      </div>
+
+      <h3>Tarifas de Parceiros (Arrasto 24h)</h3>
+      <p>Para serviços de 24 horas, o sistema consulta as tarifas dos parceiros logísticos (ex: MRW, CTT Expresso). Cada tarifa tem:</p>
+      <ul>
+        <li>Escalonamento por peso e dimensões</li>
+        <li>Suplementos (ilhas, remoto, contra-reembolso)</li>
+        <li>Markup configurável por tarifa ou global</li>
+        <li>Apresentação ordenada no bot (3-5 opções)</li>
+      </ul>
+
+      <h3>Configurações disponíveis</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Configuração</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>Calculadora activa</td><td>Seleccionar qual motor de cálculo está activo</td></tr>
+            <tr><td>Markup global</td><td>Factor de markup aplicado a todas as tarifas parceiro</td></tr>
+            <tr><td>Desconto padrão</td><td>Percentagem de desconto automático (ex: 10%)</td></tr>
+            <tr><td>IVA</td><td>Taxa de IVA a aplicar (ex: 1.23 = 23%)</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="baseIA"></span>
+    <div class="section">
+      <h2>Base IA — Situações de Conhecimento</h2>
+      <p>A Base IA contém as situações que o bot utiliza para responder de forma contextualizada. São 100+ situações organizadas por categoria.</p>
+
+      <h3>Estrutura de uma Situação</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>ID</td><td>Identificador único (ex: SIT-001)</td></tr>
+            <tr><td>Título</td><td>Nome descritivo da situação</td></tr>
+            <tr><td>Categoria</td><td>Tipo (objecção, urgência, preço, reclamação, etc.)</td></tr>
+            <tr><td>Sinais de Detecção</td><td>Padrões de texto que activam esta situação</td></tr>
+            <tr><td>Script de Resposta</td><td>Texto que o bot envia quando detecta a situação</td></tr>
+            <tr><td>Lógica de Decisão</td><td>O que fazer: continuar, escalar, propor alternativa</td></tr>
+            <tr><td>KPI de Sucesso</td><td>Como medir se a situação foi bem tratada</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Exemplos de situações</h3>
+      <ul>
+        <li><strong>SIT-001</strong> — "O choque do preço do direto": cliente acha o preço caro, bot propõe alternativa de parceiro</li>
+        <li><strong>SIT-002</strong> — "A viatura já faz esse trajeto": bot detecta possibilidade de partilha de viatura</li>
+        <li><strong>SIT-015</strong> — Cliente pede factura: bot recolhe NIF e encaminha para BO</li>
+      </ul>
+
+      <div class="callout tip"><div class="callout-icon">💡</div><div>Pode editar qualquer situação directamente na interface. As alterações ficam activas imediatamente sem necessidade de reiniciar o sistema.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="agregacoes"></span>
+    <div class="section">
+      <h2>Agregações</h2>
+      <p>O módulo de Agregações sugere ao operador quando uma viatura YourBox já em rota pode fazer uma recolha adicional no mesmo percurso, poupando custos.</p>
+
+      <h3>Como funciona</h3>
+      <p>Quando uma nova lead é recebida, o sistema analisa automaticamente:</p>
+      <ul>
+        <li>Serviços activos com viatura em movimento</li>
+        <li>Cálculo de desvio (bearing) e tempo adicional</li>
+        <li>Se o desvio for aceitável (&lt; X min), surge uma sugestão no painel</li>
+      </ul>
+
+      <p>O operador vê uma notificação <span class="badge badge-green">Agregação</span> com a viatura sugerida e pode aceitar ou ignorar.</p>
+
+      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O ícone de Agregações na barra lateral fica a piscar a amarelo quando há sugestões pendentes.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="relatorios"></span>
+    <div class="section">
+      <h2>Relatórios</h2>
+      <p>O módulo de Relatórios fornece uma visão analítica da operação, com métricas de leads, conversas e receita.</p>
+
+      <h3>Métricas disponíveis</h3>
+      <ul>
+        <li>Total de leads por período (dia, semana, mês)</li>
+        <li>Taxa de conversão (simulação → lead com contacto)</li>
+        <li>Distribuição por tipo de serviço (direto, arrasto, internacional)</li>
+        <li>Distribuição por urgência (1h, 4h, 24h)</li>
+        <li>Valor médio de lead e receita total estimada</li>
+        <li>Conversas por estado (ativas, escaladas, fechadas, lead registada)</li>
+        <li>Leads por canal de origem (site A, site B, WhatsApp)</li>
+      </ul>
+
+      <h3>Filtros</h3>
+      <ul>
+        <li>Período: mês e ano específico</li>
+        <li>Canal: todos ou canal específico</li>
+        <li>Tipo de serviço</li>
+      </ul>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="widgets"></span>
+    <div class="section">
+      <h2>Widgets</h2>
+      <p>A aba Widgets permite gerir os formulários de cálculo de preço que podem ser integrados em sites de terceiros.</p>
+
+      <h3>Criar um novo Widget Client</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Aceder a Widgets</div><div class="step-desc">Clicar no ícone Widgets na barra lateral.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Criar novo cliente</div><div class="step-desc">Clicar em <strong>+ Novo Cliente</strong> e preencher: nome, cor primária, logotipo, número WhatsApp, domínios permitidos.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Copiar credenciais</div><div class="step-desc">O sistema gera automaticamente um <code>clientId</code> e um <code>secretToken</code>. Guardar o secretToken — não pode ser recuperado depois.</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><div class="step-title">Integrar no site</div><div class="step-desc">Copiar o código de embed e inserir no site terceiro (ver secção Widget para Sites).</div></div></div>
+      </div>
+
+      <h3>Campos de configuração</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>Nome</td><td>Nome identificativo do cliente (ex: "Farmácia Central")</td></tr>
+            <tr><td>Cor Primária</td><td>Cor do botão e destaques do widget (hex, ex: <code>#bed62f</code>)</td></tr>
+            <tr><td>Cor Escura</td><td>Cor de fundo e texto principal</td></tr>
+            <tr><td>Logo URL</td><td>URL do logotipo a mostrar no widget</td></tr>
+            <tr><td>WhatsApp</td><td>Número para onde o bot envia confirmações</td></tr>
+            <tr><td>Nome do Bot</td><td>Nome que aparece nas mensagens automáticas</td></tr>
+            <tr><td>Domínios Permitidos</td><td>Lista de domínios autorizados (ex: <code>farmaciacentral.pt</code>)</td></tr>
+            <tr><td>Webhook URL</td><td>URL para receber notificações de novas leads (opcional)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Regenerar Token</h3>
+      <p>Se o <code>secretToken</code> for comprometido, pode regenerar um novo na edição do cliente. O token anterior fica imediatamente inválido.</p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="config"></span>
+    <div class="section">
+      <h2>Configuração e Perfil</h2>
+      <h3>Configurações de Roteamento</h3>
+      <p>Em <strong>Perfil → Configurações</strong> o administrador controla o comportamento do sistema:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Configuração</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>Sistema Activo</td><td>Liga/desliga todo o processamento automático de leads</td></tr>
+            <tr><td>Sempre Bot</td><td>Força todas as leads para o bot (ignora horários)</td></tr>
+            <tr><td>Horário Auto</td><td>Horas em que o bot está activo (ex: 8h-20h)</td></tr>
+            <tr><td>Incluir Fins-de-Semana</td><td>Se o bot responde também aos fins de semana</td></tr>
+            <tr><td>Delay antes do Bot</td><td>Minutos de espera antes de o bot assumir uma lead</td></tr>
+            <tr><td>Recolher Moradas Completas</td><td>Se o bot pede a morada completa para agendamento</td></tr>
+            <tr><td>Pagamento Activo</td><td>Se o fluxo de pagamento está activo no bot</td></tr>
+            <tr><td>Provider de Pagamento</td><td>Stripe / MB Way Ifthenpay / Pay By Link</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- INTEGRAÇÕES -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="widget-embed"></span>
+    <div class="section">
+      <h2>Widget para Sites Externos</h2>
+      <p>O widget YourBox pode ser integrado em qualquer site HTML com uma única linha de código.</p>
+
+      <h3>Código de integração</h3>
+      <p>Inserir antes do fecho do <code>&lt;body&gt;</code>:</p>
+      <div class="callout info" style="font-family: monospace; font-size: 0.83rem;">
+        <div>&lt;script src="https://leads.comgo.pt/embed.js"<br>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;data-ybw-client="<strong>SEU_CLIENT_ID</strong>"&gt;&lt;/script&gt;</div>
+      </div>
+
+      <h3>Atributos opcionais</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Atributo</th><th>Padrão</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td><code>data-ybw-client</code></td><td>—</td><td><strong>Obrigatório.</strong> Client ID fornecido no dashboard.</td></tr>
+            <tr><td><code>data-ybw-base</code></td><td><code>https://leads.comgo.pt</code></td><td>URL base (para ambientes de staging).</td></tr>
+            <tr><td><code>data-ybw-width</code></td><td><code>100%</code></td><td>Largura do widget no layout.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Funcionalidades do Widget</h3>
+      <ul>
+        <li>Formulário de 2 passos: dados do envio → dados do contacto</li>
+        <li>Geolocalização GPS nos campos de origem/destino</li>
+        <li>Calculadora de preço em tempo real</li>
+        <li>Chat com bot IA integrado após submissão</li>
+        <li>Personalização visual via configuração do cliente no dashboard</li>
+      </ul>
+
+      <div class="callout warn"><div class="callout-icon">⚠️</div><div>O domínio onde o widget está instalado deve constar na lista <strong>Domínios Permitidos</strong> do cliente no dashboard. Caso contrário, o widget não carrega.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="api-stats"></span>
+    <div class="section">
+      <h2>API de Estatísticas</h2>
+      <p>Clientes com widget podem consultar as suas estatísticas programaticamente através da API REST.</p>
+
+      <h3>Endpoint</h3>
+      <div class="callout info" style="font-family: monospace; font-size: 0.85rem;">
+        <div>GET https://leads.comgo.pt/api/v1/stats?month=5&amp;year=2026</div>
+      </div>
+
+      <h3>Autenticação</h3>
+      <p>Usar o cabeçalho <code>Authorization: Bearer &lt;secretToken&gt;</code> com o token do cliente.</p>
+
+      <h3>Parâmetros</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Parâmetro</th><th>Tipo</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td>month</td><td>int (1-12)</td><td>Mês pretendido (padrão: mês actual)</td></tr>
+            <tr><td>year</td><td>int</td><td>Ano pretendido (padrão: ano actual)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Resposta (resumo)</h3>
+      <ul>
+        <li><strong>summary.leads</strong> — total, com preço, valor total, média</li>
+        <li><strong>summary.conversations</strong> — total, ativas, escaladas, lead registada, fechadas</li>
+        <li><strong>summary.byServiceType</strong> — distribuição direto / arrasto / internacional</li>
+        <li><strong>leads[]</strong> — lista completa de leads do período</li>
+        <li><strong>conversations[]</strong> — lista completa de conversas do período</li>
+      </ul>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="pagamentos"></span>
+    <div class="section">
+      <h2>Pagamentos</h2>
+      <p>Quando o pagamento está activo na configuração, o bot solicita o pagamento antes de registar a lead definitivamente.</p>
+
+      <h3>Providers Disponíveis</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Provider</th><th>Métodos</th><th>Experiência</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Pay By Link</strong> (Ifthenpay)</td><td>MB Way, Multibanco, Cartão</td><td>Cliente recebe link, escolhe método. Expira em 24h.</td></tr>
+            <tr><td><strong>MB Way Directo</strong> (Ifthenpay)</td><td>MB Way</td><td>Push directo para a app MB Way do cliente.</td></tr>
+            <tr><td><strong>Stripe</strong></td><td>MB Way</td><td>Processamento via Stripe Payment Intents.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Fluxo de pagamento</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Bot apresenta preço</div><div class="step-desc">Cliente aceita o preço apresentado.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Pedido de pagamento</div><div class="step-desc">Bot envia link de pagamento (Pay By Link) ou solicita número MB Way.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Confirmação</div><div class="step-desc">Sistema aguarda callback do provider confirmando pagamento.</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><div class="step-title">Lead registada</div><div class="step-desc">Após confirmação, lead é marcada como LEAD_REGISTERED e operador é notificado.</div></div></div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- REFERÊNCIA -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="bot-estados"></span>
+    <div class="section">
+      <h2>Estados do Bot — Referência Completa</h2>
+      <p>O bot percorre uma sequência de estados para recolher informação e calcular o preço:</p>
+
+      <h3>Fluxo principal</h3>
+      <div class="states">
+        <span class="state-pill">INIT</span>
+        <span class="state-pill">COLLECTING_ORIGEM</span>
+        <span class="state-pill">COLLECTING_DESTINO</span>
+        <span class="state-pill">COLLECTING_VIATURA</span>
+        <span class="state-pill">COLLECTING_URGENCIA</span>
+      </div>
+
+      <h3>Fluxo direto (1h / 4h)</h3>
+      <div class="states">
+        <span class="state-pill">CALCULATING_PRICE</span>
+        <span class="state-pill">PRESENTING_PRICE</span>
+        <span class="state-pill">HANDLING_OBJECTION</span>
+      </div>
+
+      <h3>Fluxo arrasto (24h)</h3>
+      <div class="states">
+        <span class="state-pill">COLLECTING_WEIGHT</span>
+        <span class="state-pill">COLLECTING_VOLUMES</span>
+        <span class="state-pill">PRESENTING_PARTNER_PRICE</span>
+      </div>
+
+      <h3>Recolha de contacto</h3>
+      <div class="states">
+        <span class="state-pill">COLLECTING_NOME</span>
+        <span class="state-pill">COLLECTING_EMAIL</span>
+        <span class="state-pill">COLLECTING_NOTAS</span>
+      </div>
+
+      <h3>Recolha de moradas completas (opcional)</h3>
+      <div class="states">
+        <span class="state-pill">COLLECTING_ORIGEM_COMPLETA</span>
+        <span class="state-pill">CONFIRMING_ORIGEM_COMPLETA</span>
+        <span class="state-pill">COLLECTING_DESTINO_COMPLETA</span>
+        <span class="state-pill">CONFIRMING_DESTINO_COMPLETA</span>
+        <span class="state-pill">COLLECTING_DETALHES_RECOLHA</span>
+        <span class="state-pill">COLLECTING_DETALHES_ENTREGA</span>
+      </div>
+
+      <h3>Pagamento</h3>
+      <div class="states">
+        <span class="state-pill">AWAITING_PAYMENT</span>
+      </div>
+
+      <h3>Estados terminais</h3>
+      <div class="states">
+        <span class="state-pill terminal">LEAD_REGISTERED</span>
+        <span class="state-pill escalated">ESCALATED_TO_HUMAN</span>
+        <span class="state-pill escalated">CLOSED</span>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="glossario"></span>
+    <div class="section">
+      <h2>Glossário</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Termo</th><th>Definição</th></tr></thead>
+          <tbody>
+            <tr><td>Lead</td><td>Pedido de cotação de transporte recebido na plataforma</td></tr>
+            <tr><td>Simulação</td><td>Cálculo de preço sem dados de contacto</td></tr>
+            <tr><td>Direto</td><td>Serviço YourBox de 1h ou 4h (viatura própria)</td></tr>
+            <tr><td>Arrasto</td><td>Serviço via parceiro logístico (24h+)</td></tr>
+            <tr><td>Escalamento</td><td>Conversa transferida do bot para operador humano</td></tr>
+            <tr><td>Agregação</td><td>Partilha de viatura em rota com nova recolha</td></tr>
+            <tr><td>Widget Client</td><td>Empresa parceira com formulário YourBox no seu site</td></tr>
+            <tr><td>secretToken</td><td>Chave de autenticação da API de estatísticas do cliente</td></tr>
+            <tr><td>Bot</td><td>Assistente automático que responde por WhatsApp/chat</td></tr>
+            <tr><td>BO</td><td>Back Office — equipa de operadores YourBox</td></tr>
+            <tr><td>Markup</td><td>Margem aplicada sobre tarifas de parceiros</td></tr>
+            <tr><td>fixCityPrice</td><td>Tarifa fixa configurada para um par origem/destino</td></tr>
+            <tr><td>Pay By Link</td><td>Link de pagamento multi-método enviado ao cliente</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="atalhos"></span>
+    <div class="section">
+      <h2>Atalhos e Dicas</h2>
+
+      <h3>Dicas de produtividade</h3>
+      <ul>
+        <li>A aba <strong>Inbox</strong> abre por padrão ao iniciar sessão — é o ponto de partida para o dia de trabalho.</li>
+        <li>Conversas <span class="badge badge-red">ESCALATED</span> têm prioridade máxima — o sistema toca alarme sonoro distinto.</li>
+        <li>Use a pesquisa rápida (campo de texto no topo da lista de leads) para encontrar um cliente por telefone.</li>
+        <li>A lead mais recente é automaticamente seleccionada ao abrir a aba Leads.</li>
+        <li>O badge a amarelo nos contadores do sidebar indica o número de alertas pendentes.</li>
+      </ul>
+
+      <h3>Quando o bot falha</h3>
+      <ul>
+        <li>Se o cliente não responde por 24h, a conversa é automaticamente fechada.</li>
+        <li>Se o bot não consegue calcular um preço, escala para humano.</li>
+        <li>Operadores podem retomar qualquer conversa escalada escrevendo directamente no campo de resposta.</li>
+      </ul>
+
+      <h3>Boas práticas ao responder manualmente</h3>
+      <ul>
+        <li>Indicar sempre o nome do operador na primeira mensagem ("Olá João, sou o Pedro da YourBox…")</li>
+        <li>Usar linguagem consistente com o tom do bot (informal, prestável, directo)</li>
+        <li>Registar o resultado da conversa com a acção <strong>Fechar</strong> após resolução</li>
+      </ul>
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <span>YourBox Dashboard — Manual v1.0 — Maio 2026</span>
+      <div style="display: flex; gap: 12px;">
+        <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
+        <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  // Highlight active sidebar link on scroll
+  const anchors = document.querySelectorAll('.section-anchor');
+  const links   = document.querySelectorAll('.sidebar a');
+  function onScroll() {
+    let current = '';
+    anchors.forEach(a => { if (window.scrollY >= a.offsetTop - 100) current = a.id; });
+    links.forEach(l => {
+      l.classList.toggle('active', l.getAttribute('href') === '#' + current);
+    });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>

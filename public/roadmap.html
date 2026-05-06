@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Funcionalidades e Roadmap — YourBox Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:   #1a2332;
+      --navy2:  #0f1724;
+      --cyan:   #00bcd4;
+      --green:  #bed62f;
+      --text:   #1e293b;
+      --muted:  #64748b;
+      --border: #e2e8f0;
+      --bg:     #f8fafc;
+      --white:  #ffffff;
+      --sidebar-w: 260px;
+    }
+
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      color: var(--text); background: var(--bg); line-height: 1.65;
+    }
+
+    /* ── Top bar ── */
+    .topbar {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 200;
+      height: 52px; background: var(--navy2);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px; border-bottom: 1px solid rgba(255,255,255,0.07);
+    }
+    .topbar-brand { display: flex; align-items: center; gap: 10px; color: #fff; font-size: 0.95rem; font-weight: 700; text-decoration: none; }
+    .topbar-brand span { color: var(--cyan); }
+    .topbar-links { display: flex; align-items: center; gap: 8px; }
+    .topbar-link { color: rgba(255,255,255,0.6); font-size: 0.8rem; text-decoration: none; padding: 5px 12px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.12); transition: all 0.2s; }
+    .topbar-link:hover { color: #fff; border-color: var(--cyan); }
+    .topbar-link.back { background: var(--cyan); color: var(--navy2); border-color: var(--cyan); font-weight: 700; }
+    .topbar-link.back:hover { background: #00acc1; }
+
+    /* ── Layout ── */
+    .layout { display: flex; padding-top: 52px; min-height: 100vh; }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      width: var(--sidebar-w); flex-shrink: 0;
+      background: var(--navy);
+      position: fixed; top: 52px; bottom: 0; left: 0;
+      overflow-y: auto; padding: 20px 0 30px;
+      scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.1) transparent;
+    }
+    .sidebar-section { padding: 0 12px; margin-bottom: 6px; }
+    .sidebar-section-title { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; color: rgba(255,255,255,0.3); text-transform: uppercase; padding: 10px 10px 4px; }
+    .sidebar a { display: block; padding: 7px 10px; border-radius: 7px; color: rgba(255,255,255,0.6); font-size: 0.82rem; text-decoration: none; transition: all 0.15s; }
+    .sidebar a:hover { color: #fff; background: rgba(255,255,255,0.06); }
+    .sidebar a.active { color: var(--cyan); background: rgba(0,188,212,0.12); font-weight: 600; }
+
+    /* ── Content ── */
+    .content { margin-left: var(--sidebar-w); flex: 1; padding: 40px 48px 80px; max-width: 960px; }
+
+    .section { margin-bottom: 56px; }
+    .section-anchor { display: block; height: 80px; margin-top: -80px; pointer-events: none; }
+
+    h1 { font-size: 2rem; font-weight: 800; color: var(--navy); margin-bottom: 12px; }
+    h1 span { color: var(--cyan); }
+    h2 { font-size: 1.35rem; font-weight: 700; color: var(--navy); margin: 36px 0 14px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
+    h3 { font-size: 1.05rem; font-weight: 700; color: var(--navy); margin: 24px 0 10px; }
+    p { margin-bottom: 12px; font-size: 0.92rem; }
+    ul, ol { padding-left: 20px; margin-bottom: 12px; }
+    li { font-size: 0.92rem; margin-bottom: 5px; }
+
+    /* ── Hero ── */
+    .hero { background: linear-gradient(135deg, var(--navy) 0%, #1e3a5f 100%); border-radius: 16px; padding: 36px 40px; margin-bottom: 40px; color: #fff; }
+    .hero h1 { color: #fff; margin-bottom: 8px; }
+    .hero p { color: rgba(255,255,255,0.7); font-size: 1rem; margin-bottom: 0; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 6px; background: rgba(0,188,212,0.2); color: var(--cyan); border: 1px solid rgba(0,188,212,0.3); border-radius: 20px; padding: 4px 12px; font-size: 0.75rem; font-weight: 700; margin-bottom: 16px; letter-spacing: 0.04em; }
+
+    /* ── Status badges ── */
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 700; vertical-align: middle; }
+    .badge-done    { background: #ecfccb; color: #3f6212; }
+    .badge-partial { background: #fff7ed; color: #9a3412; }
+    .badge-planned { background: #e0f7fa; color: #006064; }
+    .badge-cyan    { background: #e0f7fa; color: #006064; }
+    .badge-green   { background: #ecfccb; color: #3f6212; }
+    .badge-orange  { background: #fff7ed; color: #9a3412; }
+    .badge-red     { background: #fef2f2; color: #991b1b; }
+    .badge-navy    { background: #e0e7ff; color: #1e1b4b; }
+    .badge-yellow  { background: #fefce8; color: #713f12; }
+
+    /* ── Table ── */
+    .table-wrap { overflow-x: auto; margin: 16px 0; border-radius: 10px; border: 1px solid var(--border); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    th { background: var(--navy); color: #fff; padding: 10px 14px; text-align: left; font-size: 0.76rem; font-weight: 700; }
+    td { padding: 9px 14px; border-bottom: 1px solid var(--border); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #f8fafc; }
+
+    /* ── Feature cards ── */
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; margin: 20px 0; }
+    .feature-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 18px 20px; }
+    .feature-card-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .feature-card-title { font-size: 0.88rem; font-weight: 700; color: var(--navy); }
+    .feature-card-desc { font-size: 0.8rem; color: var(--muted); line-height: 1.45; margin-bottom: 10px; }
+    .feature-card-meta { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Roadmap items ── */
+    .roadmap-item { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 20px 22px; margin-bottom: 16px; }
+    .roadmap-item-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+    .roadmap-item-num { width: 28px; height: 28px; border-radius: 8px; background: var(--navy); color: #fff; font-size: 0.72rem; font-weight: 800; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .roadmap-item-title { font-size: 0.95rem; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .roadmap-item-desc { font-size: 0.83rem; color: var(--muted); line-height: 1.5; }
+    .roadmap-item-badges { display: flex; gap: 6px; flex-wrap: wrap; }
+
+    /* ── Timeline ── */
+    .timeline { margin: 20px 0; }
+    .timeline-quarter { margin-bottom: 28px; }
+    .timeline-quarter-header { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+    .timeline-quarter-label { background: var(--navy); color: #fff; padding: 4px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+    .timeline-quarter-theme { font-size: 0.85rem; color: var(--muted); font-style: italic; }
+    .timeline-items { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 14px; border-left: 2px solid var(--border); }
+    .timeline-pill { background: var(--white); border: 1px solid var(--border); border-radius: 8px; padding: 6px 12px; font-size: 0.8rem; font-weight: 600; color: var(--text); }
+    .timeline-pill.high { border-color: #00bcd4; color: #006064; background: #e0f7fa; }
+    .timeline-pill.medium { border-color: #f59e0b; color: #78350f; background: #fffbeb; }
+
+    /* ── Callout ── */
+    .callout { border-radius: 10px; padding: 14px 18px; margin: 16px 0; font-size: 0.88rem; display: flex; gap: 12px; align-items: flex-start; }
+    .callout.info { background: #e0f7fa; border-left: 4px solid var(--cyan); color: #006064; }
+    .callout.tip  { background: #f0fdf4; border-left: 4px solid #22c55e; color: #14532d; }
+
+    /* ── Summary stats ── */
+    .stats-row { display: flex; flex-wrap: wrap; gap: 12px; margin: 20px 0; }
+    .stat-box { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; flex: 1; min-width: 120px; text-align: center; }
+    .stat-box-value { font-size: 1.8rem; font-weight: 800; color: var(--cyan); display: block; }
+    .stat-box-label { font-size: 0.75rem; color: var(--muted); margin-top: 2px; }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 40px 0; }
+    code { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 5px; padding: 2px 6px; font-size: 0.8rem; font-family: monospace; color: #0f766e; }
+
+    .doc-footer { margin-top: 60px; padding-top: 24px; border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; font-size: 0.8rem; color: var(--muted); }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .content { margin-left: 0; padding: 24px 20px 60px; }
+      .hero { padding: 24px 20px; }
+    }
+    @media print {
+      .topbar, .sidebar { display: none; }
+      .content { margin-left: 0; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<header class="topbar">
+  <a class="topbar-brand" href="/dashboard">YourBox <span>Roadmap</span></a>
+  <div class="topbar-links">
+    <a class="topbar-link" href="/manual.html" target="_blank">Manual</a>
+    <a class="topbar-link back" href="/dashboard">← Voltar à App</a>
+  </div>
+</header>
+
+<nav class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Visão Geral</div>
+    <a href="#resumo">Resumo Executivo</a>
+    <a href="#stack">Stack Técnica</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Funcionalidades Actuais</div>
+    <a href="#feat-auth">Autenticação</a>
+    <a href="#feat-leads">Gestão de Leads</a>
+    <a href="#feat-conversas">Conversas / Bot</a>
+    <a href="#feat-precos">Motor de Preços</a>
+    <a href="#feat-widgets">Widgets e Embed</a>
+    <a href="#feat-pagamentos">Pagamentos</a>
+    <a href="#feat-api">API Pública</a>
+    <a href="#feat-ui">Dashboard e UI</a>
+    <a href="#feat-infra">Infraestrutura</a>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-section-title">Roadmap</div>
+    <a href="#roadmap-prioridade">Por Prioridade</a>
+    <a href="#roadmap-timeline">Timeline</a>
+    <a href="#roadmap-detalhes">Detalhe das Features</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <main class="content">
+
+    <div class="hero">
+      <div class="hero-badge">ANÁLISE E ROADMAP — MAIO 2026</div>
+      <h1>Funcionalidades <span>YourBox</span></h1>
+      <p>Mapa completo do que está implementado e o plano de desenvolvimento futuro da plataforma.</p>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="resumo"></span>
+    <div class="section">
+      <h2>Resumo Executivo</h2>
+      <div class="stats-row">
+        <div class="stat-box"><span class="stat-box-value">9</span><div class="stat-box-label">Módulos activos</div></div>
+        <div class="stat-box"><span class="stat-box-value">20+</span><div class="stat-box-label">Estados do bot</div></div>
+        <div class="stat-box"><span class="stat-box-value">100</span><div class="stat-box-label">Situações de IA</div></div>
+        <div class="stat-box"><span class="stat-box-value">3</span><div class="stat-box-label">Providers pagamento</div></div>
+        <div class="stat-box"><span class="stat-box-value">20</span><div class="stat-box-label">Features planeadas</div></div>
+      </div>
+
+      <p>A plataforma YourBox Dashboard é uma solução sofisticada e madura para gestão de operações de entregas urgentes. Cobre o ciclo completo: <strong>captação de lead → cálculo automático → bot IA → pagamento → registo</strong>. A infraestrutura está preparada para crescimento, com pontos de integração já configurados para WhatsApp Business, pagamentos múltiplos e API pública.</p>
+
+      <div class="callout tip"><div>Os itens de maior impacto imediato são: activação do webhook WhatsApp (70% da infra já existe), add-ons de serviço (aumento direto de margem) e testes automatizados (segurança no motor de preços).</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="stack"></span>
+    <div class="section">
+      <h2>Stack Técnica</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Camada</th><th>Tecnologia</th><th>Versão</th></tr></thead>
+          <tbody>
+            <tr><td>Framework</td><td>Next.js (App Router)</td><td>16.2.4</td></tr>
+            <tr><td>Base de dados</td><td>MongoDB (driver nativo)</td><td>3.7.4</td></tr>
+            <tr><td>Estilos</td><td>Tailwind CSS</td><td>4</td></tr>
+            <tr><td>Autenticação</td><td>NextAuth.js</td><td>4.24.14</td></tr>
+            <tr><td>IA / LLM</td><td>Anthropic Claude SDK</td><td>0.90+</td></tr>
+            <tr><td>Pagamentos</td><td>Stripe + Ifthenpay</td><td>22.0.2 / REST</td></tr>
+            <tr><td>Email</td><td>Resend</td><td>6.12.2</td></tr>
+            <tr><td>Mapas</td><td>Google Maps API</td><td>REST + JS SDK</td></tr>
+            <tr><td>WhatsApp</td><td>Evolution API</td><td>Configurado</td></tr>
+            <tr><td>Deploy</td><td>Docker + NodeChef</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- FUNCIONALIDADES ACTUAIS -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+
+    <span class="section-anchor" id="feat-auth"></span>
+    <div class="section">
+      <h2>1. Autenticação e Utilizadores <span class="badge badge-done">Completo</span></h2>
+      <ul>
+        <li>NextAuth.js com estratégia JWT</li>
+        <li>Login por email/password com bcrypt</li>
+        <li>3 perfis: <code>administrator</code>, <code>Operator</code>, <code>commissionOperator</code></li>
+        <li>Colecção <code>dashboardUsers</code> no MongoDB</li>
+      </ul>
+    </div>
+
+    <span class="section-anchor" id="feat-leads"></span>
+    <div class="section">
+      <h2>2. Gestão de Leads <span class="badge badge-done">Completo</span></h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">3 Tipos de Lead</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">preLeadSimulation (sem contacto), newLead (com contacto), clientSimulation (widget variante).</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Motor de Preços</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">fixCityPrice → cálculo distância → desconto → IVA → roteamento AUTO/MANUAL.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Dashboard em Tempo Real</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Polling automático, filtros por tipo/data, pesquisa, paginação (20/página).</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Detalhe Completo</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Contacto, rota, distância, preço calculado, desconto, canal de origem.</div>
+        </div>
+      </div>
+      <p><strong>Endpoints principais:</strong> <code>GET /api/leads</code>, <code>GET /api/leads/counts</code>, <code>POST /api/price</code></p>
+    </div>
+
+    <span class="section-anchor" id="feat-conversas"></span>
+    <div class="section">
+      <h2>3. Conversas e Bot IA <span class="badge badge-done">Completo</span></h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Máquina de Estados</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">20+ estados desde INIT até LEAD_REGISTERED. Dois fluxos: direto (1h/4h) e arrasto (24h).</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">100 Situações IA</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Base de conhecimento editável. Matching por regex. Respostas dinâmicas com quick replies.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Escalamento Automático</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Detecta objecção repetida, price shock, carga acima de limites. Email ao BO via Resend.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Parse LLM</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Parse de morada completa com Anthropic Claude. Confirmação ao cliente antes de prosseguir.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Sugestão de Agregação</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Ao receber destino, analisa viaturas em rota. Sugere partilha se desvio for aceitável.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Pré-preenchimento</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Mensagem da landing page pre-seed a conversa (origem|destino|viatura|urgencia|nome|email).</div>
+        </div>
+      </div>
+    </div>
+
+    <span class="section-anchor" id="feat-precos"></span>
+    <div class="section">
+      <h2>4. Motor de Preços <span class="badge badge-done">Completo</span></h2>
+      <ul>
+        <li>Colecção <code>calculators</code>: polígonos, tarifas, comissões por calculadora</li>
+        <li>Tarifas de parceiros (<code>partnerTariffs</code>): escalonamento peso/dimensões, suplementos, markup</li>
+        <li>Colecção <code>pCodes</code>: cache de código postal → coordenadas</li>
+        <li>Roteamento configurável: manual/auto, horários, fins-de-semana</li>
+        <li><code>routingConfig</code>: 15+ parâmetros de controlo do sistema</li>
+      </ul>
+    </div>
+
+    <span class="section-anchor" id="feat-widgets"></span>
+    <div class="section">
+      <h2>5. Widgets e Embed <span class="badge badge-done">Completo</span></h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">widget.html</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Formulário standalone com geolocalização GPS, chat bot integrado, personalização por cliente.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">embed.js</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Script de 1 linha para integração em sites terceiros. Suporta permissão de geolocalização.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">index-chat-b.html</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">Landing page completa: hero, form progressivo, plataforma, como funciona, CTA, footer.</div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-card-top"><div class="feature-card-title">Config Remota</div><span class="badge badge-done">✓</span></div>
+          <div class="feature-card-desc">GET /api/widget-config/[clientId]: cores, logo, whatsapp, origens permitidas.</div>
+        </div>
+      </div>
+    </div>
+
+    <span class="section-anchor" id="feat-pagamentos"></span>
+    <div class="section">
+      <h2>6. Pagamentos <span class="badge badge-done">Completo (3 providers)</span></h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Provider</th><th>Métodos</th><th>Mecanismo</th><th>Estado</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Ifthenpay Pay By Link</strong></td><td>MB Way, Multibanco, Cartão</td><td>Link com expiração 24h</td><td><span class="badge badge-done">Activo</span></td></tr>
+            <tr><td><strong>Ifthenpay MB Way</strong></td><td>MB Way</td><td>Push directo para app</td><td><span class="badge badge-done">Activo</span></td></tr>
+            <tr><td><strong>Stripe</strong></td><td>MB Way</td><td>Payment Intents + Webhook</td><td><span class="badge badge-done">Activo</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <span class="section-anchor" id="feat-api"></span>
+    <div class="section">
+      <h2>7. API Pública de Estatísticas <span class="badge badge-done">Completo</span></h2>
+      <p>Endpoint <code>GET /api/v1/stats</code> com autenticação Bearer, filtragem por domínio e período. Retorna leads, conversas, valores e distribuição por tipo de serviço. CORS configurado para uso cross-origin.</p>
+    </div>
+
+    <span class="section-anchor" id="feat-ui"></span>
+    <div class="section">
+      <h2>8. Dashboard e Interface <span class="badge badge-partial">Funcional</span></h2>
+      <ul>
+        <li>9 abas: Inbox, Leads, Clientes, Serviços, Preços, Base IA, Agregações, Relatórios, Widgets</li>
+        <li>Notificações em tempo real com polling (nova lead, escalamento, agregação)</li>
+        <li>Controlo de som (3 alertas) e notificações por voz TTS</li>
+        <li>Layout responsivo (sidebar desktop / bottom nav mobile)</li>
+        <li>Design tokens: CYAN <code>#00bcd4</code>, NAVY <code>#1a2332</code>, YB_GREEN <code>#bed62f</code></li>
+      </ul>
+    </div>
+
+    <span class="section-anchor" id="feat-infra"></span>
+    <div class="section">
+      <h2>9. Infraestrutura <span class="badge badge-done">Sólido</span></h2>
+      <ul>
+        <li>MongoDB nativo sem Mongoose (driver 3.7.4)</li>
+        <li>Reconnect automático com ping health-check</li>
+        <li>Cache de MongoClient global (suporta module reloads)</li>
+        <li>Deploy via Docker com multi-stage build</li>
+        <li>Variáveis de ambiente: MongoDB, Google Maps, Stripe, Ifthenpay, Resend, Anthropic</li>
+        <li>WhatsApp via Evolution API (campos configurados, webhook pendente de activação)</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- ROADMAP -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+
+    <span class="section-anchor" id="roadmap-prioridade"></span>
+    <div class="section">
+      <h2>Roadmap — Por Prioridade</h2>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Funcionalidade</th><th>Complexidade</th><th>Impacto</th><th>Prioridade</th></tr></thead>
+          <tbody>
+            <tr><td>1</td><td>WhatsApp Webhook (completar Evolution)</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>2</td><td>Rastreamento Tempo Real do Serviço</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>3</td><td>Testes Automatizados</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>4</td><td>Add-ons de Serviço (embalagem, seguro, SMS)</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-red">Alto (+20% margem)</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>5</td><td>Custom Pricing Rules (contratos B2B)</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>6</td><td>Driver App Mobile</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-red">Alto (escala ops)</span></td><td><span class="badge badge-red">Alta</span></td></tr>
+            <tr><td>7</td><td>IA Margens Dinâmicas</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>8</td><td>Reputação de Cliente + Desconto</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>9</td><td>Leilão Dinâmico de Leads</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>10</td><td>Bot com Visão IA (foto → peso/dimensões)</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>11</td><td>Integração Contabilidade (Moloni)</td><td><span class="badge badge-red">Média-Alta</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>12</td><td>Programa de Referência</td><td><span class="badge badge-green">Baixa-Média</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-orange">Média</span></td></tr>
+            <tr><td>13</td><td>Full-Text Search Conversas</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>14</td><td>Feedback Pós-Entrega (rating)</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>15</td><td>Analytics Avançado (cohort, churn)</td><td><span class="badge badge-red">Alta</span></td><td><span class="badge badge-red">Alto</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>16</td><td>Internacionalização PT/EN/ES</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>17</td><td>API Docs Pública (Swagger/OpenAPI)</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>18</td><td>SSO Google/Azure AD</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-navy">Baixo</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>19</td><td>Status Page Pública</td><td><span class="badge badge-green">Baixa</span></td><td><span class="badge badge-navy">Baixo</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+            <tr><td>20</td><td>Middleware sync Meteor ↔ Next.js</td><td><span class="badge badge-orange">Média</span></td><td><span class="badge badge-orange">Médio</span></td><td><span class="badge badge-navy">Baixa</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="roadmap-timeline"></span>
+    <div class="section">
+      <h2>Timeline Sugerida</h2>
+      <div class="timeline">
+        <div class="timeline-quarter">
+          <div class="timeline-quarter-header">
+            <span class="timeline-quarter-label">Q3 2025</span>
+            <span class="timeline-quarter-theme">Fundação operacional</span>
+          </div>
+          <div class="timeline-items">
+            <span class="timeline-pill high">WhatsApp Webhook</span>
+            <span class="timeline-pill high">Testes Automatizados</span>
+            <span class="timeline-pill high">Add-ons de Serviço</span>
+          </div>
+        </div>
+        <div class="timeline-quarter">
+          <div class="timeline-quarter-header">
+            <span class="timeline-quarter-label">Q4 2025</span>
+            <span class="timeline-quarter-theme">Crescimento de receita</span>
+          </div>
+          <div class="timeline-items">
+            <span class="timeline-pill high">Custom Pricing Rules</span>
+            <span class="timeline-pill high">Rastreamento Tempo Real</span>
+            <span class="timeline-pill medium">Feedback Pós-Entrega</span>
+          </div>
+        </div>
+        <div class="timeline-quarter">
+          <div class="timeline-quarter-header">
+            <span class="timeline-quarter-label">Q1 2026</span>
+            <span class="timeline-quarter-theme">Escala operacional</span>
+          </div>
+          <div class="timeline-items">
+            <span class="timeline-pill high">Driver App Mobile</span>
+            <span class="timeline-pill medium">IA Margens Dinâmicas</span>
+            <span class="timeline-pill medium">Reputação de Cliente</span>
+          </div>
+        </div>
+        <div class="timeline-quarter">
+          <div class="timeline-quarter-header">
+            <span class="timeline-quarter-label">Q2 2026</span>
+            <span class="timeline-quarter-theme">Compliance e expansão</span>
+          </div>
+          <div class="timeline-items">
+            <span class="timeline-pill medium">Integração Contabilidade</span>
+            <span class="timeline-pill medium">Internacionalização EN/ES</span>
+            <span class="timeline-pill medium">Analytics Avançado</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="roadmap-detalhes"></span>
+    <div class="section">
+      <h2>Detalhe das Features Planeadas</h2>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">1</div><div class="roadmap-item-title">WhatsApp Webhook — Completar Integração Evolution</div></div>
+            <div class="roadmap-item-desc">A infra está 70% pronta: campos <code>evolutionApiUrl</code>, <code>evolutionApiKey</code>, <code>evolutionInstance</code> já configurados. Falta activar o webhook de entrada para processar mensagens recebidas no bot. Suportar: texto, imagem, localização, documento. Enviar templates HSM aprovados Meta.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">2</div><div class="roadmap-item-title">Rastreamento em Tempo Real do Serviço</div></div>
+            <div class="roadmap-item-desc">Página pública (sem login) onde o cliente acompanha a sua encomenda. Input: referência ou telefone. Mostra: localização GPS do driver em mapa, ETA, histórico de estados (recolhido → em transporte → entregue). Notificação WhatsApp/SMS quando driver se aproxima (10 min). Reduz contactos ao BO.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">3</div><div class="roadmap-item-title">Add-ons de Serviço</div></div>
+            <div class="roadmap-item-desc">Bot oferece serviços complementares após apresentar preço: embalagem (+3€), seguro para eletrónicos (+20€), SMS premium (+1€), agendamento de recolha (+2€). Colecção <code>addOns</code> editável no dashboard. Novo step <code>OFFERING_ADDONS</code>. Estimativa: +20% margem por lead.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">4</div><div class="roadmap-item-title">Custom Pricing Rules</div></div>
+            <div class="roadmap-item-desc">BO define regras de preço customizadas: "se cliente = ABC, +20% markup"; "se hora &gt; 20h, +15% emergency surcharge"; "segunda-feira -5%". Colecção <code>pricingRules</code> com editor visual no dashboard. Aplicação automática em <code>/api/price</code>. Suporta contratos B2B e promoções sazonais.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">5</div><div class="roadmap-item-title">Driver App Mobile</div></div>
+            <div class="roadmap-item-desc">App iOS/Android para drivers: recebe serviços atribuídos em tempo real (push), navegação GPS integrada, foto de recolha/entrega com timestamp, assinatura do cliente, offline-first. Sem esta feature a operação não escala além de ~50 leads/dia. Requer mobile dev externo (React Native recomendado).</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-red">Alta</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">6</div><div class="roadmap-item-title">IA Margens Dinâmicas</div></div>
+            <div class="roadmap-item-desc">Algoritmo aprende padrões de leads convertidas vs perdidas. Input: rota, viatura, urgência, hora, reputação cliente. Output: desconto mínimo para fechar (não desconta 10% uniforme). Treino semanal offline. Endpoint de recomendação em tempo real (&lt;200ms).</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-red">Alta</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">7</div><div class="roadmap-item-title">Reputação de Cliente + Desconto Automático</div></div>
+            <div class="roadmap-item-desc">Score 0-100 baseado em histórico: conversões, cumprimento de prazo, valor total, reclamações. Desconto automático 0-15% para clientes com score alto. Badge VIP visível no BO. Job diário recalcula scores. Ciclo virtuoso: cliente fidelizado → mais desconto → mais encomendas.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-green">Baixa</span>
+            <span class="badge badge-orange">Impacto Médio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">8</div><div class="roadmap-item-title">Bot com Visão IA (Análise de Imagem)</div></div>
+            <div class="roadmap-item-desc">Cliente fotografa encomenda via WhatsApp. Claude Vision API detecta: dimensões estimadas, tipo de objecto, categoria de risco (frágil, perigoso). Sugere viatura automaticamente. Melhora acurácia do preço. Anthropic SDK já configurado no projecto.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-orange">Impacto Médio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">9</div><div class="roadmap-item-title">Integração Contabilidade (Moloni)</div></div>
+            <div class="roadmap-item-desc">Cada lead convertida gera fatura automática via Moloni API. Campos: cliente, NIF, origem, destino, preço, viatura, data. Envio PDF por email ao cliente. Exportação semanal de relatório de faturação. Conformidade fiscal PT obrigatória para crescimento.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-red">Média-Alta</span>
+            <span class="badge badge-orange">Impacto Médio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">10</div><div class="roadmap-item-title">Feedback Pós-Entrega</div></div>
+            <div class="roadmap-item-desc">Email automático 7 dias após entrega: "Como correu?" com link para avaliação (1-5 estrelas + comentário). Rating &lt;3 → escalamento automático para BO contactar. Dashboard com filtros por driver, cliente, rota. Alimenta sistema de reputação de cliente (feature #8).</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-green">Baixa</span>
+            <span class="badge badge-orange">Impacto Médio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">11</div><div class="roadmap-item-title">Programa de Referência</div></div>
+            <div class="roadmap-item-desc">Cliente gera código único (ex: JOAO2024AB). Novo cliente usa código → 5% desconto primeira encomenda. Referidor ganha crédito (+3€) por cada referência convertida. Dashboard: código, referidos, crédito acumulado. Aquisição viral com CAC baixo.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-green">Baixa</span>
+            <span class="badge badge-orange">Impacto Médio</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="roadmap-item">
+        <div class="roadmap-item-header">
+          <div>
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;"><div class="roadmap-item-num">12</div><div class="roadmap-item-title">Testes Automatizados</div></div>
+            <div class="roadmap-item-desc">Suite Jest + Playwright para motor de preços, fluxos bot e pagamentos. 20-30 casos críticos: 15 trajectórias Lisboa→Porto (comparação com Meteor), roteamento manual/auto por hora, fluxo INIT→LEAD_REGISTERED, mock Stripe webhook. CI/CD GitHub Actions antes de cada merge.</div>
+          </div>
+          <div class="roadmap-item-badges">
+            <span class="badge badge-orange">Média</span>
+            <span class="badge badge-red">Impacto Alto</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <div class="doc-footer">
+      <span>YourBox Dashboard — Análise e Roadmap — Maio 2026</span>
+      <div style="display: flex; gap: 12px;">
+        <a href="/manual.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Manual</a>
+        <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+  const anchors = document.querySelectorAll('.section-anchor');
+  const links   = document.querySelectorAll('.sidebar a');
+  function onScroll() {
+    let current = '';
+    anchors.forEach(a => { if (window.scrollY >= a.offsetTop - 100) current = a.id; });
+    links.forEach(l => { l.classList.toggle('active', l.getAttribute('href') === '#' + current); });
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+</script>
+</body>
+</html>

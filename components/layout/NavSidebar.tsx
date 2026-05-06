@@ -604,6 +604,46 @@ export default function NavSidebar({
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
         <NavItem id="config" label="Perfil" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
       </div>
+
+      {/* Docs links */}
+      <div style={{ display: 'flex', gap: 4, marginTop: 10, width: '100%', justifyContent: 'center' }}>
+        <a
+          href="/manual.html" target="_blank" rel="noopener noreferrer"
+          title="Manual de Utilizador"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            padding: '6px 4px', borderRadius: 7, textDecoration: 'none',
+            color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600,
+            transition: 'color 0.15s',
+            width: 36,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)'; }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+          Manual
+        </a>
+        <a
+          href="/roadmap.html" target="_blank" rel="noopener noreferrer"
+          title="Roadmap de Desenvolvimento"
+          style={{
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+            padding: '6px 4px', borderRadius: 7, textDecoration: 'none',
+            color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600,
+            transition: 'color 0.15s',
+            width: 36,
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)'; }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+          </svg>
+          Roadmap
+        </a>
+      </div>
     </nav>
   );
 }
