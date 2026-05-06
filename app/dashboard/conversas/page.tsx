@@ -365,6 +365,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                   onChange={(e) => {
                     setCustomDate(e.target.value);
                     setDateFilter('custom');
+                    setFilter('all');
                     setShowDatePopover(false);
                   }}
                   className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
