@@ -451,6 +451,31 @@
       .vehicle-capacity { margin-left: 0.4rem; }
     }
 
+    /* ── Botão GPS nos campos de localização ── */
+    .input-geo-wrap { position: relative; }
+    .input-geo-wrap .form-input { padding-right: 3rem; }
+    .btn-gps {
+      position: absolute;
+      right: 0.75rem;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #bbb;
+      padding: 0.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.2s, background 0.2s;
+      line-height: 1;
+    }
+    .btn-gps:hover { color: var(--primary, var(--green)); background: color-mix(in srgb, var(--primary, var(--green)) 10%, transparent); }
+    .btn-gps svg { width: 18px; height: 18px; }
+    .btn-gps.gps-loading svg { animation: gpspin 1s linear infinite; pointer-events: none; }
+    @keyframes gpspin { to { transform: rotate(360deg); } }
+
     /* ── Mobile header compacto ── */
     @media (max-width: 768px) {
       .header { box-shadow: 0 1px 4px rgba(0,0,0,.08); }
@@ -545,11 +570,21 @@
 
             <div class="form-group">
               <label class="form-label">De onde?</label>
-              <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
+              <div class="input-geo-wrap">
+                <input type="text" class="form-input" id="origem" placeholder="Ex: Lisboa, Av. da Liberdade">
+                <button type="button" class="btn-gps" id="gps-origem" onclick="geolocateField('origem')" title="Usar a minha localização" aria-label="Usar localização GPS">
+                  <i data-lucide="crosshair"></i>
+                </button>
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Para onde?</label>
-              <input type="text" class="form-input" id="destino" placeholder="Ex: Porto, Rua de Santa Catarina">
+              <div class="input-geo-wrap">
+                <input type="text" class="form-input" id="destino" placeholder="Ex: Porto, Rua de Santa Catarina">
+                <button type="button" class="btn-gps" id="gps-destino" onclick="geolocateField('destino')" title="Usar a minha localização" aria-label="Usar localização GPS">
+                  <i data-lucide="crosshair"></i>
+                </button>
+              </div>
             </div>
 
             <div class="form-group">
@@ -1469,6 +1504,61 @@
           scrollToNext(vg ? vg.parentElement : null);
         });
       } catch (e) {}
+    }
+
+    function geolocateField(inputId) {
+      var btn   = document.getElementById('gps-' + inputId);
+      var input = document.getElementById(inputId);
+      if (!btn || !input) return;
+
+      if (!navigator.geolocation) {
+        showGeoToast('Geolocalização não suportada neste browser.');
+        return;
+      }
+
+      btn.classList.add('gps-loading');
+
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          var latLng = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+          try {
+            var geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ location: latLng, region: 'pt' }, function (results, status) {
+              btn.classList.remove('gps-loading');
+              if (status === 'OK' && results && results.length > 0) {
+                var best =
+                  results.find(function (r) { return r.types.includes('street_address') || r.types.includes('premise'); }) ||
+                  results.find(function (r) { return r.types.includes('route'); }) ||
+                  results[0];
+                input.value = best.formatted_address;
+                input.dispatchEvent(new Event('input', { bubbles: true }));
+                input.focus();
+                // re-renderizar lucide no botão (pode ter sido substituído pelo spinner)
+                if (window.lucide) window.lucide.createIcons();
+              } else {
+                showGeoToast('Não foi possível determinar o endereço.');
+              }
+            });
+          } catch (e) {
+            btn.classList.remove('gps-loading');
+            showGeoToast('Erro ao processar localização.');
+          }
+        },
+        function (err) {
+          btn.classList.remove('gps-loading');
+          if (err.code === 1) showGeoToast('Permissão de localização negada. Active nas definições do browser.');
+          else showGeoToast('Não foi possível obter a sua localização.');
+        },
+        { timeout: 10000, maximumAge: 60000 }
+      );
+    }
+
+    function showGeoToast(msg) {
+      var t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:5.5rem;left:50%;transform:translateX(-50%);background:rgba(30,30,30,.92);color:#fff;padding:0.55rem 1.1rem;border-radius:8px;font-size:0.85rem;z-index:9999;white-space:nowrap;box-shadow:0 4px 14px rgba(0,0,0,.25);';
+      document.body.appendChild(t);
+      setTimeout(function () { t.style.opacity = '0'; t.style.transition = 'opacity .4s'; setTimeout(function () { t.remove(); }, 400); }, 3000);
     }
 
     function validarTelefone(val) {
