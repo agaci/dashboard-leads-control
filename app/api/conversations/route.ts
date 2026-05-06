@@ -20,13 +20,13 @@ export async function GET(request: NextRequest) {
       const range: Record<string, Date> = {};
       if (dateFrom) range.$gte = new Date(dateFrom);
       if (dateTo)   range.$lte = new Date(dateTo);
-      filter.updatedAt = range;
+      filter.createdAt = range;
     }
 
     const conversations = await db
       .collection('conversations')
       .find(filter)
-      .sort({ updatedAt: -1 })
+      .sort({ createdAt: -1 })
       .limit(limit)
       .project({ history: { $slice: -1 }, telemovel: 1, canal: 1, step: 1, data: 1, createdAt: 1, updatedAt: 1, escalatedAt: 1, closedAt: 1, leadId: 1 })
       .toArray();

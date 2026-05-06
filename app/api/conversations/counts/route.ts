@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
       const range: Record<string, Date> = {};
       if (dateFrom) range.$gte = new Date(dateFrom);
       if (dateTo)   range.$lte = new Date(dateTo);
-      dateMatch.updatedAt = range;
+      dateMatch.createdAt = range;
     }
 
     const db = await getDb();

@@ -105,7 +105,8 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showDatePopover, setShowDatePopover] = useState(false);
+  const datePopoverRef = useRef<HTMLDivElement>(null);
 
   function buildDateParams(df: 'all' | 'hoje' | 'ontem' | 'semana' | 'custom'): string {
     if (df === 'all') return '';
@@ -137,7 +138,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     const res = await fetch(`/api/conversations/counts${qs}`);
     const data = await res.json();
     if (data.success) setCounts(data.counts);
-  }, [dateFilter]);
+  }, [dateFilter, customDate]);
 
   const fetchList = useCallback(async () => {
     const dateParams = buildDateParams(dateFilter);
@@ -175,6 +176,17 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   }, [selected?._id, selected?.step, fetchSelected]);
 
   useEffect(() => { setLoading(true); }, [filter, dateFilter]);
+
+  useEffect(() => {
+    if (!showDatePopover) return;
+    function handleOutside(e: MouseEvent) {
+      if (datePopoverRef.current && !datePopoverRef.current.contains(e.target as Node)) {
+        setShowDatePopover(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, [showDatePopover]);
 
   // Abrir conversa específica quando vindo do toast de agregação
   useEffect(() => {
@@ -326,27 +338,45 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               </button>
             );
           })}
-          {/* Date picker */}
-          <button
-            onClick={() => { try { (dateInputRef.current as any)?.showPicker(); } catch { dateInputRef.current?.click(); } }}
-            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-              dateFilter === 'custom' ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
-            }`}
-            title={dateFilter === 'custom' && customDate ? customDate : 'Escolher data'}
-          >
-            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-            </svg>
-            {dateFilter === 'custom' && customDate ? customDate.slice(5).replace('-', '/') : 'Data'}
-          </button>
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={customDate}
-            max={new Date().toISOString().slice(0, 10)}
-            onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom'); }}
-            style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: 0, left: 0 }}
-          />
+          {/* Date picker popover */}
+          <div className="relative">
+            <button
+              onClick={() => setShowDatePopover((v) => !v)}
+              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
+                dateFilter === 'custom' ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+              }`}
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+              </svg>
+              {dateFilter === 'custom' && customDate ? customDate.slice(5).replace('-', '/') : 'Data'}
+            </button>
+            {showDatePopover && (
+              <div
+                ref={datePopoverRef}
+                className="absolute left-0 top-full mt-1.5 z-50 w-64 rounded-xl border border-border bg-card shadow-elevated p-4"
+              >
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Escolher data</p>
+                <input
+                  type="date"
+                  value={customDate}
+                  max={new Date().toISOString().slice(0, 10)}
+                  autoFocus
+                  onChange={(e) => {
+                    setCustomDate(e.target.value);
+                    setDateFilter('custom');
+                    setShowDatePopover(false);
+                  }}
+                  className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-ring"
+                />
+                {customDate && (
+                  <p className="mt-2 text-center text-xs text-muted-foreground">
+                    {new Date(customDate + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Lista */}
