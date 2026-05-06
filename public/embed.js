@@ -33,6 +33,7 @@
   iframe.setAttribute('scrolling', 'no');
   iframe.setAttribute('allowtransparency', 'true');
   iframe.setAttribute('frameborder', '0');
+  iframe.setAttribute('allow', 'geolocation');
   iframe.style.cssText = 'width:' + width + ';border:none;display:block;overflow:hidden;transition:height 0.25s ease;';
   iframe.style.height  = '640px'; // fallback before first resize message
 
