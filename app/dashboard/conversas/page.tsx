@@ -105,6 +105,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   function buildDateParams(df: 'all' | 'hoje' | 'ontem' | 'semana' | 'custom'): string {
     if (df === 'all') return '';
@@ -326,8 +327,9 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
             );
           })}
           {/* Date picker */}
-          <label
-            className={`relative inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer ${
+          <button
+            onClick={() => { try { (dateInputRef.current as any)?.showPicker(); } catch { dateInputRef.current?.click(); } }}
+            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
               dateFilter === 'custom' ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
             }`}
             title={dateFilter === 'custom' && customDate ? customDate : 'Escolher data'}
@@ -336,14 +338,15 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
             </svg>
             {dateFilter === 'custom' && customDate ? customDate.slice(5).replace('-', '/') : 'Data'}
-            <input
-              type="date"
-              value={customDate}
-              max={new Date().toISOString().slice(0, 10)}
-              onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom'); }}
-              style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', top: 0, left: 0, cursor: 'pointer' }}
-            />
-          </label>
+          </button>
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={customDate}
+            max={new Date().toISOString().slice(0, 10)}
+            onChange={(e) => { setCustomDate(e.target.value); setDateFilter('custom'); }}
+            style={{ position: 'fixed', opacity: 0, pointerEvents: 'none', width: 0, height: 0, top: 0, left: 0 }}
+          />
         </div>
 
         {/* Lista */}
