@@ -131,9 +131,9 @@ export async function POST(request: NextRequest) {
     if (!cfg.systemActive) return silentResponse;
 
     if (!cfg.alwaysBot) {
-      const now = new Date();
-      const hour = now.getHours();
-      const day = now.getDay();
+      const pt  = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+      const hour = pt.getHours();
+      const day  = pt.getDay();
       if ((day === 0 || day === 6) && !cfg.autoWeekends) return silentResponse;
       if (hour < cfg.autoStartHour || hour >= cfg.autoEndHour) return silentResponse;
     }

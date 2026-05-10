@@ -27,8 +27,10 @@ export function decideMode(
   if (urgencia === '24 Horas') return 'MANUAL';
   if (config.alwaysBot) return 'AUTO';
 
-  const hour = now.getHours();
-  const day = now.getDay(); // 0=Dom, 6=Sáb
+  // Hora e dia sempre em Portugal (UTC+0 Inverno / UTC+1 Verão)
+  const pt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const hour = pt.getHours();
+  const day  = pt.getDay(); // 0=Dom, 6=Sáb
   const isWeekend = day === 0 || day === 6;
 
   if (isWeekend && !config.autoWeekends) return 'MANUAL';
@@ -38,8 +40,9 @@ export function decideMode(
 }
 
 export function getResponseTimeText(now: Date): string {
-  const h = now.getHours();
-  const day = now.getDay();
+  const pt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const h   = pt.getHours();
+  const day = pt.getDay();
   const isWeekend = day === 0 || day === 6;
 
   if (!isWeekend && h >= 8 && h < 20)  return '5 minutos';
