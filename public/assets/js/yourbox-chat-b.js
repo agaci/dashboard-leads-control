@@ -121,6 +121,20 @@
     if (btn) btn.disabled = disabled;
   }
 
+  // Banner informativo sem desativar o input (para LIVE_CHAT)
+  function showLiveChatBanner() {
+    const existing = document.getElementById('ybLiveBanner');
+    if (existing) return;
+    const area = document.getElementById('ybChatMessages');
+    if (!area) return;
+    const banner = document.createElement('div');
+    banner.id = 'ybLiveBanner';
+    banner.className = 'yb-live-banner';
+    banner.textContent = 'A aguardar operador — um agente vai responder em breve.';
+    area.appendChild(banner);
+    area.scrollTop = area.scrollHeight;
+  }
+
   function showFinalState(step) {
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
     const footer = document.getElementById('ybChatFooter');
@@ -164,6 +178,9 @@
 
     const done = ['LEAD_REGISTERED', 'CLOSED', 'ESCALATED_TO_HUMAN'];
     if (done.includes(step)) { showFinalState(step); return; }
+
+    // LIVE_CHAT — operador humano em tempo real, input mantém-se ativo
+    if (step === 'LIVE_CHAT') { showLiveChatBanner(); return; }
 
     // AWAITING_PAYMENT — chat fica aberto, utilizador pode acompanhar
     if (step === 'AWAITING_PAYMENT') {
@@ -260,6 +277,10 @@
         appendBubbleTyped(data.message, function () {
           handleNewStep(data.step, data.quickReplies || []);
         });
+      } else if (data.step === 'LIVE_CHAT') {
+        // Sem resposta automática — operador humano vai responder via polling
+        chatState.lastMsgCount += 1;
+        handleNewStep(data.step, []);
       } else {
         handleNewStep(data.step, data.quickReplies || []);
       }
