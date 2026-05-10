@@ -16,6 +16,7 @@ type ConvStep =
   | 'COLLECTING_DESTINO_COMPLETA' | 'CONFIRMING_DESTINO_COMPLETA'
   | 'COLLECTING_DETALHES_RECOLHA' | 'COLLECTING_DETALHES_ENTREGA'
   | 'AWAITING_PAYMENT'
+  | 'LIVE_CHAT'
   | 'LEAD_REGISTERED' | 'ESCALATED_TO_HUMAN' | 'CLOSED';
 
 type Message = {
@@ -75,6 +76,7 @@ const STEP_LABEL: Record<ConvStep, string> = {
   COLLECTING_DETALHES_RECOLHA: 'Contacto recolha',
   COLLECTING_DETALHES_ENTREGA: 'Contacto entrega',
   AWAITING_PAYMENT: 'A aguardar pagamento',
+  LIVE_CHAT: 'Chat ao vivo',
   LEAD_REGISTERED: 'Lead registada',
   ESCALATED_TO_HUMAN: 'Escalada',
   CLOSED: 'Fechada',
@@ -82,6 +84,7 @@ const STEP_LABEL: Record<ConvStep, string> = {
 
 const STEP_COLOR: Partial<Record<ConvStep, string>> = {
   AWAITING_PAYMENT: 'bg-yellow-100 text-yellow-700',
+  LIVE_CHAT: 'bg-purple-100 text-purple-700',
   ESCALATED_TO_HUMAN: 'bg-red-100 text-red-700',
   LEAD_REGISTERED: 'bg-green-100 text-green-700',
   CLOSED: 'bg-gray-100 text-gray-500',
@@ -89,6 +92,10 @@ const STEP_COLOR: Partial<Record<ConvStep, string>> = {
 
 function stepColor(step: ConvStep) {
   return STEP_COLOR[step] ?? 'bg-blue-100 text-blue-700';
+}
+
+function isRealPhone(tel?: string) {
+  return tel && !tel.startsWith('web_');
 }
 
 export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = false }: { initialConvId?: string; onGoToAgg?: (convId: string) => void; isMobile?: boolean }) {
@@ -434,6 +441,16 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                     <p className="text-xs text-muted-foreground/70 mt-0.5 truncate">
                       {conv.data.origem.split(',')[0]} → {(conv.data.destino ?? '...').split(',')[0]}
                     </p>
+                  )}
+                  {(isRealPhone(conv.data?.telemovel) || conv.data?.email || conv.data?.viatura) && (
+                    <p className="text-[10px] text-muted-foreground/75 mt-0.5 truncate">
+                      {isRealPhone(conv.data?.telemovel) && <span className="mr-2 font-medium">{conv.data.telemovel}</span>}
+                      {conv.data?.viatura && <span className="mr-2">{conv.data.viatura}</span>}
+                      {conv.data?.email && <span>{conv.data.email}</span>}
+                    </p>
+                  )}
+                  {conv.data?.notas && (
+                    <p className="text-[10px] text-muted-foreground/60 mt-0.5 truncate italic">{conv.data.notas}</p>
                   )}
                   {conv.aggHints && conv.aggHints.length > 0 && (
                     <div className="flex items-center gap-1 mt-1.5">
