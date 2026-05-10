@@ -271,6 +271,11 @@
 
     .yb-done { text-align: center; padding: 0.7rem; font-size: 0.82rem; color: #2e7d32; font-weight: 600; width: 100%; margin: 0; }
     .yb-done--escalated { color: #e65100; }
+    .yb-live-banner {
+      text-align: center; padding: 0.45rem 0.9rem; font-size: 0.78rem;
+      color: #666; font-style: italic; background: #f0f0f0;
+      border-radius: 8px; margin: 0.3rem 0;
+    }
 
     @keyframes ybFocusPulse {
       0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--primary) 65%, transparent); }
@@ -782,6 +787,14 @@
         if (inp) inp.disabled = d; if (btn) btn.disabled = d;
       }
 
+      function showLiveChatBanner() {
+        if (document.getElementById('ybLiveBanner')) return;
+        var a = area(); if (!a) return;
+        var el = document.createElement('div'); el.id = 'ybLiveBanner'; el.className = 'yb-live-banner';
+        el.textContent = 'A aguardar operador — um agente vai responder em breve.';
+        a.appendChild(el); a.scrollTop = a.scrollHeight; notifyHeight();
+      }
+
       function showFinal(step) {
         var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';
         var footer = document.getElementById('ybChatFooter');
@@ -801,6 +814,7 @@
         cs.step = step;
         var done = ['LEAD_REGISTERED','CLOSED','ESCALATED_TO_HUMAN'];
         if (done.includes(step)) { showFinal(step); return; }
+        if (step === 'LIVE_CHAT') { showLiveChatBanner(); return; }
         if (step === 'AWAITING_PAYMENT') { var q = document.getElementById('ybQuickReplies'); if (q) q.innerHTML = ''; return; }
         if (step === 'COLLECTING_NOME' && cs.preSeededNome && !cs.autoRespondPending) {
           cs.autoRespondPending = true;
@@ -846,6 +860,7 @@
           var data = await res.json(); removeTyping();
           if (!data.success && data.step) { showFinal(data.step); return; }
           if (data.message) { cs.lastMsgCount += 2; addBubbleTyped(data.message, function(){ handleStep(data.step, data.quickReplies || []); }); }
+          else if (data.step === 'LIVE_CHAT') { cs.lastMsgCount += 1; handleStep(data.step, []); }
           else { handleStep(data.step, data.quickReplies || []); }
         } catch (_) { removeTyping(); addBubble('bot', 'Erro de ligação. Por favor tente novamente.'); }
         finally { cs.sending = false; setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) { inp.value = ''; inp.focus(); } }
