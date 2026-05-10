@@ -374,11 +374,26 @@
       <h3>Lista de conversas</h3>
       <p>No painel esquerdo surgem todas as conversas filtradas por estado. Cada entrada mostra:</p>
       <ul>
-        <li>Nome do cliente (ou número de telemóvel)</li>
+        <li>Nome do cliente (ou código de referência)</li>
         <li>Rota (Origem → Destino)</li>
         <li>Estado atual <span class="badge badge-cyan">ACTIVE</span> <span class="badge badge-orange">ESCALATED</span> <span class="badge badge-green">CLOSED</span></li>
-        <li>Data/hora de início</li>
+        <li>Pré-visualização da última mensagem</li>
+        <li><strong>Telefone real</strong>, tipo de viatura e email — quando fornecidos pelo cliente no formulário</li>
+        <li>Observações do cliente (em itálico), se existirem</li>
       </ul>
+      <p>Esta informação de contacto no card permite ao operador ligar imediatamente ao cliente sem precisar de abrir a conversa.</p>
+
+      <h3>Modos de atendimento</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modo</th><th>Badge</th><th>O que acontece</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Bot activo</strong></td><td><span class="badge badge-cyan">Chat ao vivo</span> não surge</td><td>Bot LLM responde automaticamente e guia o cliente até registar lead</td></tr>
+            <tr><td><strong>Chat ao Vivo</strong><br><small>(Sistema activo: OFF)</small></td><td><span class="badge" style="background:#f3e8ff;color:#7e22ce;">Chat ao vivo</span></td><td>Bot desativado manualmente — cliente escreve livremente, operador responde pela Inbox em tempo real</td></tr>
+            <tr><td><strong>Fora de horário</strong><br><small>(bot off por horário/fim-de-semana)</small></td><td>Badge azul normal</td><td>Bot recolhe nome e telefone, informa horário e destaca o número urgente <strong>214 304 546</strong>. Regista lead automáticamente para follow-up.</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <h3>Detalhe da conversa</h3>
       <p>Clicar numa conversa abre o histórico de mensagens. O operador pode:</p>
@@ -394,15 +409,16 @@
         <table>
           <thead><tr><th>Filtro</th><th>Mostra</th></tr></thead>
           <tbody>
-            <tr><td>Ativas</td><td>Conversas com bot ainda a responder</td></tr>
-            <tr><td>Escaladas</td><td>Conversas que requerem atenção humana</td></tr>
+            <tr><td>Ativas</td><td>Conversas com bot a responder + conversas em Chat ao Vivo</td></tr>
+            <tr><td>Escaladas</td><td>Conversas que requerem atenção humana (bot escalou)</td></tr>
             <tr><td>Fechadas</td><td>Conversas concluídas ou com lead registada</td></tr>
             <tr><td>Todas</td><td>Todas as conversas sem filtro</td></tr>
           </tbody>
         </table>
       </div>
 
-      <div class="callout tip"><div class="callout-icon">💡</div><div><strong>Dica:</strong> conversas com estado <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas antes das restantes.</div></div>
+      <div class="callout tip"><div class="callout-icon">💡</div><div><strong>Dica:</strong> conversas em modo <strong>Chat ao Vivo</strong> (badge roxo) aguardam resposta do operador. O cliente vê o aviso "A aguardar operador" mas o input está habilitado — pode escrever enquanto aguarda. Responda pelo campo de texto no fundo do painel.</div></div>
+      <div class="callout warning" style="margin-top:0.75rem;"><div class="callout-icon">⚠️</div><div>Conversas <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas e as de Chat ao Vivo antes das restantes.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -637,10 +653,10 @@
         <table>
           <thead><tr><th>Configuração</th><th>Descrição</th></tr></thead>
           <tbody>
-            <tr><td>Sistema Activo</td><td>Liga/desliga todo o processamento automático de leads</td></tr>
+            <tr><td><strong>Sistema Activo</strong></td><td>Liga/desliga todo o processamento automático. <strong>OFF</strong> → modo Chat ao Vivo (operador responde manualmente em tempo real, sem bot)</td></tr>
             <tr><td>Sempre Bot</td><td>Força todas as leads para o bot (ignora horários)</td></tr>
-            <tr><td>Horário Auto</td><td>Horas em que o bot está activo (ex: 8h-20h)</td></tr>
-            <tr><td>Incluir Fins-de-Semana</td><td>Se o bot responde também aos fins de semana</td></tr>
+            <tr><td>Horário Auto</td><td>Horas em que o bot está activo (ex: 9h-20h). Fora deste horário o bot recolhe nome e telefone e informa o número urgente <strong>214 304 546</strong></td></tr>
+            <tr><td>Incluir Fins-de-Semana</td><td>Se o bot responde também aos fins de semana. OFF → fora de horas ao fim-de-semana aplica o mesmo fluxo de recolha de contacto</td></tr>
             <tr><td>Delay antes do Bot</td><td>Minutos de espera antes de o bot assumir uma lead</td></tr>
             <tr><td>Recolher Moradas Completas</td><td>Se o bot pede a morada completa para agendamento</td></tr>
             <tr><td>Pagamento Activo</td><td>Se o fluxo de pagamento está activo no bot</td></tr>
@@ -648,6 +664,7 @@
           </tbody>
         </table>
       </div>
+      <div class="callout info" style="margin-top:0.75rem;"><div class="callout-icon">ℹ️</div><div><strong>Sistema Activo vs. fora de horário:</strong> São dois comportamentos distintos. <strong>Sistema OFF</strong> → chat em tempo real, operador responde via Inbox (badge roxo). <strong>Fora de horário</strong> → bot recolhe contacto automaticamente e a equipa faz follow-up no próximo período de atendimento.</div></div>
     </div>
 
     <hr>
@@ -807,6 +824,12 @@
         <span class="state-pill">AWAITING_PAYMENT</span>
       </div>
 
+      <h3>Atendimento manual</h3>
+      <div class="states">
+        <span class="state-pill" style="background:#f3e8ff;color:#7e22ce;">LIVE_CHAT</span>
+      </div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted);">Activo quando <strong>Sistema Activo está OFF</strong>. O bot não responde — operador atende diretamente pela Inbox. O cliente vê "A aguardar operador" e pode continuar a escrever.</p>
+
       <h3>Estados terminais</h3>
       <div class="states">
         <span class="state-pill terminal">LEAD_REGISTERED</span>
@@ -827,6 +850,7 @@
             <tr><td>Simulação</td><td>Cálculo de preço sem dados de contacto</td></tr>
             <tr><td>Direto</td><td>Serviço YourBox de 1h ou 4h (viatura própria)</td></tr>
             <tr><td>Arrasto</td><td>Serviço via parceiro logístico (24h+)</td></tr>
+            <tr><td>Chat ao Vivo</td><td>Modo de atendimento manual em tempo real, ativo quando o sistema automático está desligado (Sistema Activo: OFF)</td></tr>
             <tr><td>Escalamento</td><td>Conversa transferida do bot para operador humano</td></tr>
             <tr><td>Agregação</td><td>Partilha de viatura em rota com nova recolha</td></tr>
             <tr><td>Widget Client</td><td>Empresa parceira com formulário YourBox no seu site</td></tr>
