@@ -25,6 +25,7 @@ export function decideMode(
 ): RoutingDecision {
   if (!config.systemActive) return 'MANUAL';
   if (urgencia === '24 Horas') return 'MANUAL';
+  if (config.alwaysBot) return 'AUTO';
 
   const hour = now.getHours();
   const day = now.getDay(); // 0=Dom, 6=Sáb

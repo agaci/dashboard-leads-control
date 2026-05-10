@@ -365,7 +365,7 @@ export async function GET(request: NextRequest) {
   const priceWithDiscount = priceCalculated - discount;
 
   // Roteamento
-  const routingConfig = (await db.collection('leadRoutingConfig').findOne({})) ?? defaultRoutingConfig;
+  const routingConfig = (await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any })) ?? defaultRoutingConfig;
   const routing = decideMode(routingConfig as any, params.urgencia, new Date());
 
   // ============================================

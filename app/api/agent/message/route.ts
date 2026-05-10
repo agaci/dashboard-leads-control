@@ -121,6 +121,29 @@ export async function POST(request: NextRequest) {
 
     await appendMessage(telemovel, { role: 'lead', text: mensagem, timestamp: new Date() });
 
+    // ── Verificar config de routing ──────────────────────────────────────────
+    const dbCfg = await getDb();
+    const routingDoc = await dbCfg.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+    const cfg = routingDoc ? { ...defaultRoutingConfig, ...routingDoc } : defaultRoutingConfig;
+
+    const silentResponse = Response.json({ success: true, response: '', nextStep: conv.step, quickReplies: [], situacaoId: null, escalate: false });
+
+    if (!cfg.systemActive) return silentResponse;
+
+    if (!cfg.alwaysBot) {
+      const now = new Date();
+      const hour = now.getHours();
+      const day = now.getDay();
+      if ((day === 0 || day === 6) && !cfg.autoWeekends) return silentResponse;
+      if (hour < cfg.autoStartHour || hour >= cfg.autoEndHour) return silentResponse;
+    }
+
+    if (cfg.delayMinutesBeforeBot > 0) {
+      const convCreatedAt = conv.createdAt instanceof Date ? conv.createdAt : new Date((conv as any).createdAt ?? 0);
+      const elapsedMin = (Date.now() - convCreatedAt.getTime()) / 60000;
+      if (elapsedMin < cfg.delayMinutesBeforeBot) return silentResponse;
+    }
+
     // Detectar situação activa
     const sitId = matchSituacao(mensagem, conv.data);
     if (sitId && sitId !== conv.data.activeSituacaoId) {
@@ -129,6 +152,13 @@ export async function POST(request: NextRequest) {
     }
 
     let response = processMessage(conv, mensagem);
+
+    // Se recolherMoradasCompletas desactivado, saltar para registo directo
+    if (!cfg.recolherMoradasCompletas && response.nextStep === 'COLLECTING_ORIGEM_COMPLETA') {
+      await setConversationStep(telemovel, 'COLLECTING_DETALHES_ENTREGA');
+      conv.step = 'COLLECTING_DETALHES_ENTREGA' as any;
+      response = { text: '', nextStep: 'LEAD_REGISTERED' };
+    }
 
     // ── Mensagem pré-preenchida da landing page (botão WhatsApp) ────────────
     if (conv.step === 'INIT') {
