@@ -166,6 +166,21 @@ function buildDynamicBlock(data: ConversationData): string {
    b. **Telefone/telemóvel** (obrigatório)
    c. **Email** (opcional)`;
 
+  // Caso escalado (bot fora de horário): só recolher nome+telefone, sem moradas
+  if ((data as any).isEscalatedCase) {
+    return `## Serviço registado (fora do horário automático)
+- **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
+- **Viatura:** ${data.viatura ?? '?'}
+- **Tipo de serviço:** ${serviceType}
+${contactSection}
+## Objectivo (atendimento fora de horário)
+A equipa YourBox vai contactar manualmente este cliente. O teu papel é apenas recolher o contacto.
+${contactConfirmation}
+Após teres nome e telefone, chamas \`register_lead\` imediatamente — NÃO perguntes moradas, janelas, volumes nem notas.
+Na mensagem final diz: "Obrigado! A nossa equipa vai contactá-lo em breve."
+Se o utilizador recusar dar telefone, usa \`escalate_to_human\`.`;
+  }
+
   return `## Serviço cotado nesta conversa
 - **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
 - **Viatura:** ${data.viatura ?? '?'}

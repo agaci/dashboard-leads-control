@@ -75,7 +75,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     } else if (result.type === 'register_lead') {
-      nextStep = 'LEAD_REGISTERED';
+      const isEscalatedCase = !!(convDoc.data as any).isEscalatedCase;
+      nextStep = isEscalatedCase ? 'ESCALATED_TO_HUMAN' : 'LEAD_REGISTERED';
       leadRegistered = true;
       const nome = result.nome;
       const telefone = result.telefone;
@@ -92,11 +93,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const contactoRecolhaHtml = result.contactoRecolha ? `<p><b>Contacto recolha:</b> ${result.contactoRecolha}</p>` : '';
       const contactoEntregaHtml = result.contactoEntrega ? `<p><b>Contacto entrega:</b> ${result.contactoEntrega}</p>` : '';
       const volumesHtml = result.volumes ? `<p><b>Volumes:</b> ${result.volumes}</p>` : '';
+      const canalLabel = isEscalatedCase ? 'WEB CHAT FORA DE HORÁRIO' : 'WEB CHAT BOT LLM';
 
       await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p><p style="color:green;"><b>CONTACTAR [canal: WEB CHAT BOT LLM]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p>` : ''}<p style="color:${isEscalatedCase ? 'orange' : 'green'};"><b>CONTACTAR [canal: ${canalLabel}]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent Web', variante: 'BOT',
         timeStamp: now, closed: false, closedAt: null, reply: [],
         leadData: {
@@ -113,14 +115,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           contactoRecolha: result.contactoRecolha,
           contactoEntrega: result.contactoEntrega,
           volumes: result.volumes,
-          timeStamp: now, converted: true, source: 'web_chat',
+          timeStamp: now, converted: true,
+          source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
         },
       });
 
-      // Atualizar conversa como fechada
+      // Atualizar conversa
       await db.collection('conversations').updateOne(
         { _id: oid },
-        { $set: { step: 'LEAD_REGISTERED', 'data.nome': nome, 'data.telefone': telefone, 'data.email': email ?? null, updatedAt: now } }
+        { $set: { step: nextStep, 'data.nome': nome, 'data.telefone': telefone, 'data.email': email ?? null, updatedAt: now } }
       );
 
     } else if (result.type === 'close') {

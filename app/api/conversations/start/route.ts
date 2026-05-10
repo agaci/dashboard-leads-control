@@ -41,13 +41,23 @@ export async function POST(request: NextRequest) {
     const routing = decideMode(cfg, urgencia, now);
 
     if (routing === 'MANUAL') {
-      // Criar conversa mas escalar para humano — fica visível no inbox
+      // Fora do horário — recolher nome+telefone antes de escalar para que a equipa possa contactar
+      const botMsg = `Pedido recebido! Estamos fora do horário de atendimento automático mas a nossa equipa entrará em contacto brevemente.\n\nPara agilizarmos o contacto — qual é o seu *nome*?`;
       const escalatedConv = await db.collection('conversations').insertOne({
         telemovel: identifier,
         canal: 'web',
-        step: 'ESCALATED_TO_HUMAN',
-        data: { telemovel: identifier, origem, destino, viatura: viatura || 'Moto', urgencia, serviceType: urgencia === '24 Horas' ? 'arrasto' : 'direto', objectionCount: 0, ...(nome ? { nome } : {}), ...(email ? { email } : {}), ...(source ? { source } : {}) },
-        history: [{ role: 'bot', text: 'Pedido recebido fora do horário de atendimento automático. A nossa equipa vai entrar em contacto brevemente.', timestamp: now }],
+        step: 'COLLECTING_NOME',
+        data: {
+          telemovel: identifier, origem, destino,
+          viatura: viatura || 'Moto', urgencia,
+          serviceType: urgencia === '24 Horas' ? 'arrasto' : 'direto',
+          objectionCount: 0,
+          isEscalatedCase: true,
+          ...(nome ? { nome } : {}),
+          ...(email ? { email } : {}),
+          ...(source ? { source } : {}),
+        },
+        history: [{ role: 'bot', text: botMsg, timestamp: now }],
         escalatedAt: now,
         createdAt: now,
         updatedAt: now,
@@ -55,9 +65,9 @@ export async function POST(request: NextRequest) {
       return Response.json({
         success: true,
         conversationId: escalatedConv.insertedId.toString(),
-        message: 'Pedido recebido! A nossa equipa vai entrar em contacto brevemente. 🕐',
+        message: botMsg,
         quickReplies: [],
-        step: 'ESCALATED_TO_HUMAN',
+        step: 'COLLECTING_NOME',
       });
     }
 
