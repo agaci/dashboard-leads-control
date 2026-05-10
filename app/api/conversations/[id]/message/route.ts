@@ -28,6 +28,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return Response.json({ error: 'Conversa encerrada', step: convDoc.step }, { status: 409 });
     }
 
+    // Chat em tempo real com operador: guardar mensagem, sem resposta automática
+    if (convDoc.step === 'LIVE_CHAT') {
+      const history = convDoc.history ?? [];
+      history.push({ role: 'lead', text: text.trim(), timestamp: new Date() });
+      await db.collection('conversations').updateOne(
+        { _id: oid },
+        { $set: { history, updatedAt: new Date() } }
+      );
+      return Response.json({
+        success: true,
+        message: null,
+        step: 'LIVE_CHAT',
+        quickReplies: [],
+      });
+    }
+
     // Quando escalado: guardar mensagem no histórico para o agente ver, sem processar pelo LLM
     if (convDoc.step === 'ESCALATED_TO_HUMAN') {
       const history = convDoc.history ?? [];

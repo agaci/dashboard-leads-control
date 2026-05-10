@@ -26,6 +26,8 @@ export type ConversationStep =
   | 'COLLECTING_DETALHES_ENTREGA'
   // pagamento
   | 'AWAITING_PAYMENT'
+  // operador humano em tempo real (systemActive: false)
+  | 'LIVE_CHAT'
   // terminal
   | 'LEAD_REGISTERED'
   | 'ESCALATED_TO_HUMAN'

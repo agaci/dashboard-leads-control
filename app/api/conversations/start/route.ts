@@ -41,8 +41,37 @@ export async function POST(request: NextRequest) {
     const routing = decideMode(cfg, urgencia, now);
 
     if (routing === 'MANUAL') {
-      // Fora do horário — recolher nome+telefone antes de escalar para que a equipa possa contactar
-      const botMsg = `Pedido recebido! Estamos fora do horário de atendimento automático mas a nossa equipa entrará em contacto brevemente.\n\nPara agilizarmos o contacto — qual é o seu *nome*?`;
+      if (!cfg.systemActive) {
+        // Bot desativado manualmente — chat em tempo real com operador humano
+        const botMsg = `Bem-vindo! O nosso assistente automático está temporariamente indisponível.\n\nUm operador YourBox irá atendê-lo directamente. Pode deixar a sua mensagem abaixo.`;
+        const liveConv = await db.collection('conversations').insertOne({
+          telemovel: identifier,
+          canal: 'web',
+          step: 'LIVE_CHAT',
+          data: {
+            telemovel: identifier, origem, destino,
+            viatura: viatura || 'Moto', urgencia,
+            serviceType: urgencia === '24 Horas' ? 'arrasto' : 'direto',
+            objectionCount: 0,
+            ...(nome ? { nome } : {}),
+            ...(email ? { email } : {}),
+            ...(source ? { source } : {}),
+          },
+          history: [{ role: 'bot', text: botMsg, timestamp: now }],
+          createdAt: now,
+          updatedAt: now,
+        });
+        return Response.json({
+          success: true,
+          conversationId: liveConv.insertedId.toString(),
+          message: botMsg,
+          quickReplies: [],
+          step: 'LIVE_CHAT',
+        });
+      }
+
+      // Fora do horário / fim-de-semana — recolher contacto para follow-up
+      const botMsg = `Pedido recebido!\n\nEstamos fora do horário de atendimento automático (Segunda a Sexta, das 9h às 20h), mas a nossa equipa entrará em contacto brevemente.\n\nPara casos urgentes contacte-nos diretamente pelo *214 304 546*.\n\nPara agilizarmos o contacto — qual é o seu *nome*?`;
       const escalatedConv = await db.collection('conversations').insertOne({
         telemovel: identifier,
         canal: 'web',
