@@ -5,7 +5,7 @@ import { findAggregationHints } from '@/lib/agent/aggregation';
 import { calcAllActiveTariffs } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
-import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { decideMode, defaultRoutingConfig } from '@/lib/routing/decideMode';
 import type { ConversationData, ConversationMessage } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
@@ -34,6 +34,33 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
     const now = new Date();
+
+    // ── Verificar routing config ────────────────────────────────────────────
+    const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+    const cfg = routingDoc ? { ...defaultRoutingConfig, ...routingDoc } : defaultRoutingConfig;
+    const routing = decideMode(cfg, urgencia, now);
+
+    if (routing === 'MANUAL') {
+      // Criar conversa mas escalar para humano — fica visível no inbox
+      const escalatedConv = await db.collection('conversations').insertOne({
+        telemovel: identifier,
+        canal: 'web',
+        step: 'ESCALATED_TO_HUMAN',
+        data: { telemovel: identifier, origem, destino, viatura: viatura || 'Moto', urgencia, serviceType: urgencia === '24 Horas' ? 'arrasto' : 'direto', objectionCount: 0, ...(nome ? { nome } : {}), ...(email ? { email } : {}), ...(source ? { source } : {}) },
+        history: [{ role: 'bot', text: 'Pedido recebido fora do horário de atendimento automático. A nossa equipa vai entrar em contacto brevemente.', timestamp: now }],
+        escalatedAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return Response.json({
+        success: true,
+        conversationId: escalatedConv.insertedId.toString(),
+        message: 'Pedido recebido! A nossa equipa vai entrar em contacto brevemente. 🕐',
+        quickReplies: [],
+        step: 'ESCALATED_TO_HUMAN',
+      });
+    }
+
     const serviceType = urgencia === '24 Horas' ? 'arrasto' : urgencia === 'Internacional' ? 'internacional' : 'direto';
 
     const data: ConversationData = {
