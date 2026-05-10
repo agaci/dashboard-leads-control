@@ -56,6 +56,7 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   PRESENTING_PARTNER_PRICE: { text: '' },
   HANDLING_OBJECTION: { text: '' },
   AWAITING_PAYMENT: { text: '' },
+  LIVE_CHAT: { text: '' },
   LEAD_REGISTERED: { text: '' },
   ESCALATED_TO_HUMAN: { text: '' },
   CLOSED: { text: '' },
