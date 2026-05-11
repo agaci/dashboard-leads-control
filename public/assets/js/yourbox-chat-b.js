@@ -249,23 +249,20 @@
         const newMsgs = msgs.slice(chatState.lastMsgCount);
         chatState.lastMsgCount = msgs.length;
 
+        // Mensagens da lead já foram renderizadas por sendMessage — apenas renderizar bot/operador
+        const botMsgs = newMsgs.filter(function (m) { return m.role !== 'lead'; });
+
         let chain = Promise.resolve();
-        newMsgs.forEach(function (m) {
+        botMsgs.forEach(function (m) {
           chain = chain.then(function () {
             return new Promise(function (resolve) {
-              if (m.role !== 'lead') {
-                appendBubbleTyped(m.text, resolve);
-              } else {
-                appendBubble('lead', m.text);
-                resolve();
-              }
+              appendBubbleTyped(m.text, resolve);
             });
           });
         });
 
         chain.then(function () {
-          var hasOperatorMsg = newMsgs.some(function (m) { return m.role !== 'lead'; });
-          if (chatState.initialized && hasOperatorMsg) playIncomingSound();
+          if (chatState.initialized && botMsgs.length > 0) playIncomingSound();
           handleNewStep(conv.step, []);
         });
       }

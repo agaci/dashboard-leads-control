@@ -856,13 +856,14 @@
           var msgs = (data.conversation.history || []);
           if (msgs.length > cs.lastMsgCount) {
             var newMsgs = msgs.slice(cs.lastMsgCount); cs.lastMsgCount = msgs.length;
+            // Mensagens da lead já renderizadas por send() — apenas bot/operador
+            var botMsgs = newMsgs.filter(function(m){ return m.role !== 'lead'; });
             var chain = Promise.resolve();
-            newMsgs.forEach(function(m) {
-              chain = chain.then(function(){ return new Promise(function(resolve){ m.role !== 'lead' ? addBubbleTyped(m.text, resolve) : (addBubble('lead', m.text), resolve()); }); });
+            botMsgs.forEach(function(m) {
+              chain = chain.then(function(){ return new Promise(function(resolve){ addBubbleTyped(m.text, resolve); }); });
             });
             chain.then(function(){
-              var hasOperatorMsg = newMsgs.some(function(m){ return m.role !== 'lead'; });
-              if (cs.initialized && hasOperatorMsg) playIncomingSound();
+              if (cs.initialized && botMsgs.length > 0) playIncomingSound();
               handleStep(data.conversation.step, []);
             });
           }
