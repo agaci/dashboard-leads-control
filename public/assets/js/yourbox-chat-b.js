@@ -24,7 +24,28 @@
     preSeededNome: null,
     preSeededEmail: null, // null = não auto-responder; '' = responder 'não'
     autoRespondPending: false,
+    initialized: false,
   };
+
+  // Som audível quando o operador/bot responde
+  function playIncomingSound() {
+    try {
+      var ac = new (window.AudioContext || window.webkitAudioContext)();
+      var pairs = [[523, 0], [659, 0.09], [784, 0.18]];
+      pairs.forEach(function (p) {
+        var osc = ac.createOscillator();
+        var gain = ac.createGain();
+        osc.connect(gain);
+        gain.connect(ac.destination);
+        osc.type = 'sine';
+        osc.frequency.value = p[0];
+        gain.gain.setValueAtTime(0.25, ac.currentTime + p[1]);
+        gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + p[1] + 0.32);
+        osc.start(ac.currentTime + p[1]);
+        osc.stop(ac.currentTime + p[1] + 0.34);
+      });
+    } catch (_) {}
+  }
 
   // ── Helpers de DOM ───────────────────────────────────────────────────────────
 
@@ -242,7 +263,11 @@
           });
         });
 
-        chain.then(function () { handleNewStep(conv.step, []); });
+        chain.then(function () {
+          var hasOperatorMsg = newMsgs.some(function (m) { return m.role !== 'lead'; });
+          if (chatState.initialized && hasOperatorMsg) playIncomingSound();
+          handleNewStep(conv.step, []);
+        });
       }
     } catch (_) {}
   }
@@ -351,6 +376,7 @@
         chatState.lastMsgCount = 1;
 
         appendBubbleTyped(data.message, function () {
+          chatState.initialized = true;
           handleNewStep(data.step, data.quickReplies || []);
           // Se o utilizador deixou observações, mostrar como mensagem e enviar ao bot
           if (formData.observacoes) {

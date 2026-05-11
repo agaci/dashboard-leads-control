@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const since = new Date(searchParams.get('since') ?? Date.now() - 30000);
 
   const db = await getDb();
-  const [escalations, leadDocs, aggHintConvs] = await Promise.all([
+  const [escalations, leadDocs, aggHintConvs, liveChats] = await Promise.all([
     db.collection('conversations').countDocuments({
       step: 'ESCALATED_TO_HUMAN',
       updatedAt: { $gte: since },
@@ -26,6 +26,10 @@ export async function GET(request: Request) {
         aggHints: { $slice: 1 },
       },
     }).limit(10).toArray(),
+    db.collection('conversations').countDocuments({
+      step: 'LIVE_CHAT',
+      history: { $elemMatch: { role: 'lead', timestamp: { $gte: since } } },
+    }),
   ]);
 
   const leads = leadDocs.length;
@@ -45,5 +49,5 @@ export async function GET(request: Request) {
     topDriver: c.aggHints?.[0]?.driver ?? null,
   }));
 
-  return Response.json({ escalations, leads, leadDetails, aggHints });
+  return Response.json({ escalations, leads, leadDetails, aggHints, liveChats });
 }

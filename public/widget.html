@@ -738,7 +738,22 @@
     // ── Chat engine ───────────────────────────────────────────────────────────
     var ybChatW = (function () {
       var POLL  = 3000, SPEED = 11, DELAY = 750;
-      var cs = { conversationId: null, step: null, polling: null, lastMsgCount: 0, sending: false, typing: false, preSeededNome: null, preSeededEmail: null, autoRespondPending: false };
+      var cs = { conversationId: null, step: null, polling: null, lastMsgCount: 0, sending: false, typing: false, preSeededNome: null, preSeededEmail: null, autoRespondPending: false, initialized: false };
+
+      function playIncomingSound() {
+        try {
+          var ac = new (window.AudioContext || window.webkitAudioContext)();
+          var pairs = [[523, 0], [659, 0.09], [784, 0.18]];
+          pairs.forEach(function (p) {
+            var osc = ac.createOscillator(), gain = ac.createGain();
+            osc.connect(gain); gain.connect(ac.destination);
+            osc.type = 'sine'; osc.frequency.value = p[0];
+            gain.gain.setValueAtTime(0.25, ac.currentTime + p[1]);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ac.currentTime + p[1] + 0.32);
+            osc.start(ac.currentTime + p[1]); osc.stop(ac.currentTime + p[1] + 0.34);
+          });
+        } catch (_) {}
+      }
 
       function md(t) {
         return t.replace(/\*([^*\n]+)\*/g,'<strong>$1</strong>').replace(/~~([^~\n]+)~~/g,'<del>$1</del>').replace(/_([^_\n]+)_/g,'<em>$1</em>').replace(/\n/g,'<br>');
@@ -845,7 +860,11 @@
             newMsgs.forEach(function(m) {
               chain = chain.then(function(){ return new Promise(function(resolve){ m.role !== 'lead' ? addBubbleTyped(m.text, resolve) : (addBubble('lead', m.text), resolve()); }); });
             });
-            chain.then(function(){ handleStep(data.conversation.step, []); });
+            chain.then(function(){
+              var hasOperatorMsg = newMsgs.some(function(m){ return m.role !== 'lead'; });
+              if (cs.initialized && hasOperatorMsg) playIncomingSound();
+              handleStep(data.conversation.step, []);
+            });
           }
         } catch (_) {}
       }
@@ -893,6 +912,7 @@
             if (!data.success) { addBubble('bot', 'Erro ao ligar ao assistente: ' + (data.error || 'resposta inválida')); setDisabled(false); return; }
             cs.conversationId = data.conversationId; cs.step = data.step; cs.lastMsgCount = 1;
             addBubbleTyped(data.message, function(){
+              cs.initialized = true;
               handleStep(data.step, data.quickReplies || []);
               if (formData.observacoes) { addBubble('lead', formData.observacoes); send(formData.observacoes); }
               else { setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) inp.focus(); }

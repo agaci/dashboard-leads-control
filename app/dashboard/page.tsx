@@ -151,6 +151,7 @@ export default function DashboardPage() {
 
   useNotifications((alert) => {
     if (alert.type === 'escalation') setBadges((b) => ({ ...b, conversas: true }));
+    if (alert.type === 'live_chat')  setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'lead')       setBadges((b) => ({ ...b, leads: true }));
     if (alert.type === 'aggHint') {
       const id = ++toastCounter.current;

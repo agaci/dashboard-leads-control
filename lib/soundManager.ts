@@ -63,6 +63,16 @@ export function playEscalationSound() {
   [[880, 0], [880, 0.28]].forEach(([freq, t]) => note(ac, freq, t, 0.19, vol, 'square'));
 }
 
+// ── Nova mensagem em Chat ao Vivo — E6→B5 (ping suave, estilo messenger) ──────
+export function playLiveChatSound() {
+  const ac = ctx();
+  if (!ac) return;
+  const v = getVolume();
+  if (v === 0) return;
+  const vol = v * 0.20;
+  [[1319, 0], [988, 0.13]].forEach(([freq, t]) => note(ac, freq, t, 0.22, vol, 'sine'));
+}
+
 // ── Hipótese de agregação — G4→D5→G5 (oportunidade, triângulo) ───────────────
 export function playAggSound() {
   const ac = ctx();
