@@ -40,6 +40,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         success: true,
         message: null,
         step: 'LIVE_CHAT',
+        historyCount: history.length,
         quickReplies: [],
       });
     }
@@ -56,6 +57,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         success: true,
         message: null,
         step: 'ESCALATED_TO_HUMAN',
+        historyCount: history.length,
         quickReplies: [],
       });
     }

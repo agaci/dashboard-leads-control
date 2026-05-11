@@ -303,8 +303,8 @@
           handleNewStep(data.step, data.quickReplies || []);
         });
       } else if (data.step === 'LIVE_CHAT') {
-        // Sem resposta automática — operador humano vai responder via polling
-        chatState.lastMsgCount += 1;
+        // Sincronizar com o count real do servidor para evitar re-render duplo
+        chatState.lastMsgCount = data.historyCount ?? chatState.lastMsgCount + 1;
         handleNewStep(data.step, []);
       } else {
         handleNewStep(data.step, data.quickReplies || []);

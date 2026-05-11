@@ -879,7 +879,7 @@
           var data = await res.json(); removeTyping();
           if (!data.success && data.step) { showFinal(data.step); return; }
           if (data.message) { cs.lastMsgCount += 2; addBubbleTyped(data.message, function(){ handleStep(data.step, data.quickReplies || []); }); }
-          else if (data.step === 'LIVE_CHAT') { cs.lastMsgCount += 1; handleStep(data.step, []); }
+          else if (data.step === 'LIVE_CHAT') { cs.lastMsgCount = data.historyCount ?? cs.lastMsgCount + 1; handleStep(data.step, []); }
           else { handleStep(data.step, data.quickReplies || []); }
         } catch (_) { removeTyping(); addBubble('bot', 'Erro de ligação. Por favor tente novamente.'); }
         finally { cs.sending = false; setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) { inp.value = ''; inp.focus(); } }
