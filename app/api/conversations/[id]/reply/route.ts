@@ -18,16 +18,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (!text?.trim()) return Response.json({ error: 'Texto obrigatório' }, { status: 400 });
 
     const db = await getDb();
-    const conv = await db.collection('conversations').findOne({ _id: oid }, { projection: { canal: 1, telemovel: 1 } });
+    const conv = await db.collection('conversations').findOne({ _id: oid }, { projection: { canal: 1, telemovel: 1, step: 1 } });
     if (!conv) return Response.json({ error: 'Conversa não encontrada' }, { status: 404 });
 
     const now = new Date();
+
+    // Se o bot ainda estava activo, passar para LIVE_CHAT para que não volte a responder
+    const botFinalSteps = ['LIVE_CHAT', 'ESCALATED_TO_HUMAN', 'LEAD_REGISTERED', 'CLOSED'];
+    const takeOver = !botFinalSteps.includes(conv.step);
 
     await db.collection('conversations').updateOne(
       { _id: oid },
       {
         $push: { history: { role: 'bo', text: text.trim(), timestamp: now } } as any,
-        $set: { updatedAt: now },
+        $set: { updatedAt: now, ...(takeOver ? { step: 'LIVE_CHAT' } : {}) },
       }
     );
 

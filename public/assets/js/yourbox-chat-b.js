@@ -378,9 +378,8 @@
         appendBubbleTyped(data.message, function () {
           chatState.initialized = true;
           handleNewStep(data.step, data.quickReplies || []);
-          // Se o utilizador deixou observações, mostrar como mensagem e enviar ao bot
+          // Se o utilizador deixou observações, enviar ao bot (sendMessage já adiciona a bolha)
           if (formData.observacoes) {
-            appendBubble('lead', formData.observacoes);
             sendMessage(formData.observacoes);
           } else {
             setInputDisabled(false);

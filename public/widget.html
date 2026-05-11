@@ -914,7 +914,7 @@
             addBubbleTyped(data.message, function(){
               cs.initialized = true;
               handleStep(data.step, data.quickReplies || []);
-              if (formData.observacoes) { addBubble('lead', formData.observacoes); send(formData.observacoes); }
+              if (formData.observacoes) { send(formData.observacoes); }
               else { setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) inp.focus(); }
             });
             startPoll();
