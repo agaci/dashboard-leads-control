@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       const escalatedConv = await db.collection('conversations').insertOne({
         telemovel: identifier,
         canal: 'web',
-        step: 'COLLECTING_NOME',
+        step: hasPhone ? 'HANDLING_OBJECTION' : 'COLLECTING_NOME',
         data: {
           telemovel: identifier, origem, destino,
           viatura: viatura || 'Moto', urgencia,
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
         conversationId: escalatedConv.insertedId.toString(),
         message: botMsg,
         quickReplies: [],
-        step: 'COLLECTING_NOME',
+        step: hasPhone ? 'HANDLING_OBJECTION' : 'COLLECTING_NOME',
       });
     }
 
