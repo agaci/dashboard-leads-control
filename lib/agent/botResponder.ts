@@ -85,7 +85,7 @@ export function buildPriceMessage(conv: Conversation, showAggOffer = false): Bot
     : '\n\n';
 
   const closingLine = showAggOffer
-    ? `Para esta rota existe a possibilidade de *agregar a sua carga* e reduzir significativamente o preço.\n\nPara isso é necessária análise por um operador (pode levar alguns minutos aqui no chat) — ou podemos contactá-lo pelo helpdesk.\n\nComo prefere avançar?`
+    ? `Para esta rota *poderá existir* a possibilidade de agregar a sua carga, o que *poderá* contribuir para reduzir o preço — sujeito a análise e disponibilidade.\n\nSe quiser que um operador verifique, pode aguardar alguns minutos aqui no chat ou podemos contactá-lo pelo helpdesk.\n\nComo prefere avançar?`
     : `Pretende avançar com este serviço?`;
 
   const priceText = priceCalculated
