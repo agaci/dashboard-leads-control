@@ -30,10 +30,10 @@ export async function GET(request: Request) {
       step: 'LIVE_CHAT',
       history: { $elemMatch: { role: 'lead', timestamp: { $gte: since } } },
     }),
-    // Novas conversas bot chegaram ao inbox (preço apresentado)
+    // Novas conversas bot chegaram ao inbox (qualquer step inicial, excl. terminais e LIVE_CHAT que tem notif própria)
     db.collection('conversations').countDocuments({
       createdAt: { $gte: since },
-      step: { $nin: ['CLOSED', 'LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'LIVE_CHAT'] },
+      step: { $nin: ['CLOSED', 'LEAD_REGISTERED', 'LIVE_CHAT'] },
     }),
   ]);
 

@@ -29,7 +29,7 @@ export function setVoiceSetting(key: VoiceKey, value: boolean) {
 function speak(text: string) {
   if (typeof window === 'undefined') return;
   if (!('speechSynthesis' in window)) return;
-  window.speechSynthesis.cancel();
+  // Não cancelar — deixar a fila correr para que vozes sequenciais não se sobreponham
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'pt-PT';
   u.rate = 0.9;

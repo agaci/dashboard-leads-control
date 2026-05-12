@@ -48,32 +48,50 @@ export function useNotifications(
       const data: NotifResponse = await res.json();
       const now = new Date();
 
+      // Construir fila de notificações para disparar em sequência (2 s de intervalo)
+      // — evita que speak() da 2ª notificação cancele a voz da 1ª
+      const queue: Array<() => void> = [];
+
+      if ((data.newBotConvs ?? 0) > 0) {
+        queue.push(() => {
+          playLeadSound();
+          speakNewBotConv();
+          onAlertRef.current({ type: 'lead' });
+        });
+      }
       if (data.escalations > 0) {
-        playEscalationSound();
-        speakEscalation();
-        onAlertRef.current({ type: 'escalation' });
+        queue.push(() => {
+          playEscalationSound();
+          speakEscalation();
+          onAlertRef.current({ type: 'escalation' });
+        });
       }
       if (data.leads > 0) {
-        playLeadSound();
         const first = data.leadDetails?.[0];
-        speakLead(first?.urgencia ?? undefined, first?.serviceType ?? undefined);
-        onAlertRef.current({ type: 'lead' });
-      }
-      if ((data.newBotConvs ?? 0) > 0) {
-        playLeadSound();
-        speakNewBotConv();
-        onAlertRef.current({ type: 'lead' });
+        queue.push(() => {
+          playLeadSound();
+          speakLead(first?.urgencia ?? undefined, first?.serviceType ?? undefined);
+          onAlertRef.current({ type: 'lead' });
+        });
       }
       if ((data.liveChats ?? 0) > 0) {
-        playLiveChatSound();
-        speakLiveChat();
-        onAlertRef.current({ type: 'live_chat' });
+        queue.push(() => {
+          playLiveChatSound();
+          speakLiveChat();
+          onAlertRef.current({ type: 'live_chat' });
+        });
       }
       for (const hint of data.aggHints ?? []) {
-        playAggSound();
-        speakAgg();
-        onAlertRef.current({ type: 'aggHint', ...hint });
+        const h = hint;
+        queue.push(() => {
+          playAggSound();
+          speakAgg();
+          onAlertRef.current({ type: 'aggHint', ...h });
+        });
       }
+
+      // Disparar cada notificação com 2 s de intervalo para as vozes não se sobreporem
+      queue.forEach((fn, i) => i === 0 ? fn() : setTimeout(fn, i * 2200));
 
       sinceRef.current = now;
     } catch {
