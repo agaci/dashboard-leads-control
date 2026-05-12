@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { playLeadSound, playEscalationSound, playAggSound, playLiveChatSound } from './soundManager';
-import { speakEscalation, speakLead, speakAgg, speakLiveChat } from './ttsManager';
+import { speakEscalation, speakLead, speakAgg, speakLiveChat, speakNewBotConv } from './ttsManager';
 
 export type AggHintAlert = {
   type: 'aggHint';
@@ -28,6 +28,7 @@ type NotifResponse = {
   leadDetails: LeadDetail[];
   aggHints: Omit<AggHintAlert, 'type'>[];
   liveChats: number;
+  newBotConvs: number;
 };
 
 // ── Hook principal ───────────────────────────────────────────────────────────
@@ -36,7 +37,8 @@ export function useNotifications(
   onAlert: (alert: NotifAlert) => void,
   intervalMs = 8000,
 ) {
-  const sinceRef = useRef<Date>(new Date());
+  // Inicializar um intervalo atrás para capturar eventos que chegaram logo antes do primeiro poll
+  const sinceRef = useRef<Date>(new Date(Date.now() - intervalMs));
   const onAlertRef = useRef(onAlert);
   onAlertRef.current = onAlert;
 
@@ -55,6 +57,11 @@ export function useNotifications(
         playLeadSound();
         const first = data.leadDetails?.[0];
         speakLead(first?.urgencia ?? undefined, first?.serviceType ?? undefined);
+        onAlertRef.current({ type: 'lead' });
+      }
+      if ((data.newBotConvs ?? 0) > 0) {
+        playLeadSound();
+        speakNewBotConv();
         onAlertRef.current({ type: 'lead' });
       }
       if ((data.liveChats ?? 0) > 0) {

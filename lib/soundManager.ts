@@ -15,11 +15,23 @@ export function setVolume(v: number) {
   window.dispatchEvent(new CustomEvent('ybvolumechange', { detail: clamped }));
 }
 
+let _sharedAc: AudioContext | null = null;
+
 function ctx(): AudioContext | null {
   if (typeof window === 'undefined') return null;
   try {
-    return new ((window as any).AudioContext ?? (window as any).webkitAudioContext)();
+    if (!_sharedAc || _sharedAc.state === 'closed') {
+      _sharedAc = new ((window as any).AudioContext ?? (window as any).webkitAudioContext)();
+    }
+    if (_sharedAc && _sharedAc.state === 'suspended') _sharedAc.resume();
+    return _sharedAc;
   } catch { return null; }
+}
+
+// Desbloquear AudioContext no primeiro gesto do utilizador
+if (typeof window !== 'undefined') {
+  const unlock = () => { ctx(); window.removeEventListener('pointerdown', unlock); };
+  window.addEventListener('pointerdown', unlock, { once: true });
 }
 
 function note(

@@ -68,6 +68,11 @@ export function speakLiveChat() {
   speak('Nova conversa no bot');
 }
 
+export function speakNewBotConv() {
+  if (!getVoiceSetting('enabled') || !getVoiceSetting('live_chat')) return;
+  speak('Nova conversa no bot');
+}
+
 export function previewVoice() {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();
