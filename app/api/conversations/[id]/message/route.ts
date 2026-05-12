@@ -84,6 +84,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       escalate = true;
       const isAggRequest = result.reason?.startsWith('[AGG_REQUEST]');
       if (isAggRequest) {
+        nextStep = 'LIVE_CHAT';
         await db.collection('conversations').updateOne(
           { _id: oid },
           { $set: { escalationType: 'agg_request' } },

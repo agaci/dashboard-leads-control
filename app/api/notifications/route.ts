@@ -12,7 +12,7 @@ export async function GET(request: Request) {
       updatedAt: { $gte: since },
     }),
     db.collection('conversations').countDocuments({
-      step: 'ESCALATED_TO_HUMAN',
+      step: 'LIVE_CHAT',
       escalationType: 'agg_request',
       updatedAt: { $gte: since },
     }),
