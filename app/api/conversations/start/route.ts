@@ -71,7 +71,11 @@ export async function POST(request: NextRequest) {
       }
 
       // Fora do horário / fim-de-semana — recolher contacto para follow-up
-      const botMsg = `Pedido recebido!\n\nEstamos fora do horário de atendimento automático (Segunda a Sexta, das 9h às 20h), mas a nossa equipa entrará em contacto brevemente.\n\nPara casos urgentes contacte-nos diretamente pelo *214 304 546*.\n\nPara agilizarmos o contacto — qual é o seu *nome*?`;
+      const hasPhone = !!phoneFromForm?.trim();
+      const contactPrompt = hasPhone
+        ? `Os seus dados: *Nome: ${nome}, Telemóvel: ${phoneFromForm}*. Confirma ou quer alterar algum?`
+        : `Para agilizarmos o contacto, *${nome}* — qual é o seu *número de telemóvel*?`;
+      const botMsg = `Pedido recebido!\n\nEstamos fora do horário de atendimento automático (Segunda a Sexta, das 9h às 20h), mas a nossa equipa entrará em contacto brevemente.\n\nPara casos urgentes contacte-nos diretamente pelo *214 304 546*.\n\n${contactPrompt}`;
       const escalatedConv = await db.collection('conversations').insertOne({
         telemovel: identifier,
         canal: 'web',
@@ -159,8 +163,13 @@ export async function POST(request: NextRequest) {
       }
 
       // Construir mensagem de preco
+      const threshold = (cfg as any).aggEscalationThreshold ?? 0;
+      const isShortUrgency = urgencia === '1 Hora' || urgencia === '4 Horas';
+      const showAggOffer = threshold > 0 && isShortUrgency && (data.priceWithDiscount ?? 0) > threshold;
+      if (showAggOffer) data.aggOfferShown = true as any;
+
       const fakeConv = { data } as any;
-      const resp = buildPriceMessage(fakeConv);
+      const resp = buildPriceMessage(fakeConv, showAggOffer);
       firstBotMessage = resp.text;
       quickReplies = resp.quickReplies;
       step = 'PRESENTING_PRICE';

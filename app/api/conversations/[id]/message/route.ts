@@ -82,14 +82,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (result.type === 'escalate') {
       nextStep = 'ESCALATED_TO_HUMAN';
       escalate = true;
+      const isAggRequest = result.reason?.startsWith('[AGG_REQUEST]');
+      if (isAggRequest) {
+        await db.collection('conversations').updateOne(
+          { _id: oid },
+          { $set: { escalationType: 'agg_request' } },
+        );
+      }
       // Inserir lead de escalamento
       await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div><p><b>ESCALAMENTO WEB BOT</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Motivo: ${result.reason}</p></div>`,
-        companyProvider: 'Yourbox', senderName: 'Bot Web — Escalamento', variante: 'BOT',
+        message: `<div><p><b>${isAggRequest ? 'PEDIDO DE ANÁLISE DE AGREGAÇÃO' : 'ESCALAMENTO WEB BOT'}</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Motivo: ${result.reason}</p></div>`,
+        companyProvider: 'Yourbox', senderName: isAggRequest ? 'Bot Web — Pedido Agregação' : 'Bot Web — Escalamento', variante: 'BOT',
         timeStamp: now, closed: false, reply: [],
-        leadData: { ...convDoc.data, converted: false, source: 'web_chat_escalation' },
+        leadData: { ...convDoc.data, converted: false, source: isAggRequest ? 'web_chat_agg_request' : 'web_chat_escalation' },
       });
 
     } else if (result.type === 'register_lead') {

@@ -82,6 +82,7 @@ export interface ConversationData {
   };
   notas?: string;
   source?: string;   // domain/origin identifier (e.g. 'yourbox.com.pt', 'meusite.pt', 'bot')
+  aggOfferShown?: boolean;
   // fase 1 — moradas e contactos completos
   origemCompleta?: EnderecoCompleto;
   destinoCompleta?: EnderecoCompleto;

@@ -77,12 +77,16 @@ const VEHICLE_CAPACITY: Record<string, string> = {
 };
 
 // Resposta após preço calculado
-export function buildPriceMessage(conv: Conversation): BotResponse {
+export function buildPriceMessage(conv: Conversation, showAggOffer = false): BotResponse {
   const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura } = conv.data;
 
   const capacityNote = viatura && VEHICLE_CAPACITY[viatura]
     ? `\n_Capacidade máxima: ${VEHICLE_CAPACITY[viatura]}_\n\n`
     : '\n\n';
+
+  const closingLine = showAggOffer
+    ? `Para esta rota existe a possibilidade de *agregar a sua carga* e reduzir significativamente o preço.\n\nPara isso é necessária análise por um operador (pode levar alguns minutos aqui no chat) — ou podemos contactá-lo pelo helpdesk.\n\nComo prefere avançar?`
+    : `Pretende avançar com este serviço?`;
 
   const priceText = priceCalculated
     ? `*Orçamento Estimado*\n\n` +
@@ -92,13 +96,17 @@ export function buildPriceMessage(conv: Conversation): BotResponse {
       `Viatura: ${viatura}\n` +
       `Urgência: ${urgencia}` +
       capacityNote +
-      `Pretende avançar com este serviço?`
+      closingLine
     : 'Para calcular o preço, precisamos dos detalhes do serviço.';
+
+  const quickReplies = showAggOffer
+    ? ['Quero análise de agregação', 'Avançar com serviço direto', 'Ver entrega amanhã']
+    : ['Sim, avançar', 'Tenho dúvidas', 'Ver entrega amanhã'];
 
   return {
     text: priceText,
     nextStep: 'PRESENTING_PRICE',
-    quickReplies: ['Sim, avançar', 'Tenho dúvidas', 'Ver entrega amanhã'],
+    quickReplies,
   };
 }
 

@@ -188,12 +188,16 @@ Na mensagem final diz: "Obrigado! A nossa equipa vai contactá-lo em breve."
 Se o utilizador recusar dar telefone, usa \`escalate_to_human\`.`;
   }
 
+  const aggOfferBlock = (data as any).aggOfferShown
+    ? `\n\n## Oferta de análise de agregação mostrada\nO orçamento já incluiu a proposta de agregação. Se o utilizador pedir análise de agregação, quiser ser contactado pelo helpdesk, ou mostrar interesse em reduzir o preço via agregação → chama \`escalate_to_human\` com reason a começar por \`[AGG_REQUEST]\`. Se quiser avançar com o serviço direto → fluxo normal de recolha de contacto.`
+    : '';
+
   return `## Serviço cotado nesta conversa
 - **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
 - **Viatura:** ${data.viatura ?? '?'}
 - **Tipo de serviço:** ${serviceType}
 - **Distância:** ${data.distance ? `${data.distance} km` : 'a calcular'}
-- **Preço:** ${price}${contactSection}
+- **Preço:** ${price}${contactSection}${aggOfferBlock}
 
 ## Objectivo desta conversa
 1. Esclarecer dúvidas com base na Base de Conhecimento

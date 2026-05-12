@@ -73,6 +73,11 @@ export function speakNewBotConv() {
   speak('Nova conversa no bot');
 }
 
+export function speakAggEscalation() {
+  if (!getVoiceSetting('enabled') || !getVoiceSetting('escalation')) return;
+  speak('Chat escalado para humano pela lead');
+}
+
 export function previewVoice() {
   if (!('speechSynthesis' in window)) return;
   window.speechSynthesis.cancel();

@@ -16,6 +16,7 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   evolutionApiUrl: '',
   evolutionApiKey: '',
   evolutionInstance: 'yourbox',
+  aggEscalationThreshold: 0,
 };
 
 export function decideMode(
@@ -24,8 +25,8 @@ export function decideMode(
   now: Date
 ): RoutingDecision {
   if (!config.systemActive) return 'MANUAL';
-  if (urgencia === '24 Horas') return 'MANUAL';
   if (config.alwaysBot) return 'AUTO';
+  if (urgencia === '24 Horas') return 'MANUAL';
 
   // Hora e dia sempre em Portugal (UTC+0 Inverno / UTC+1 Verão)
   const pt = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));

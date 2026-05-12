@@ -38,6 +38,7 @@ type RoutingConfig = {
   evolutionApiUrl: string;
   evolutionApiKey: string;
   evolutionInstance: string;
+  aggEscalationThreshold: number;
 };
 
 type LeadData = {
@@ -1700,6 +1701,7 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
+    aggEscalationThreshold: 0,
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1792,6 +1794,15 @@ function RoutingPanel() {
         <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>Quantos minutos esperar antes do bot responder (0 = imediato)</p>
         <input type="number" min={0} max={60} value={config.delayMinutesBeforeBot} onChange={(e) => num('delayMinutesBeforeBot', e.target.value)}
           style={{ width: 100, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }} />
+      </div>
+
+      {/* ── Oferta de agregação ── */}
+      <div style={cardS}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: NAVY, display: 'block', marginBottom: 4 }}>Limiar de oferta de agregação (€)</label>
+        <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>Valor mínimo do orçamento (1h/4h) para apresentar oferta de análise de agregação. Coloque 0 para desactivar.</p>
+        <input type="number" min={0} step={10} value={config.aggEscalationThreshold} onChange={(e) => num('aggEscalationThreshold', e.target.value)}
+          style={{ width: 120, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }} />
+        <span style={{ fontSize: 12, color: '#aaa', marginLeft: 8 }}>{config.aggEscalationThreshold === 0 ? 'desactivado' : `activo para orçamentos &gt; €${config.aggEscalationThreshold}`}</span>
       </div>
 
       {/* ── WhatsApp / Evolution API ── */}

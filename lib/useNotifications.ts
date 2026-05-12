@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { playLeadSound, playEscalationSound, playAggSound, playLiveChatSound } from './soundManager';
-import { speakEscalation, speakLead, speakAgg, speakLiveChat, speakNewBotConv } from './ttsManager';
+import { speakEscalation, speakLead, speakAgg, speakLiveChat, speakNewBotConv, speakAggEscalation } from './ttsManager';
 
 export type AggHintAlert = {
   type: 'aggHint';
@@ -17,13 +17,14 @@ export type AggHintAlert = {
 };
 
 export type NotifAlert =
-  | { type: 'escalation' | 'lead' | 'live_chat' }
+  | { type: 'escalation' | 'agg_escalation' | 'lead' | 'live_chat' }
   | AggHintAlert;
 
 type LeadDetail = { urgencia: string | null; serviceType: string | null };
 
 type NotifResponse = {
   escalations: number;
+  aggEscalations: number;
   leads: number;
   leadDetails: LeadDetail[];
   aggHints: Omit<AggHintAlert, 'type'>[];
@@ -64,6 +65,13 @@ export function useNotifications(
           playEscalationSound();
           speakEscalation();
           onAlertRef.current({ type: 'escalation' });
+        });
+      }
+      if ((data.aggEscalations ?? 0) > 0) {
+        queue.push(() => {
+          playEscalationSound();
+          speakAggEscalation();
+          onAlertRef.current({ type: 'agg_escalation' });
         });
       }
       if (data.leads > 0) {

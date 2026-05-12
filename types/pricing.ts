@@ -73,6 +73,7 @@ export interface LeadRoutingConfig {
   evolutionApiUrl?: string;
   evolutionApiKey?: string;
   evolutionInstance?: string;
+  aggEscalationThreshold?: number;
   botScheduleOverride?: {
     startHour: number;
     endHour: number;
