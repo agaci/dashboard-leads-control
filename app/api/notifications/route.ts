@@ -30,10 +30,15 @@ export async function GET(request: Request) {
       step: 'LIVE_CHAT',
       history: { $elemMatch: { role: 'lead', timestamp: { $gte: since } } },
     }),
-    // Novas conversas bot chegaram ao inbox (qualquer step inicial, excl. terminais e LIVE_CHAT que tem notif própria)
+    // Novas conversas no inbox:
+    // — criadas desde o último poll, OU
+    // — que acabaram de receber aggHints (podem ter sido criadas ligeiramente antes do sinceRef)
     db.collection('conversations').countDocuments({
-      createdAt: { $gte: since },
       step: { $nin: ['CLOSED', 'LEAD_REGISTERED', 'LIVE_CHAT'] },
+      $or: [
+        { createdAt: { $gte: since } },
+        { aggHintsAt: { $gte: since }, 'aggHints.0': { $exists: true }, createdAt: { $gte: new Date(since.getTime() - 90_000) } },
+      ],
     }),
   ]);
 

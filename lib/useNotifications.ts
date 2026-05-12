@@ -90,8 +90,8 @@ export function useNotifications(
         });
       }
 
-      // Disparar cada notificação com 2 s de intervalo para as vozes não se sobreporem
-      queue.forEach((fn, i) => i === 0 ? fn() : setTimeout(fn, i * 2200));
+      // Atrasar todos os sons: 1 s base (AudioContext precisa de estar activo) + 2.2 s entre cada
+      queue.forEach((fn, i) => setTimeout(fn, 1000 + i * 2200));
 
       sinceRef.current = now;
     } catch {
