@@ -307,15 +307,16 @@ function SoundButton() {
 
 // ── Voice Control ─────────────────────────────────────────────────────────────
 
-const VOICE_ITEMS: { key: 'escalation' | 'lead' | 'agg'; label: string }[] = [
+const VOICE_ITEMS: { key: 'escalation' | 'lead' | 'agg' | 'live_chat'; label: string }[] = [
   { key: 'escalation', label: 'Escalamento' },
   { key: 'lead',       label: 'Nova lead' },
   { key: 'agg',        label: 'Agregação' },
+  { key: 'live_chat',  label: 'Chat ao vivo' },
 ];
 
 function VoiceButton() {
   const [enabled, setEnabled] = useState(false);
-  const [perType, setPerType] = useState({ escalation: true, lead: true, agg: false });
+  const [perType, setPerType] = useState({ escalation: true, lead: true, agg: false, live_chat: true });
   const [showPanel, setShowPanel] = useState(false);
 
   useEffect(() => {
@@ -324,6 +325,7 @@ function VoiceButton() {
       escalation: getVoiceSetting('escalation'),
       lead:       getVoiceSetting('lead'),
       agg:        getVoiceSetting('agg'),
+      live_chat:  getVoiceSetting('live_chat'),
     });
     const handler = () => {
       setEnabled(getVoiceSetting('enabled'));
@@ -331,6 +333,7 @@ function VoiceButton() {
         escalation: getVoiceSetting('escalation'),
         lead:       getVoiceSetting('lead'),
         agg:        getVoiceSetting('agg'),
+        live_chat:  getVoiceSetting('live_chat'),
       });
     };
     window.addEventListener('ybvoicechange', handler);
@@ -344,7 +347,7 @@ function VoiceButton() {
     if (next) setTimeout(previewVoice, 80);
   }
 
-  function toggleType(key: 'escalation' | 'lead' | 'agg') {
+  function toggleType(key: 'escalation' | 'lead' | 'agg' | 'live_chat') {
     const next = !perType[key];
     setVoiceSetting(key, next);
     setPerType((p) => ({ ...p, [key]: next }));

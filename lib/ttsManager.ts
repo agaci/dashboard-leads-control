@@ -6,6 +6,7 @@ const KEYS = {
   escalation: 'ybVoiceEscalation',
   lead:       'ybVoiceLead',
   agg:        'ybVoiceAgg',
+  live_chat:  'ybVoiceLiveChat',
 } as const;
 
 type VoiceKey = keyof typeof KEYS;
@@ -60,6 +61,11 @@ export function speakLead(urgencia?: string, serviceType?: string) {
 export function speakAgg() {
   if (!getVoiceSetting('enabled') || !getVoiceSetting('agg')) return;
   speak('Hipótese de agregação');
+}
+
+export function speakLiveChat() {
+  if (!getVoiceSetting('enabled') || !getVoiceSetting('live_chat')) return;
+  speak('Nova conversa no bot');
 }
 
 export function previewVoice() {

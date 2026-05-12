@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import { playLeadSound, playEscalationSound, playAggSound, playLiveChatSound } from './soundManager';
-import { speakEscalation, speakLead, speakAgg } from './ttsManager';
+import { speakEscalation, speakLead, speakAgg, speakLiveChat } from './ttsManager';
 
 export type AggHintAlert = {
   type: 'aggHint';
@@ -59,6 +59,7 @@ export function useNotifications(
       }
       if ((data.liveChats ?? 0) > 0) {
         playLiveChatSound();
+        speakLiveChat();
         onAlertRef.current({ type: 'live_chat' });
       }
       for (const hint of data.aggHints ?? []) {

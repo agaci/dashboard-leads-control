@@ -272,10 +272,10 @@
   // ── Envio de mensagem ────────────────────────────────────────────────────────
 
   async function sendMessage(text) {
-    if (!text || !text.trim() || chatState.sending || chatState.typing) return;
+    if (chatState.sending || chatState.typing) return;
     if (!chatState.conversationId) return;
-
-    const msg = text.trim();
+    // Envio vazio = atalho "S" (saltar campo)
+    const msg = (text || '').trim() || 's';
     chatState.sending = true;
     setInputDisabled(true);
     var qr = document.getElementById('ybQuickReplies'); if (qr) qr.innerHTML = '';

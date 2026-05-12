@@ -337,8 +337,13 @@
 
     #ybChatFooter {
       background: #fff; border-top: 1px solid #e0e0e0;
-      border-radius: 0 0 16px 16px; padding: 0.7rem;
-      display: flex; gap: 0.5rem; align-items: center;
+      border-radius: 0 0 16px 16px; padding: 0.5rem 0.7rem 0.35rem;
+      display: flex; flex-direction: column; gap: 0;
+    }
+    .yb-chat-input-row { display: flex; gap: 0.5rem; align-items: center; }
+    .yb-shortcuts-hint {
+      font-size: 0.66rem; color: #c8c8c8; text-align: center;
+      margin: 0.22rem 0 0; letter-spacing: 0.03em; line-height: 1;
     }
 
     #ybChatInput {
@@ -738,12 +743,15 @@
             <div id="ybChatMessages"></div>
             <div id="ybQuickReplies"></div>
             <div id="ybChatFooter">
-              <input type="text" id="ybChatInput" placeholder="Escreva aqui..." disabled>
-              <button id="ybChatSend" disabled title="Enviar">
-                <svg viewBox="0 0 24 24" fill="none">
-                  <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-              </button>
+              <div class="yb-chat-input-row">
+                <input type="text" id="ybChatInput" placeholder="Escreva aqui..." disabled>
+                <button id="ybChatSend" disabled title="Enviar">
+                  <svg viewBox="0 0 24 24" fill="none">
+                    <path d="M22 2L11 13M22 2L15 22L11 13M22 2L2 9L11 13" stroke="#1a1a1a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <p class="yb-shortcuts-hint">S = saltar · P = registar já · M = manter · envio vazio = S</p>
             </div>
           </div>
 
