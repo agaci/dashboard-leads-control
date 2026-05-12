@@ -455,7 +455,7 @@ export default function DashboardPage() {
                       <div className="flex items-center justify-between mb-3">
                         <div className="text-[13px] text-muted-foreground truncate">{rota}</div>
                         {price != null ? (
-                          <div className="text-[15px] font-bold text-orange shrink-0">{price.toFixed(0)}€</div>
+                          <div className="text-[15px] font-bold text-orange shrink-0">{price.toFixed(2)}€</div>
                         ) : (
                           <span className="text-xs text-muted-foreground shrink-0">—</span>
                         )}
