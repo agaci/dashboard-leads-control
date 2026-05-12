@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
     const cfg = routingDoc ? { ...defaultRoutingConfig, ...routingDoc } : defaultRoutingConfig;
 
     const silentResponse = Response.json({ success: true, response: '', nextStep: conv.step, quickReplies: [], situacaoId: null, escalate: false });
+    let isAggEscalationRequest = false;
 
     if (!cfg.systemActive) return silentResponse;
 
@@ -152,6 +153,19 @@ export async function POST(request: NextRequest) {
     }
 
     let response = processMessage(conv, mensagem);
+
+    // Intercepção: oferta de agregação aceite → escalar como agg_request
+    if (conv.step === 'PRESENTING_PRICE' && conv.data.aggOfferShown) {
+      const lower = mensagem.toLowerCase();
+      if (lower.includes('agrega') || lower.includes('helpdesk') || lower.includes('análise') || lower.includes('analise')) {
+        isAggEscalationRequest = true;
+        response = {
+          text: 'Entendo. Vou encaminhar o seu pedido para análise de agregação. Um operador vai contactá-lo brevemente.',
+          nextStep: 'ESCALATED_TO_HUMAN' as any,
+          escalate: true,
+        };
+      }
+    }
 
     // Se recolherMoradasCompletas desactivado, saltar para registo directo
     if (!cfg.recolherMoradasCompletas && response.nextStep === 'COLLECTING_ORIGEM_COMPLETA') {
@@ -327,7 +341,14 @@ export async function POST(request: NextRequest) {
           conv.data.simulationId = simResult.insertedId.toString();
         }
 
-        response = buildPriceMessage(conv);
+        const threshold = (cfg as any).aggEscalationThreshold ?? 0;
+        const isShortUrgency = conv.data.urgencia === '1 Hora' || conv.data.urgencia === '4 Horas';
+        const showAggOffer = threshold > 0 && isShortUrgency && (conv.data.priceWithDiscount ?? 0) > threshold;
+        if (showAggOffer) {
+          await updateConversationData(telemovel, { aggOfferShown: true });
+          conv.data.aggOfferShown = true;
+        }
+        response = buildPriceMessage(conv, showAggOffer);
       } catch {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };
       }
@@ -621,7 +642,21 @@ export async function POST(request: NextRequest) {
     }
 
     // ── Escalamento ──────────────────────────────────────────────────────────
-    if (response.escalate || response.nextStep === 'ESCALATED_TO_HUMAN') {
+    if (isAggEscalationRequest) {
+      const db = await getDb();
+      await db.collection('conversations').updateOne(
+        { telemovel },
+        { $set: { step: 'LIVE_CHAT', escalationType: 'agg_request', updatedAt: new Date() } },
+      );
+      await db.collection('messages').insertOne({
+        company: 'Yourbox', messageType: 'newLead', to: 'admin',
+        presentationMessage: 'stick', deletedAfter: 0,
+        message: `<div><p><b>PEDIDO DE ANÁLISE DE AGREGAÇÃO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p></div>`,
+        companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Pedido Agregação', variante: 'BOT',
+        timeStamp: new Date(), closed: false, reply: [],
+        leadData: { ...conv.data, telefone: telemovel, converted: false, source: 'whatsapp_agg_request' },
+      });
+    } else if (response.escalate || response.nextStep === 'ESCALATED_TO_HUMAN') {
       await escalateConversation(telemovel);
       const db = await getDb();
       await db.collection('messages').insertOne({
