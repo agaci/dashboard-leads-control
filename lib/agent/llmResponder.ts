@@ -121,7 +121,7 @@ async function buildStaticBlock(): Promise<string> {
 - **Urgências:** 1 Hora, 4 Horas, 24 Horas (Entrega Amanhã — recolha hoje, entrega garantida amanhã)
 - Portugal Continental. Ilhas a consultar com agente humano.
 - Serviço porta-a-porta, dedicado, rastreável
-- Seguro incluído até €1.000 (pode aumentar)
+- Seguro incluído até €10/kg (pode aumentar)
 - Pagamento: MB Way, transferência, cartão. Empresas: faturação mensal.
 
 ## Regras de resposta
