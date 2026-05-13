@@ -375,14 +375,9 @@
         appendBubbleTyped(data.message, function () {
           chatState.initialized = true;
           handleNewStep(data.step, data.quickReplies || []);
-          // Se o utilizador deixou observações, enviar ao bot (sendMessage já adiciona a bolha)
-          if (formData.observacoes) {
-            sendMessage(formData.observacoes);
-          } else {
-            setInputDisabled(false);
-            var inp = document.getElementById('ybChatInput');
-            if (inp) inp.focus();
-          }
+          setInputDisabled(false);
+          var inp = document.getElementById('ybChatInput');
+          if (inp) inp.focus();
         });
 
         startPolling();
