@@ -444,7 +444,7 @@
 
         <div class="yb-field" id="field-observacoes">
           <label for="ybObservacoes">Observações <span class="yb-optional">(opcional)</span></label>
-          <textarea id="ybObservacoes" placeholder="Informação adicional sobre o envio..." rows="2"></textarea>
+          <textarea id="ybObservacoes" placeholder="Ex: 4 caixas (100×40×50 cm), material frágil, recolha após as 14h..." rows="2"></textarea>
         </div>
 
         <div class="yb-benefits">
@@ -923,8 +923,7 @@
             addBubbleTyped(data.message, function(){
               cs.initialized = true;
               handleStep(data.step, data.quickReplies || []);
-              if (formData.observacoes) { send(formData.observacoes); }
-              else { setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) inp.focus(); }
+              setDisabled(false); var inp = document.getElementById('ybChatInput'); if (inp) inp.focus();
             });
             startPoll();
           } catch (_) { removeTyping(); addBubble('bot', 'Não foi possível ligar ao assistente.'); setDisabled(false); }
