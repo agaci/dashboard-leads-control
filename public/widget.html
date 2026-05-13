@@ -580,9 +580,33 @@
     }
 
     // ── Form ──────────────────────────────────────────────────────────────────
+    function initGooglePlaces() {
+      if (window._ybPlacesInited) return;
+      if (!window.google || !window.google.maps || !window.google.maps.places) return;
+      window._ybPlacesInited = true;
+      try {
+        var opts = { componentRestrictions: { country: 'pt' }, fields: ['formatted_address'] };
+        var oriEl = document.getElementById('origem');
+        var dstEl = document.getElementById('destino');
+        if (!oriEl || !dstEl) return;
+        var acO = new google.maps.places.Autocomplete(oriEl, opts);
+        var acD = new google.maps.places.Autocomplete(dstEl, opts);
+        acO.addListener('place_changed', function () {
+          var p = acO.getPlace();
+          if (p && p.formatted_address) oriEl.value = p.formatted_address;
+        });
+        acD.addListener('place_changed', function () {
+          var p = acD.getPlace();
+          if (p && p.formatted_address) dstEl.value = p.formatted_address;
+        });
+      } catch (_) {}
+    }
+
     function initForm() {
       var tel = document.getElementById('ybTelefone');
       if (tel) tel.addEventListener('input', function () { tel.value = tel.value.replace(/[^\d+\s]/g,''); });
+      // Se o Maps API já carregou antes do config, inicializar agora
+      initGooglePlaces();
     }
 
     function validarTelefone(val) {
@@ -931,8 +955,13 @@
       };
     })();
 
+    // Callback global do Google Maps — chamado quando a API termina de carregar
+    window.ybInitPlaces = function () { initGooglePlaces(); };
+
     loadConfig();
   })();
   </script>
+
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBlVG8t_l0lW7fwOg97LrNYD7vTn4_ZrM4&libraries=places&callback=ybInitPlaces" async defer></script>
 </body>
 </html>
