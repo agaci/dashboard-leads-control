@@ -78,11 +78,13 @@ const VEHICLE_CAPACITY: Record<string, string> = {
 
 // Resposta após preço calculado
 export function buildPriceMessage(conv: Conversation, showAggOffer = false): BotResponse {
-  const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura } = conv.data;
+  const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura, notas } = conv.data;
 
   const capacityNote = viatura && VEHICLE_CAPACITY[viatura]
     ? `\n_Capacidade máxima: ${VEHICLE_CAPACITY[viatura]}_\n\n`
     : '\n\n';
+
+  const notasLine = notas ? `_Obs.: ${notas}_\n\n` : '';
 
   const closingLine = showAggOffer
     ? `Para esta rota *poderá existir* a possibilidade de agregar a sua carga, o que *poderá* contribuir para reduzir o preço — sujeito a análise e disponibilidade.\n\nSe quiser que um operador verifique, pode aguardar alguns minutos aqui no chat ou podemos contactá-lo pelo helpdesk.\n\nComo prefere avançar?`
@@ -96,6 +98,7 @@ export function buildPriceMessage(conv: Conversation, showAggOffer = false): Bot
       `Viatura: ${viatura}\n` +
       `Urgência: ${urgencia}` +
       capacityNote +
+      notasLine +
       closingLine
     : 'Para calcular o preço, precisamos dos detalhes do serviço.';
 
