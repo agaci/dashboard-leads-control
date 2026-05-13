@@ -80,6 +80,7 @@ export interface ConversationData {
     dimensoes?: string;
     foraParametros?: boolean;
   };
+  totalCm?: number;
   notas?: string;
   source?: string;   // domain/origin identifier (e.g. 'yourbox.com.pt', 'meusite.pt', 'bot')
   aggOfferShown?: boolean;

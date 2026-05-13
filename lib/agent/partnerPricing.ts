@@ -104,6 +104,14 @@ export function calcAllActiveTariffs(
     .map((t) => calcPartnerPrice(t, kg, totalCm, isSaturday, t.markup ?? defaultMarkup));
 }
 
+/** Extrai a soma C+L+A (cm) do texto do utilizador. Ex: "50×40×30 cm" → 120 */
+export function parseTotalCm(text: string): number | null {
+  const match = text.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
+  if (!match) return null;
+  const sum = parseInt(match[1]) + parseInt(match[2]) + parseInt(match[3]);
+  return sum > 0 ? sum : null;
+}
+
 /** Extrai um número de kg do texto do utilizador. */
 export function parseWeight(text: string): number | null {
   const match = text.match(/(\d+([,.]\d+)?)/);

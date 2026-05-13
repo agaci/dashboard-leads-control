@@ -251,6 +251,10 @@ export async function POST(request: NextRequest) {
           descricao: mensagem.trim(),
           dimensoes: dimMatch ? `${dimMatch[1]}×${dimMatch[2]}×${dimMatch[3]} cm` : undefined,
         };
+        if (dimMatch) {
+          const totalCm = parseInt(dimMatch[1]) + parseInt(dimMatch[2]) + parseInt(dimMatch[3]);
+          if (totalCm > 0) dataUpdate.totalCm = totalCm;
+        }
         break;
       }
 
@@ -370,9 +374,10 @@ export async function POST(request: NextRequest) {
           .toArray() as unknown as PartnerTariff[];
 
         const kg = conv.data.weightKg ?? 1;
+        const totalCm = conv.data.totalCm ?? 0;
         const isSaturday = new Date().getDay() === 6;
 
-        const prices = calcAllActiveTariffs(tariffDocs, kg, 0, isSaturday, defaultMarkup);
+        const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
 
         if (prices.length === 0) throw new Error('Sem tarifas activas');
 
@@ -398,7 +403,7 @@ export async function POST(request: NextRequest) {
           leadData: { origem: conv.data.origem, destino: conv.data.destino, urgencia: '24 Horas', serviceType: 'arrasto', weightKg: kg, partnerWindow: recommended.deliveryWindow, partnerFinalPrice: recommended.finalPrice, telemovel, converted: false, source: 'bot' },
         });
 
-        response = buildPartnerPriceMessage(sortedPrices, kg);
+        response = buildPartnerPriceMessage(sortedPrices, kg, totalCm > 0);
       } catch (err) {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto brevemente.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };
       }

@@ -171,16 +171,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           .toArray() as unknown as PartnerTariff[];
 
         const kg = result.weightKg ?? convDoc.data.weightKg ?? 1;
+        const totalCm = (convDoc.data as any).totalCm ?? 0;
         const isSaturday = new Date().getDay() === 6;
-        const prices = calcAllActiveTariffs(tariffDocs, kg, 0, isSaturday, defaultMarkup);
+        const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
 
         if (prices.length > 0) {
           // Apresentar da mais cara (10h) para a mais barata (19h); recomendar a do meio (13h)
           const sorted = [...prices].reverse();
           const recommended = sorted[Math.floor(sorted.length / 2)];
           const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)}`).join('\n');
-          // Preços são sempre apresentados — o texto do LLM é substituído
-          botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
+          const dimNote = totalCm === 0
+            ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
+            : '';
+          botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}\n\nQual janela prefere?`;
           await db.collection('conversations').updateOne(
             { _id: oid },
             { $set: {

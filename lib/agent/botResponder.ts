@@ -49,7 +49,8 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   INIT: { text: '' },
   COLLECTING_WEIGHT: { text: '' },
   COLLECTING_VOLUMES: {
-    text: 'Quantos volumes tem o envio e quais as dimensões aproximadas?\n\n_(ex: 3 caixas, 50×40×30 cm cada)_',
+    text: 'Quantos volumes tem o envio e quais as dimensões aproximadas?\n\n_(ex: 3 caixas, 50×40×30 cm cada)_\n\nPode responder *saltar* se não souber.',
+    quickReplies: ['Saltar'],
   },
   CALCULATING_PRICE: { text: '' },
   PRESENTING_PRICE: { text: '' },
@@ -172,6 +173,7 @@ export function buildEscalationMessage(): BotResponse {
 export function buildPartnerPriceMessage(
   prices: PartnerPriceResult[],
   kg: number,
+  hasDimensions = false,
 ): BotResponse {
   if (prices.length === 0) {
     return {
@@ -184,12 +186,16 @@ export function buildPartnerPriceMessage(
   // prices já chegam ordenadas da mais cara (10h) para a mais barata (19h)
   const recommended = prices[Math.floor(prices.length / 2)];
   const lines = prices.map((p) => `*${p.serviceLabelShort}* — *€${p.finalPrice.toFixed(2)}*`);
+  const dimNote = hasDimensions
+    ? ''
+    : '\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._\n\n';
 
   return {
     text:
       `*Entrega YourBox Amanhã — ${kg} kg*\n\n` +
       lines.join('\n') +
       `\n\nRecomendamos *${recommended.serviceLabelShort}* — €${recommended.finalPrice.toFixed(2)}\n\n` +
+      dimNote +
       `Escolha a janela de entrega:`,
     nextStep: 'PRESENTING_PARTNER_PRICE',
     quickReplies: prices.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`).concat(['Cancelar']),
@@ -319,9 +325,14 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
           nextStep: 'COLLECTING_WEIGHT',
         };
       }
+      // Se já temos dimensões (de observações), saltar directo para cálculo
+      if (conv.data.totalCm != null) {
+        return { text: 'A calcular preço...', nextStep: 'CALCULATING_PARTNER_PRICE' as any };
+      }
       return {
         text: QUESTIONS.COLLECTING_VOLUMES.text,
         nextStep: 'COLLECTING_VOLUMES',
+        quickReplies: QUESTIONS.COLLECTING_VOLUMES.quickReplies,
       };
     }
 
