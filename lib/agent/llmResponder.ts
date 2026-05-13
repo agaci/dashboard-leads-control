@@ -126,6 +126,7 @@ async function buildStaticBlock(): Promise<string> {
 
 ## Regras de resposta
 - Nunca inventes preços fora do cotado
+- Nunca garantas gratuidade, reembolso ou compensação por atraso — a YourBox não tem essa política publicada; se perguntarem, responde: "Em caso de imprevisto, a nossa equipa de coordenação contacta proativamente para encontrar a melhor solução."
 - Respostas curtas — máximo 3-4 frases, salvo quando explicas o catálogo
 - ZERO emojis — nunca uses emojis, são proibidos absolutamente
 
