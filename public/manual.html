@@ -361,8 +361,10 @@
       <ul>
         <li>Uma nova lead é recebida <span class="badge badge-cyan">Nova Lead</span></li>
         <li>Uma conversa é escalada para humano <span class="badge badge-red">Escalamento</span></li>
-        <li>É detectada uma sugestão de agregação <span class="badge badge-green">Agregação</span></li>
+        <li>Uma lead pede análise de agregação pelo chat <span class="badge badge-red">Escalamento</span></li>
+        <li>É detectada uma sugestão de agregação automática <span class="badge badge-green">Agregação</span></li>
       </ul>
+      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted)"><strong>Comportamento do som e voz:</strong> a voz TTS e o som de alerta disparam apenas no <em>momento da escalação</em> (nova entrada). Mensagens subsequentes enviadas pela lead numa conversa já escalada ou em Chat ao Vivo geram apenas um <em>pling</em> suave — sem repetição de voz.</p>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -379,7 +381,7 @@
         <li>Estado atual <span class="badge badge-cyan">ACTIVE</span> <span class="badge badge-orange">ESCALATED</span> <span class="badge badge-green">CLOSED</span></li>
         <li>Pré-visualização da última mensagem</li>
         <li><strong>Telefone real</strong>, tipo de viatura e email — quando fornecidos pelo cliente no formulário</li>
-        <li>Observações do cliente (em itálico), se existirem</li>
+        <li>Observações do cliente (em itálico), se existirem — incluindo dimensões e volumes preenchidos no formulário (ex: <em>4 caixas 100×40×50 cm</em>)</li>
       </ul>
       <p>Esta informação de contacto no card permite ao operador ligar imediatamente ao cliente sem precisar de abrir a conversa.</p>
 
@@ -390,6 +392,7 @@
           <tbody>
             <tr><td><strong>Bot activo</strong></td><td><span class="badge badge-cyan">Chat ao vivo</span> não surge</td><td>Bot LLM responde automaticamente e guia o cliente até registar lead</td></tr>
             <tr><td><strong>Chat ao Vivo</strong><br><small>(Sistema activo: OFF)</small></td><td><span class="badge" style="background:#f3e8ff;color:#7e22ce;">Chat ao vivo</span></td><td>Bot desativado manualmente — cliente escreve livremente, operador responde pela Inbox em tempo real</td></tr>
+            <tr><td><strong>Chat ao Vivo — Análise de Agregação</strong><br><small>(agg_request)</small></td><td><span class="badge" style="background:#f3e8ff;color:#7e22ce;">Chat ao vivo</span></td><td>Lead aceitou análise de agregação no chat do bot. A conversa mantém-se aberta para ambos os lados: lead pode continuar a escrever e operador responde pela Inbox</td></tr>
             <tr><td><strong>Fora de horário</strong><br><small>(bot off por horário/fim-de-semana)</small></td><td>Badge azul normal</td><td>Bot recolhe nome e telefone, informa horário e destaca o número urgente <strong>214 304 546</strong>. Regista lead automáticamente para follow-up.</td></tr>
           </tbody>
         </table>
@@ -568,19 +571,28 @@
     <span class="section-anchor" id="agregacoes"></span>
     <div class="section">
       <h2>Agregações</h2>
-      <p>O módulo de Agregações sugere ao operador quando uma viatura YourBox já em rota pode fazer uma recolha adicional no mesmo percurso, poupando custos.</p>
+      <p>O módulo de Agregações tem duas vertentes: sugestões automáticas para o operador e oferta proativa ao cliente durante o chat.</p>
 
-      <h3>Como funciona</h3>
+      <h3>Sugestões automáticas (operador)</h3>
       <p>Quando uma nova lead é recebida, o sistema analisa automaticamente:</p>
       <ul>
         <li>Serviços activos com viatura em movimento</li>
         <li>Cálculo de desvio (bearing) e tempo adicional</li>
         <li>Se o desvio for aceitável (&lt; X min), surge uma sugestão no painel</li>
       </ul>
-
       <p>O operador vê uma notificação <span class="badge badge-green">Agregação</span> com a viatura sugerida e pode aceitar ou ignorar.</p>
 
-      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O ícone de Agregações na barra lateral fica a piscar a amarelo quando há sugestões pendentes.</div></div>
+      <h3>Oferta de análise de agregação (bot → lead)</h3>
+      <p>Quando o preço de um serviço direto (1h ou 4h) ultrapassa o limiar configurado em <strong>Agregação — Limiar de Preço</strong>, o bot apresenta automaticamente uma proposta ao cliente:</p>
+      <div class="callout info" style="font-style:italic;font-size:0.9rem;"><div class="callout-icon">💬</div><div>"Para esta rota <strong>poderá existir</strong> a possibilidade de agregar a sua carga, o que <strong>poderá</strong> contribuir para reduzir o preço — sujeito a análise e disponibilidade."</div></div>
+      <p>O cliente pode escolher entre três opções de resposta rápida:</p>
+      <ul>
+        <li><strong>Quero análise de agregação</strong> — conversa é escalada para LIVE_CHAT (<code>agg_request</code>). O operador recebe notificação e pode continuar o diálogo diretamente pela Inbox</li>
+        <li><strong>Avançar com serviço direto</strong> — bot prossegue o fluxo normal de registo de lead</li>
+        <li><strong>Ver entrega amanhã</strong> — bot apresenta opções de entrega para o dia seguinte</li>
+      </ul>
+
+      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O ícone de Agregações na barra lateral fica a piscar a amarelo quando há sugestões pendentes. Conversas escaladas por pedido de análise de agregação ficam com badge <span style="background:#f3e8ff;color:#7e22ce;padding:1px 6px;border-radius:4px;font-size:0.8rem;">Chat ao vivo</span> na Inbox.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -654,7 +666,8 @@
           <thead><tr><th>Configuração</th><th>Descrição</th></tr></thead>
           <tbody>
             <tr><td><strong>Sistema Activo</strong></td><td>Liga/desliga todo o processamento automático. <strong>OFF</strong> → modo Chat ao Vivo (operador responde manualmente em tempo real, sem bot)</td></tr>
-            <tr><td>Sempre Bot</td><td>Força todas as leads para o bot (ignora horários)</td></tr>
+            <tr><td>Sempre Bot</td><td>Força todas as leads para o bot (ignora horários e dias da semana). Quando ativo, inclui também serviços de 24 Horas — caso contrário estes vão sempre para operador manual</td></tr>
+            <tr><td><strong>Agregação — Limiar de Preço</strong></td><td>Valor em € acima do qual o bot apresenta automaticamente a oferta de análise de agregação em serviços diretos (1h/4h). Colocar <strong>0</strong> para desativar esta funcionalidade</td></tr>
             <tr><td>Horário Auto</td><td>Horas em que o bot está activo (ex: 9h-20h). Fora deste horário o bot recolhe nome e telefone e informa o número urgente <strong>214 304 546</strong></td></tr>
             <tr><td>Incluir Fins-de-Semana</td><td>Se o bot responde também aos fins de semana. OFF → fora de horas ao fim-de-semana aplica o mesmo fluxo de recolha de contacto</td></tr>
             <tr><td>Delay antes do Bot</td><td>Minutos de espera antes de o bot assumir uma lead</td></tr>
@@ -698,11 +711,14 @@
       <h3>Funcionalidades do Widget</h3>
       <ul>
         <li>Formulário de 2 passos: dados do envio → dados do contacto</li>
+        <li>Autocomplete Google Places nos campos de origem/destino (sugestões de endereço em tempo real)</li>
         <li>Geolocalização GPS nos campos de origem/destino</li>
+        <li>Campo de observações com exemplo orientativo (dimensões, volumes, instruções especiais)</li>
         <li>Calculadora de preço em tempo real</li>
         <li>Chat com bot IA integrado após submissão</li>
         <li>Personalização visual via configuração do cliente no dashboard</li>
       </ul>
+      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O widget usa a chave Google Maps da YourBox — o site do cliente <strong>não precisa</strong> de ter chave própria. O domínio do cliente também não é relevante para o autocomplete, pois o widget corre num iframe alojado em <code>leads.comgo.pt</code>.</div></div>
 
       <div class="callout warn"><div class="callout-icon">⚠️</div><div>O domínio onde o widget está instalado deve constar na lista <strong>Domínios Permitidos</strong> do cliente no dashboard. Caso contrário, o widget não carrega.</div></div>
     </div>
@@ -824,11 +840,14 @@
         <span class="state-pill">AWAITING_PAYMENT</span>
       </div>
 
-      <h3>Atendimento manual</h3>
+      <h3>Atendimento manual / Chat ao Vivo</h3>
       <div class="states">
         <span class="state-pill" style="background:#f3e8ff;color:#7e22ce;">LIVE_CHAT</span>
       </div>
-      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted);">Activo quando <strong>Sistema Activo está OFF</strong>. O bot não responde — operador atende diretamente pela Inbox. O cliente vê "A aguardar operador" e pode continuar a escrever.</p>
+      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted);">Dois cenários possíveis: (1) <strong>Sistema Activo OFF</strong> — bot desativado manualmente, operador atende diretamente pela Inbox; (2) <strong>Lead pediu análise de agregação</strong> (<code>agg_request</code>) — conversa escalada mantendo input aberto de ambos os lados. O cliente vê "A aguardar operador" e pode continuar a escrever.</p>
+
+      <h3>Nota sobre o campo Observações</h3>
+      <p style="font-size:0.88rem;color:var(--muted);">Se a lead preencheu o campo Observações no formulário (ex: dimensões e volumes), esses dados são incluídos automaticamente na primeira mensagem de orçamento do bot (<em>Obs.: ...</em>) e guardados no registo da conversa. O bot <strong>não voltará a pedir notas</strong> durante o diálogo — salta o passo <code>COLLECTING_NOTAS</code> automaticamente.</p>
 
       <h3>Estados terminais</h3>
       <div class="states">
@@ -852,6 +871,7 @@
             <tr><td>Arrasto</td><td>Serviço via parceiro logístico (24h+)</td></tr>
             <tr><td>Chat ao Vivo</td><td>Modo de atendimento manual em tempo real, ativo quando o sistema automático está desligado (Sistema Activo: OFF)</td></tr>
             <tr><td>Escalamento</td><td>Conversa transferida do bot para operador humano</td></tr>
+            <tr><td>Análise de Agregação</td><td>Pedido da lead para verificar possibilidade de partilha de viatura para reduzir preço. Conversa entra em LIVE_CHAT (<code>agg_request</code>) para continuação pelo operador</td></tr>
             <tr><td>Agregação</td><td>Partilha de viatura em rota com nova recolha</td></tr>
             <tr><td>Widget Client</td><td>Empresa parceira com formulário YourBox no seu site</td></tr>
             <tr><td>secretToken</td><td>Chave de autenticação da API de estatísticas do cliente</td></tr>
