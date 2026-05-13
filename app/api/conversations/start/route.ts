@@ -59,6 +59,7 @@ export async function POST(request: NextRequest) {
             ...(source ? { source } : {}),
           },
           history: [{ role: 'bot', text: botMsg, timestamp: now }],
+          escalatedAt: now,
           createdAt: now,
           updatedAt: now,
         });

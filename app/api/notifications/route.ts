@@ -5,16 +5,16 @@ export async function GET(request: Request) {
   const since = new Date(searchParams.get('since') ?? Date.now() - 30000);
 
   const db = await getDb();
-  const [escalations, aggEscalations, leadDocs, aggHintConvs, liveChats, newBotConvs] = await Promise.all([
+  const [escalations, aggEscalations, leadDocs, aggHintConvs, liveChats, liveChatMessages, newBotConvs] = await Promise.all([
+    // Voz só na transição inicial — usa escalatedAt em vez de updatedAt
     db.collection('conversations').countDocuments({
       step: 'ESCALATED_TO_HUMAN',
       escalationType: { $ne: 'agg_request' },
-      updatedAt: { $gte: since },
+      escalatedAt: { $gte: since },
     }),
     db.collection('conversations').countDocuments({
-      step: 'LIVE_CHAT',
       escalationType: 'agg_request',
-      updatedAt: { $gte: since },
+      escalatedAt: { $gte: since },
     }),
     db.collection('messages').find({
       messageType: 'newLead',
@@ -32,8 +32,15 @@ export async function GET(request: Request) {
         aggHints: { $slice: 1 },
       },
     }).limit(10).toArray(),
+    // Novas conversas LIVE_CHAT (bot desativado) — voz + pling na criação
     db.collection('conversations').countDocuments({
       step: 'LIVE_CHAT',
+      escalationType: { $ne: 'agg_request' },
+      escalatedAt: { $gte: since },
+    }),
+    // Mensagens de lead em conversas ativas (LIVE_CHAT ou ESCALATED) — pling sem voz
+    db.collection('conversations').countDocuments({
+      step: { $in: ['LIVE_CHAT', 'ESCALATED_TO_HUMAN'] },
       history: { $elemMatch: { role: 'lead', timestamp: { $gte: since } } },
     }),
     // Novas conversas no inbox:
@@ -65,5 +72,5 @@ export async function GET(request: Request) {
     topDriver: c.aggHints?.[0]?.driver ?? null,
   }));
 
-  return Response.json({ escalations, aggEscalations, leads, leadDetails, aggHints, liveChats, newBotConvs });
+  return Response.json({ escalations, aggEscalations, leads, leadDetails, aggHints, liveChats, liveChatMessages, newBotConvs });
 }

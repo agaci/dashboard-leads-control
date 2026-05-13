@@ -29,6 +29,7 @@ type NotifResponse = {
   leadDetails: LeadDetail[];
   aggHints: Omit<AggHintAlert, 'type'>[];
   liveChats: number;
+  liveChatMessages: number;
   newBotConvs: number;
 };
 
@@ -87,6 +88,12 @@ export function useNotifications(
           playLiveChatSound();
           speakLiveChat();
           onAlertRef.current({ type: 'live_chat' });
+        });
+      }
+      if ((data.liveChatMessages ?? 0) > 0) {
+        queue.push(() => {
+          playLiveChatSound();
+          // sem voz — apenas pling para novas mensagens em conversas ativas
         });
       }
       for (const hint of data.aggHints ?? []) {

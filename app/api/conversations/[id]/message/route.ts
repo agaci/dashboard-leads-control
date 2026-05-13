@@ -208,6 +208,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       updatedAt: now,
     };
     if (!leadRegistered) updateFields.step = nextStep;
+    if (escalate) updateFields.escalatedAt = now;
 
     await db.collection('conversations').updateOne({ _id: oid }, { $set: updateFields });
 
