@@ -94,7 +94,8 @@ export function buildPriceMessage(conv: Conversation, showAggOffer = false): Bot
   const priceText = priceCalculated
     ? `*Orçamento Estimado*\n\n` +
       `~~€${priceCalculated!.toFixed(2)}~~  *-€${discount!.toFixed(2)}*\n` +
-      `*€${priceWithDiscount!.toFixed(2)}* _Desconto de 10% incluído_\n\n` +
+      `*€${priceWithDiscount!.toFixed(2)}* _Desconto de 10% incluído_\n` +
+      `_(IVA 23% incluído)_\n\n` +
       `Distância: ${distance} km\n` +
       `Viatura: ${viatura}\n` +
       `Urgência: ${urgencia}` +
@@ -186,6 +187,7 @@ export function buildPartnerPriceMessage(
   // prices já chegam ordenadas da mais cara (10h) para a mais barata (19h)
   const recommended = prices[Math.floor(prices.length / 2)];
   const lines = prices.map((p) => `*${p.serviceLabelShort}* — *€${p.finalPrice.toFixed(2)}*`);
+  const ivaNote = '_(IVA 23% incluído)_';
   const dimNote = hasDimensions
     ? ''
     : '\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._\n\n';
@@ -193,7 +195,8 @@ export function buildPartnerPriceMessage(
   return {
     text:
       `*Entrega YourBox Amanhã — ${kg} kg*\n\n` +
-      lines.join('\n') +
+      lines.join('\n') + '\n' +
+      ivaNote +
       `\n\nRecomendamos *${recommended.serviceLabelShort}* — €${recommended.finalPrice.toFixed(2)}\n\n` +
       dimNote +
       `Escolha a janela de entrega:`,
