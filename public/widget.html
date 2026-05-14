@@ -790,6 +790,12 @@
       function md(t) {
         return t.replace(/\*([^*\n]+)\*/g,'<strong>$1</strong>').replace(/~~([^~\n]+)~~/g,'<del>$1</del>').replace(/_([^_\n]+)_/g,'<em>$1</em>').replace(/\n/g,'<br>');
       }
+      // Versão streaming-safe: remove tokens de markdown incompletos no final
+      // para não mostrar asteriscos soltos enquanto o modelo ainda está a escrever
+      function mdSafe(t) {
+        var s = t.replace(/\*([^*\n]*)$/, '$1').replace(/_([^_\n]*)$/, '$1').replace(/~~([^~]*)$/, '$1');
+        return md(s);
+      }
       function area() { return document.getElementById('ybChatMessages'); }
 
       function addBubble(role, text) {
@@ -808,7 +814,7 @@
         cs.typing = true; var i = 0, acc = '';
         function tick() {
           if (i >= text.length) { b.innerHTML = md(text); a.scrollTop = a.scrollHeight; cs.typing = false; notifyHeight(); if (onDone) onDone(); return; }
-          var chunk = text.slice(i, i + (Math.random() > 0.7 ? 2 : 1)); acc += chunk; i += chunk.length; b.textContent = acc;
+          var chunk = text.slice(i, i + (Math.random() > 0.7 ? 2 : 1)); acc += chunk; i += chunk.length; b.innerHTML = mdSafe(acc);
           if (i % 5 === 0 || i >= text.length) a.scrollTop = a.scrollHeight;
           setTimeout(tick, SPEED + (Math.random() > 0.85 ? 30 : 0));
         }
