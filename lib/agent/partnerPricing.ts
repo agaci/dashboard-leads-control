@@ -105,16 +105,17 @@ export function calcAllActiveTariffs(
 }
 
 /** Extrai a soma C+L+A (cm) do texto do utilizador.
- *  Aceita "50×40×30", "50x40x30", "50 40 30" e "1cx 50 70 100" (ignora prefixos).
+ *  Aceita qualquer separador comum: × x , ; e espaço (com ou sem espaços à volta).
+ *  Ex: "50×40×30", "50x40x30", "50,40,30", "50;40;30", "50 40 30", "1cx 50 70 100"
  */
 export function parseTotalCm(text: string): number | null {
-  // Separador × ou x  (ex: "50×40×30", "50 x 40 x 30")
-  const matchX = text.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
-  if (matchX) {
-    const sum = parseInt(matchX[1]) + parseInt(matchX[2]) + parseInt(matchX[3]);
+  // Separador explícito: ×, x, vírgula ou ponto-e-vírgula (espaços opcionais à volta)
+  const matchSep = text.match(/(\d+)\s*[x×,;]\s*(\d+)\s*[x×,;]\s*(\d+)/i);
+  if (matchSep) {
+    const sum = parseInt(matchSep[1]) + parseInt(matchSep[2]) + parseInt(matchSep[3]);
     return sum > 0 ? sum : null;
   }
-  // Separador espaço com números ≥ 2 dígitos (ex: "50 70 100", "1cx 50 70 100")
+  // Separador só-espaço — exige ≥ 2 dígitos por número para evitar falsos positivos
   const matchSpace = text.match(/\b(\d{2,})\s+(\d{2,})\s+(\d{2,})\b/);
   if (matchSpace) {
     const sum = parseInt(matchSpace[1]) + parseInt(matchSpace[2]) + parseInt(matchSpace[3]);
