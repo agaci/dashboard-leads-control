@@ -66,9 +66,10 @@ export function calcPartnerPrice(
   // ── Preço base total ──────────────────────────────────────────────────────
   const basePrice = Math.round((weightPrice + dimensionalSurcharge + supplementsTotal) * 100) / 100;
 
-  // ── Markup ────────────────────────────────────────────────────────────────
+  // ── Markup + IVA ─────────────────────────────────────────────────────────
   const appliedMarkup = markup ?? tariff.markup ?? 1.0;
-  const finalPrice = Math.round(basePrice * appliedMarkup * 100) / 100;
+  const IVA = parseFloat(process.env.IVA || '1.23');
+  const finalPrice = Math.round(basePrice * appliedMarkup * IVA * 100) / 100;
 
   return {
     tariffId: tariff._id ?? '',
