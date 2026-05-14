@@ -110,7 +110,7 @@ export function calcAllActiveTariffs(
  */
 export function parseTotalCm(text: string): number | null {
   // Separador explícito: ×, x, vírgula ou ponto-e-vírgula (espaços opcionais à volta)
-  const matchSep = text.match(/(\d+)\s*[x×,;]\s*(\d+)\s*[x×,;]\s*(\d+)/i);
+  const matchSep = text.match(/(\d+)\s*[x×,;\-]\s*(\d+)\s*[x×,;\-]\s*(\d+)/i);
   if (matchSep) {
     const sum = parseInt(matchSep[1]) + parseInt(matchSep[2]) + parseInt(matchSep[3]);
     return sum > 0 ? sum : null;
