@@ -179,7 +179,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           // Apresentar da mais cara (10h) para a mais barata (19h); recomendar a do meio (13h)
           const sorted = [...prices].reverse();
           const recommended = sorted[Math.floor(sorted.length / 2)];
-          const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)}`).join('\n');
+          const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
           const dimNote = totalCm === 0
             ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
             : '';
