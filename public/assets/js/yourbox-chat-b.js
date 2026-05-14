@@ -57,6 +57,11 @@
       .replace(/\n/g, '<br>');
   }
 
+  function mdToHtmlSafe(text) {
+    const s = text.replace(/\*([^*\n]*)$/, '$1').replace(/_([^_\n]*)$/, '$1').replace(/~~([^~]*)$/, '$1');
+    return mdToHtml(s);
+  }
+
   function appendBubble(role, text) {
     const area = document.getElementById('ybChatMessages');
     if (!area) return;
@@ -96,7 +101,7 @@
       const chunk = text.slice(i, i + (Math.random() > 0.7 ? 2 : 1));
       accumulated += chunk;
       i += chunk.length;
-      bubble.textContent = accumulated;
+      bubble.innerHTML = mdToHtmlSafe(accumulated);
       if (i % 5 === 0 || i >= text.length) area.scrollTop = area.scrollHeight;
       setTimeout(typeNext, TYPING_SPEED_MS + (Math.random() > 0.85 ? 30 : 0));
     }
