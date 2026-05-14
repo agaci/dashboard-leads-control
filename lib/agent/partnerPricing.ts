@@ -104,12 +104,23 @@ export function calcAllActiveTariffs(
     .map((t) => calcPartnerPrice(t, kg, totalCm, isSaturday, t.markup ?? defaultMarkup));
 }
 
-/** Extrai a soma C+L+A (cm) do texto do utilizador. Ex: "50×40×30 cm" → 120 */
+/** Extrai a soma C+L+A (cm) do texto do utilizador.
+ *  Aceita "50×40×30", "50x40x30", "50 40 30" e "1cx 50 70 100" (ignora prefixos).
+ */
 export function parseTotalCm(text: string): number | null {
-  const match = text.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
-  if (!match) return null;
-  const sum = parseInt(match[1]) + parseInt(match[2]) + parseInt(match[3]);
-  return sum > 0 ? sum : null;
+  // Separador × ou x  (ex: "50×40×30", "50 x 40 x 30")
+  const matchX = text.match(/(\d+)\s*[x×]\s*(\d+)\s*[x×]\s*(\d+)/i);
+  if (matchX) {
+    const sum = parseInt(matchX[1]) + parseInt(matchX[2]) + parseInt(matchX[3]);
+    return sum > 0 ? sum : null;
+  }
+  // Separador espaço com números ≥ 2 dígitos (ex: "50 70 100", "1cx 50 70 100")
+  const matchSpace = text.match(/\b(\d{2,})\s+(\d{2,})\s+(\d{2,})\b/);
+  if (matchSpace) {
+    const sum = parseInt(matchSpace[1]) + parseInt(matchSpace[2]) + parseInt(matchSpace[3]);
+    return sum > 0 ? sum : null;
+  }
+  return null;
 }
 
 /** Extrai um número de kg do texto do utilizador. */
