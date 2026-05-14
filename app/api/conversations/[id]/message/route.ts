@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { getLlmResponse } from '@/lib/agent/llmResponder';
-import { calcAllActiveTariffs } from '@/lib/agent/partnerPricing';
+import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
@@ -64,6 +64,52 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const mensagem = text.trim();
     const now = new Date();
+
+    // ── Step estruturado: recolha de dimensões para serviço 24h ─────────────
+    if (convDoc.step === 'COLLECTING_DIMENSIONS_24H') {
+      const history = convDoc.history ?? [];
+      history.push({ role: 'lead', text: mensagem, timestamp: now });
+
+      const isSaltar = /^s(altar)?$/i.test(mensagem.trim());
+      const totalCm = isSaltar ? 0 : (parseTotalCm(mensagem) ?? 0);
+
+      const db2 = db;
+      const routingDoc = await db2.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+      const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+      const tariffDocs = await db2.collection('partnerTariffs')
+        .find({ active: true, zone: 'Nacional' })
+        .sort({ sortOrder: 1 })
+        .toArray() as unknown as PartnerTariff[];
+
+      const kg = (convDoc.data as any).weightKg ?? 1;
+      const isSaturday = new Date().getDay() === 6;
+      const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+      const sorted = [...prices].reverse();
+      const recommended = sorted[Math.floor(sorted.length / 2)];
+      const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
+      const dimNote = totalCm === 0
+        ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
+        : '';
+      const botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}\n\nQual janela prefere?`;
+
+      history.push({ role: 'bot', text: botText, timestamp: now });
+      await db2.collection('conversations').updateOne(
+        { _id: oid },
+        { $set: {
+          step: 'PRESENTING_PARTNER_PRICE',
+          'data.totalCm': totalCm || null,
+          'data.partnerFinalPrice': recommended.finalPrice,
+          'data.partnerWindow': recommended.deliveryWindow,
+          history, updatedAt: now,
+        }}
+      );
+      return Response.json({
+        success: true,
+        message: botText,
+        step: 'PRESENTING_PARTNER_PRICE',
+        quickReplies: sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`).concat(['Cancelar']),
+      });
+    }
 
     // Adicionar mensagem do utilizador ao histórico
     const history = convDoc.history ?? [];
@@ -160,46 +206,54 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
 
     } else if (result.type === 'calculate_tomorrow') {
-      // LLM pediu cálculo de entrega amanhã
-      nextStep = 'PRESENTING_PARTNER_PRICE';
-      try {
-        const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
-        const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
-        const tariffDocs = await db.collection('partnerTariffs')
-          .find({ active: true, zone: 'Nacional' })
-          .sort({ sortOrder: 1 })
-          .toArray() as unknown as PartnerTariff[];
+      const kg = result.weightKg ?? convDoc.data.weightKg ?? 1;
+      const totalCmKnown = (convDoc.data as any).totalCm ?? 0;
 
-        const kg = result.weightKg ?? convDoc.data.weightKg ?? 1;
-        const totalCm = (convDoc.data as any).totalCm ?? 0;
-        const isSaturday = new Date().getDay() === 6;
-        const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+      // Se não temos dimensões, pedir antes de calcular
+      if (totalCmKnown === 0) {
+        nextStep = 'COLLECTING_DIMENSIONS_24H';
+        botText = `Obrigado. Para apresentar o preço mais preciso, indique as *dimensões* da(s) caixa(s):\n\n*Comprimento × Largura × Altura* em cm _(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+        await db.collection('conversations').updateOne(
+          { _id: oid },
+          { $set: { step: 'COLLECTING_DIMENSIONS_24H', 'data.weightKg': kg, updatedAt: now } }
+        );
+      } else {
+        // Dimensões já conhecidas — calcular directamente
+        nextStep = 'PRESENTING_PARTNER_PRICE';
+        try {
+          const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+          const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+          const tariffDocs = await db.collection('partnerTariffs')
+            .find({ active: true, zone: 'Nacional' })
+            .sort({ sortOrder: 1 })
+            .toArray() as unknown as PartnerTariff[];
 
-        if (prices.length > 0) {
-          // Apresentar da mais cara (10h) para a mais barata (19h); recomendar a do meio (13h)
-          const sorted = [...prices].reverse();
-          const recommended = sorted[Math.floor(sorted.length / 2)];
-          const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
-          const dimNote = totalCm === 0
-            ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
-            : '';
-          botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}\n\nQual janela prefere?`;
-          await db.collection('conversations').updateOne(
-            { _id: oid },
-            { $set: {
-              step: 'PRESENTING_PARTNER_PRICE',
-              'data.serviceType': 'arrasto',
-              'data.weightKg': kg,
-              'data.partnerFinalPrice': recommended.finalPrice,
-              'data.partnerWindow': recommended.deliveryWindow,
-              updatedAt: now,
-            }}
-          );
+          const totalCm = totalCmKnown;
+          const isSaturday = new Date().getDay() === 6;
+          const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+
+          if (prices.length > 0) {
+            const sorted = [...prices].reverse();
+            const recommended = sorted[Math.floor(sorted.length / 2)];
+            const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
+            botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
+            await db.collection('conversations').updateOne(
+              { _id: oid },
+              { $set: {
+                step: 'PRESENTING_PARTNER_PRICE',
+                'data.serviceType': 'arrasto',
+                'data.weightKg': kg,
+                'data.partnerFinalPrice': recommended.finalPrice,
+                'data.partnerWindow': recommended.deliveryWindow,
+                updatedAt: now,
+              }}
+            );
+          }
+        } catch {
+          botText = botText || 'Não foi possível calcular o preço. A nossa equipa vai contactar brevemente.';
+          nextStep = 'ESCALATED_TO_HUMAN';
+          escalate = true;
         }
-      } catch {
-        botText = botText || 'Não foi possível calcular o preço. A nossa equipa vai contactar brevemente.';
-        nextStep = 'ESCALATED_TO_HUMAN';
-        escalate = true;
       }
     }
 
