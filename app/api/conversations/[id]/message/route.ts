@@ -25,6 +25,10 @@ const DEPOT_OUT_OF_RANGE_MSG =
   'O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. ' +
   'A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.';
 
+function maxExpeditionKg(tariffDocs: PartnerTariff[]): number {
+  return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
+}
+
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -110,6 +114,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         .toArray() as unknown as PartnerTariff[];
 
       const kg = (convDoc.data as any).weightKg ?? 1;
+
+      // ── Verificar peso máximo da expedição ────────────────────────────────
+      const maxExpKg24 = maxExpeditionKg(tariffDocs);
+      if (maxExpKg24 > 0 && kg > maxExpKg24) {
+        const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+        history.push({ role: 'bot', text: escMsg, timestamp: now });
+        await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+      }
+
       const isSaturday = new Date().getDay() === 6;
       const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPrice24);
       const sorted = [...prices].reverse();
@@ -198,6 +212,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
             const tariffDocs = await db.collection('partnerTariffs')
               .find({ active: true, zone: 'Nacional' }).sort({ sortOrder: 1 }).toArray() as unknown as PartnerTariff[];
+
+            // ── Verificar peso máximo da expedição ────────────────────────
+            const maxExpKgFri = maxExpeditionKg(tariffDocs);
+            if (maxExpKgFri > 0 && kg > maxExpKgFri) {
+              fridayBotText = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro (máximo *${maxExpKgFri} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+              fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
+              history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
+              const fridayFieldsEsc2: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
+              await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFieldsEsc2 });
+              return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
+            }
+
             const prices = calcAllActiveTariffs(tariffDocs, kg, totalCmKnown, false, defaultMarkup, depotPriceFri);
             if (prices.length > 0) {
               const sorted = [...prices].reverse();
@@ -326,6 +352,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     } else if (result.type === 'calculate_tomorrow') {
       const kg = result.weightKg ?? convDoc.data.weightKg ?? 1;
 
+      // ── Verificar peso máximo antes de qualquer passo ─────────────────────
+      {
+        const tariffDocsTmrPre = await db.collection('partnerTariffs')
+          .find({ active: true, zone: 'Nacional' }).toArray() as unknown as PartnerTariff[];
+        const maxExpKgTmr = maxExpeditionKg(tariffDocsTmrPre);
+        if (maxExpKgTmr > 0 && kg > maxExpKgTmr) {
+          const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+          history.push({ role: 'bot', text: escMsg, timestamp: now });
+          await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', 'data.weightKg': kg, history, escalatedAt: now, updatedAt: now } });
+          return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+        }
+      }
+
       // ── 6ª feira: confirmar sábado vs segunda ──────────────────────────────
       const lisbonNow6 = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
       if (lisbonNow6.getDay() === 5) {
@@ -373,6 +412,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             .find({ active: true, zone: 'Nacional' })
             .sort({ sortOrder: 1 })
             .toArray() as unknown as PartnerTariff[];
+
+          // ── Verificar peso máximo da expedição ──────────────────────────
+          const maxExpKgTmr2 = maxExpeditionKg(tariffDocs);
+          if (maxExpKgTmr2 > 0 && kg > maxExpKgTmr2) {
+            const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+            history.push({ role: 'bot', text: escMsg, timestamp: now });
+            await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+            return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+          }
 
           const totalCm = totalCmKnown;
           const isSaturday = new Date().getDay() === 6;
