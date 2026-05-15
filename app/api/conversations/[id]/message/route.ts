@@ -111,6 +111,85 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
     }
 
+    // ── Step: confirmar entrega 6ª feira (sábado vs segunda) ────────────────
+    if (convDoc.step === 'CONFIRMING_FRIDAY_DELIVERY') {
+      const history = convDoc.history ?? [];
+      history.push({ role: 'lead', text: mensagem, timestamp: now });
+
+      const wantsSaturday = /s[áa]bado|[ée]\s*amanh[aã]|tem\s*de\s*ser|precis[ao]\s*ser|n[aã]o\s*pode\s*esperar|urgente/i.test(mensagem);
+
+      const lisbonNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+      const h = lisbonNow.getHours(), m = lisbonNow.getMinutes(), dow = lisbonNow.getDay();
+      const inBizHours = dow >= 1 && dow <= 5 && (h > 8 || (h === 8 && m >= 30)) && h < 20;
+      const contactSuffix = inBizHours
+        ? 'Um operador vai analisar e contactá-lo brevemente.'
+        : 'Respondemos no próximo dia útil a partir das 08h30.';
+
+      let fridayBotText: string;
+      let fridayStep: string;
+      let fridayEscalate = false;
+      const fridayQuickReplies: string[] = [];
+
+      if (wantsSaturday) {
+        fridayStep = 'ESCALATED_TO_HUMAN';
+        fridayEscalate = true;
+        fridayBotText = `O serviço de entrega ao *sábado* requer análise individual — o nosso parceiro opera apenas em dias úteis.\n\n${contactSuffix}`;
+        await db.collection('messages').insertOne({
+          company: 'Yourbox', messageType: 'newLead', to: 'admin',
+          presentationMessage: 'stick', deletedAfter: 0,
+          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado (fora de dias úteis do parceiro)</p></div>`,
+          companyProvider: 'Yourbox', senderName: 'Bot Web — Entrega Sábado', variante: 'BOT',
+          timeStamp: now, closed: false, reply: [],
+          leadData: { ...convDoc.data, converted: false, source: 'web_chat_saturday_delivery' },
+        });
+      } else {
+        const kg = (convDoc.data as any).weightKg ?? 1;
+        const totalCmKnown = (convDoc.data as any).totalCm ?? 0;
+        if (totalCmKnown === 0) {
+          fridayStep = 'COLLECTING_DIMENSIONS_24H';
+          fridayBotText = `Óptimo, agendamos para *segunda-feira*!\n\nPara o preço mais preciso, indique as *dimensões* da(s) caixa(s):\n\n*Comprimento × Largura × Altura* em cm _(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+          await db.collection('conversations').updateOne(
+            { _id: oid },
+            { $set: { step: 'COLLECTING_DIMENSIONS_24H', updatedAt: now } }
+          );
+        } else {
+          fridayStep = 'PRESENTING_PARTNER_PRICE';
+          try {
+            const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+            const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+            const tariffDocs = await db.collection('partnerTariffs')
+              .find({ active: true, zone: 'Nacional' }).sort({ sortOrder: 1 }).toArray() as unknown as PartnerTariff[];
+            const prices = calcAllActiveTariffs(tariffDocs, kg, totalCmKnown, false, defaultMarkup);
+            if (prices.length > 0) {
+              const sorted = [...prices].reverse();
+              const rec = sorted[Math.floor(sorted.length / 2)];
+              const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
+              fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
+              await db.collection('conversations').updateOne(
+                { _id: oid },
+                { $set: { step: 'PRESENTING_PARTNER_PRICE', 'data.serviceType': 'arrasto', 'data.weightKg': kg, 'data.partnerFinalPrice': rec.finalPrice, 'data.partnerWindow': rec.deliveryWindow, updatedAt: now } }
+              );
+            } else {
+              fridayBotText = 'Não foi possível calcular o preço. A nossa equipa contactará brevemente.';
+              fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
+            }
+          } catch {
+            fridayBotText = 'Não foi possível calcular o preço. A nossa equipa contactará brevemente.';
+            fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
+          }
+        }
+        // Define fridayBotText para typescript (garantir sempre definido)
+        fridayBotText ??= 'Não foi possível processar. A nossa equipa vai contactar brevemente.';
+      }
+
+      history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
+      const fridayFields: Record<string, unknown> = { history, step: fridayStep, updatedAt: now };
+      if (fridayEscalate) fridayFields.escalatedAt = now;
+      await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFields });
+      return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: fridayQuickReplies, escalate: fridayEscalate });
+    }
+
     // Adicionar mensagem do utilizador ao histórico
     const history = convDoc.history ?? [];
     history.push({ role: 'lead', text: mensagem, timestamp: now });
@@ -207,6 +286,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     } else if (result.type === 'calculate_tomorrow') {
       const kg = result.weightKg ?? convDoc.data.weightKg ?? 1;
+
+      // ── 6ª feira: confirmar sábado vs segunda ──────────────────────────────
+      const lisbonNow6 = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+      if (lisbonNow6.getDay() === 5) {
+        const fridayQ = `Como hoje é *sexta-feira*, a entrega *amanhã* seria ao *sábado*.\n\nPrefere entrega no *sábado* ou pode aguardar até *segunda-feira*?`;
+        history.push({ role: 'bot', text: fridayQ, timestamp: now });
+        await db.collection('conversations').updateOne(
+          { _id: oid },
+          { $set: { step: 'CONFIRMING_FRIDAY_DELIVERY', 'data.weightKg': kg, history, updatedAt: now } }
+        );
+        return Response.json({ success: true, message: fridayQ, step: 'CONFIRMING_FRIDAY_DELIVERY', quickReplies: ['Sábado', 'Segunda-feira'] });
+      }
+
       const totalCmKnown = (convDoc.data as any).totalCm ?? 0;
 
       // Se não temos dimensões, pedir antes de calcular

@@ -66,10 +66,15 @@ export function calcPartnerPrice(
   // ── Preço base total ──────────────────────────────────────────────────────
   const basePrice = Math.round((weightPrice + dimensionalSurcharge + supplementsTotal) * 100) / 100;
 
+  // ── Taxa de combustível ───────────────────────────────────────────────────
+  const fuelPct = tariff.fuelSurchargePercent ?? 0;
+  const fuelCharge = fuelPct > 0 ? Math.round(basePrice * (fuelPct / 100) * 100) / 100 : 0;
+  const basePriceWithFuel = Math.round((basePrice + fuelCharge) * 100) / 100;
+
   // ── Markup + IVA ─────────────────────────────────────────────────────────
   const appliedMarkup = markup ?? tariff.markup ?? 1.0;
   const IVA = parseFloat(process.env.IVA || '1.23');
-  const finalPrice = Math.round(basePrice * appliedMarkup * IVA * 100) / 100;
+  const finalPrice = Math.round(basePriceWithFuel * appliedMarkup * IVA * 100) / 100;
 
   return {
     tariffId: tariff._id ?? '',
@@ -81,9 +86,10 @@ export function calcPartnerPrice(
     markup: appliedMarkup,
     finalPrice,
     breakdown: {
-      weightPrice: Math.round((weightPrice) * 100) / 100,
+      weightPrice: Math.round(weightPrice * 100) / 100,
       dimensionalSurcharge,
       supplements: supplementsTotal,
+      fuelCharge,
     },
   };
 }

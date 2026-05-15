@@ -35,6 +35,7 @@ export interface PartnerTariff {
   active: boolean;
   sortOrder: number;              // ordering in bot options (lower = shown first)
   markup?: number;                // overrides global defaultMarkup (e.g. 1.35 = +35%)
+  fuelSurchargePercent?: number;  // % aplicado ao basePrice antes de markup+IVA (ex: 5 = +5%)
   validFrom: Date;
   weightTiers: WeightTier[];
   dimensionalSurcharges: DimensionalSurcharge[];
@@ -51,12 +52,13 @@ export interface PartnerPriceResult {
   serviceLabelShort: string;
   deliveryWindow: string;
   deliveryDescription?: string;
-  basePrice: number;         // raw cost (cost to YourBox)
+  basePrice: number;         // raw cost before fuel surcharge
   markup: number;            // multiplier applied
-  finalPrice: number;        // basePrice * markup (what customer pays)
+  finalPrice: number;        // (basePrice * fuelFactor) * markup * IVA
   breakdown: {
     weightPrice: number;
     dimensionalSurcharge: number;
     supplements: number;
+    fuelCharge: number;      // valor absoluto do suplemento de combustível
   };
 }

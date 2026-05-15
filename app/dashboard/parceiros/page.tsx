@@ -209,7 +209,7 @@ function TariffEditor({
             className="w-full neu-input rounded-xl px-3 py-1.5 text-sm"
           />
         </Field>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-4 gap-3">
           <Field label="Janela">
             <input
               value={tariff.deliveryWindow}
@@ -222,6 +222,14 @@ function TariffEditor({
               type="number" step="0.01" min="1" max="3"
               value={tariff.markup ?? 1.35}
               onChange={(e) => set('markup', parseFloat(e.target.value))}
+              className="w-full neu-input rounded-xl px-3 py-1.5 text-sm"
+            />
+          </Field>
+          <Field label="Combustível (%)">
+            <input
+              type="number" step="0.1" min="0" max="50"
+              value={tariff.fuelSurchargePercent ?? 0}
+              onChange={(e) => set('fuelSurchargePercent', parseFloat(e.target.value) || 0)}
               className="w-full neu-input rounded-xl px-3 py-1.5 text-sm"
             />
           </Field>
