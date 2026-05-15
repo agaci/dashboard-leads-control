@@ -590,6 +590,9 @@ export default function DashboardPage() {
         <div style={{ flex: 1, overflowY: 'auto', padding: 32 }}>
           <div style={{ maxWidth: 600 }}>
             <RoutingPanel />
+            <div style={{ marginTop: 32 }}>
+              <VariantPanel />
+            </div>
           </div>
         </div>
       )}
@@ -1870,6 +1873,95 @@ function WaField({ label, hint, value, onChange, password }: {
         style={{ width: '100%', padding: '7px 10px', border: '1.5px solid #e0e0e0', borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: password ? 'monospace' : 'inherit' }}
       />
       <p style={{ fontSize: 10, color: '#aaa', margin: '3px 0 0' }}>{hint}</p>
+    </div>
+  );
+}
+
+// ── Variant A/B Panel ─────────────────────────────────────────────────────────
+
+type VariantWeights = { a: number; b: number; c: number; d: number; chat: number };
+
+function VariantPanel() {
+  const defaults: VariantWeights = { a: 0, b: 100, c: 0, d: 0, chat: 0 };
+  const [weights, setWeights] = useState<VariantWeights>(defaults);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetch('/api/variant-config')
+      .then((r) => r.json())
+      .then((d) => setWeights(d))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const total = Object.values(weights).reduce((s, v) => s + v, 0);
+
+  async function save() {
+    if (total !== 100) { setError(`A soma deve ser 100 (actual: ${total})`); return; }
+    setError(''); setSaving(true); setSaved(false);
+    try {
+      const res = await fetch('/api/variant-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(weights) });
+      const data = await res.json();
+      if (!res.ok || !data.success) { setError(data.error ?? 'Erro ao guardar'); }
+      else { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    } catch (e: any) { setError('Erro de rede: ' + e.message); }
+    finally { setSaving(false); }
+  }
+
+  if (loading) return <p style={{ fontSize: 13, color: '#aaa' }}>A carregar...</p>;
+
+  const cardS: React.CSSProperties = { background: '#fff', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const VARIANTS: { key: keyof VariantWeights; label: string; desc: string }[] = [
+    { key: 'a', label: 'Variante A', desc: 'Formulário clássico (index-a.html)' },
+    { key: 'b', label: 'Variante B', desc: 'Formulário com chat integrado (index-b.html)' },
+    { key: 'c', label: 'Variante C', desc: 'index-c.html' },
+    { key: 'd', label: 'Variante D', desc: 'index-d.html' },
+    { key: 'chat', label: 'Chat puro', desc: 'Widget de chat (index-chat.html)' },
+  ];
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Distribuição de Variantes A/B</h2>
+      <p style={{ fontSize: 13, color: '#aaa', marginBottom: 20 }}>
+        Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.
+      </p>
+
+      <div style={cardS}>
+        {VARIANTS.map(({ key, label, desc }) => (
+          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+            <div style={{ flex: 1 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 1px' }}>{label}</p>
+              <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>{desc}</p>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <input
+                type="number" min={0} max={100} value={weights[key]}
+                onChange={(e) => setWeights((w) => ({ ...w, [key]: parseInt(e.target.value) || 0 }))}
+                style={{ width: 64, padding: '6px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', textAlign: 'right' }}
+              />
+              <span style={{ fontSize: 13, color: '#888' }}>%</span>
+            </div>
+            <div style={{ width: 120, height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${Math.min(weights[key], 100)}%`, height: '100%', background: weights[key] > 0 ? CYAN : '#eee', transition: 'width 0.2s' }} />
+            </div>
+          </div>
+        ))}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#2e7d32' : '#c62828' }}>
+            Total: {total}%
+          </span>
+        </div>
+      </div>
+
+      {error && <p style={{ fontSize: 12, color: '#c62828', margin: '0 0 8px' }}>{error}</p>}
+
+      <button onClick={save} disabled={saving || total !== 100}
+        style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: (saving || total !== 100) ? 'default' : 'pointer', background: saved ? '#2e7d32' : total !== 100 ? '#bbb' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
+        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar distribuição'}
+      </button>
+      <p style={{ fontSize: 11, color: '#aaa', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
     </div>
   );
 }
