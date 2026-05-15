@@ -1879,32 +1879,59 @@ function WaField({ label, hint, value, onChange, password }: {
 
 // ── Variant A/B Panel ─────────────────────────────────────────────────────────
 
-type VariantWeights = { a: number; b: number; c: number; d: number; chat: number };
+type VariantItem = { key: string; label: string; desc: string; file: string; weight: number };
+
+const EMPTY_VARIANT: VariantItem = { key: '', label: '', desc: '', file: '', weight: 0 };
 
 function VariantPanel() {
-  const defaults: VariantWeights = { a: 0, b: 100, c: 0, d: 0, chat: 0 };
-  const [weights, setWeights] = useState<VariantWeights>(defaults);
+  const [variants, setVariants] = useState<VariantItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [newItem, setNewItem] = useState<VariantItem>(EMPTY_VARIANT);
 
   useEffect(() => {
     fetch('/api/variant-config')
       .then((r) => r.json())
-      .then((d) => setWeights(d))
+      .then((d) => setVariants(d.variants ?? []))
       .finally(() => setLoading(false));
   }, []);
 
-  const total = Object.values(weights).reduce((s, v) => s + v, 0);
+  const total = variants.reduce((s, v) => s + (v.weight || 0), 0);
+
+  function updateVariant(idx: number, field: keyof VariantItem, value: string | number) {
+    setVariants((vs) => vs.map((v, i) => i === idx ? { ...v, [field]: value } : v));
+  }
+
+  function deleteVariant(idx: number) {
+    setVariants((vs) => vs.filter((_, i) => i !== idx));
+  }
+
+  function addVariant() {
+    const key = newItem.key.trim();
+    if (!key) { setError('A chave é obrigatória'); return; }
+    if (variants.some((v) => v.key === key)) { setError(`Chave duplicada: "${key}"`); return; }
+    const file = newItem.file.trim() || `index-${key}.html`;
+    const label = newItem.label.trim() || `Variante ${key.toUpperCase()}`;
+    setVariants((vs) => [...vs, { ...newItem, key, label, file }]);
+    setNewItem(EMPTY_VARIANT);
+    setShowAdd(false);
+    setError('');
+  }
 
   async function save() {
     if (total !== 100) { setError(`A soma deve ser 100 (actual: ${total})`); return; }
     setError(''); setSaving(true); setSaved(false);
     try {
-      const res = await fetch('/api/variant-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(weights) });
+      const res = await fetch('/api/variant-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variants }),
+      });
       const data = await res.json();
-      if (!res.ok || !data.success) { setError(data.error ?? 'Erro ao guardar'); }
+      if (!res.ok || !data.success) setError(data.error ?? 'Erro ao guardar');
       else { setSaved(true); setTimeout(() => setSaved(false), 2000); }
     } catch (e: any) { setError('Erro de rede: ' + e.message); }
     finally { setSaving(false); }
@@ -1913,47 +1940,110 @@ function VariantPanel() {
   if (loading) return <p style={{ fontSize: 13, color: '#aaa' }}>A carregar...</p>;
 
   const cardS: React.CSSProperties = { background: '#fff', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
-  const VARIANTS: { key: keyof VariantWeights; label: string; desc: string }[] = [
-    { key: 'a', label: 'Variante A', desc: 'Formulário clássico (index-a.html)' },
-    { key: 'b', label: 'Variante B', desc: 'Formulário com chat integrado (index-b.html)' },
-    { key: 'c', label: 'Variante C', desc: 'index-c.html' },
-    { key: 'd', label: 'Variante D', desc: 'index-d.html' },
-    { key: 'chat', label: 'Chat puro', desc: 'Widget de chat (index-chat.html)' },
-  ];
+  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: '#fafafa', width: '100%' };
 
   return (
     <div>
-      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Distribuição de Variantes A/B</h2>
-      <p style={{ fontSize: 13, color: '#aaa', marginBottom: 20 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>Distribuição de Variantes A/B</h2>
+        <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#2e7d32' : '#c62828' }}>Total: {total}%</span>
+      </div>
+      <p style={{ fontSize: 13, color: '#aaa', marginBottom: 16 }}>
         Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.
       </p>
 
-      <div style={cardS}>
-        {VARIANTS.map(({ key, label, desc }) => (
-          <div key={key} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-            <div style={{ flex: 1 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 1px' }}>{label}</p>
-              <p style={{ fontSize: 11, color: '#aaa', margin: 0 }}>{desc}</p>
+      {variants.map((v, idx) => (
+        <div key={v.key} style={cardS}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 60 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave</span>
+              <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: CYAN, background: '#e0f7fa', padding: '5px 8px', borderRadius: 7, textAlign: 'center' }}>{v.key}</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <input
-                type="number" min={0} max={100} value={weights[key]}
-                onChange={(e) => setWeights((w) => ({ ...w, [key]: parseInt(e.target.value) || 0 }))}
-                style={{ width: 64, padding: '6px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', textAlign: 'right' }}
-              />
-              <span style={{ fontSize: 13, color: '#888' }}>%</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
+              <input value={v.label} onChange={(e) => updateVariant(idx, 'label', e.target.value)} style={inpS} />
             </div>
-            <div style={{ width: 120, height: 8, background: '#eee', borderRadius: 4, overflow: 'hidden' }}>
-              <div style={{ width: `${Math.min(weights[key], 100)}%`, height: '100%', background: weights[key] > 0 ? CYAN : '#eee', transition: 'width 0.2s' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 120 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
+              <input value={v.desc} placeholder="opcional" onChange={(e) => updateVariant(idx, 'desc', e.target.value)} style={inpS} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 120 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
+              <input value={v.file} onChange={(e) => updateVariant(idx, 'file', e.target.value)} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <input type="number" min={0} max={100} value={v.weight}
+                  onChange={(e) => updateVariant(idx, 'weight', parseInt(e.target.value) || 0)}
+                  style={{ ...inpS, width: 52, textAlign: 'right' }} />
+                <span style={{ fontSize: 12, color: '#888' }}>%</span>
+              </div>
+            </div>
+            <button onClick={() => deleteVariant(idx)}
+              style={{ flexShrink: 0, background: 'none', border: `1.5px solid #ffcdd2`, borderRadius: 7, padding: '5px 11px', cursor: 'pointer', fontSize: 18, color: '#c62828', lineHeight: 1 }}
+              title="Remover variante">×</button>
+          </div>
+          <div style={{ marginTop: 8, height: 5, background: '#eee', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{ width: `${Math.min(v.weight, 100)}%`, height: '100%', background: v.weight > 0 ? CYAN : '#eee', transition: 'width 0.2s' }} />
+          </div>
+        </div>
+      ))}
+
+      {showAdd ? (
+        <div style={{ ...cardS, borderStyle: 'dashed', background: '#fafcff' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: NAVY, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nova variante</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave *</span>
+              <input value={newItem.key} placeholder="ex: e"
+                onChange={(e) => {
+                  const k = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                  setNewItem((n) => ({ ...n, key: k, file: n.file || `index-${k}.html` }));
+                }}
+                style={{ ...inpS, width: 72 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
+              <input value={newItem.label} placeholder="Variante E" onChange={(e) => setNewItem((n) => ({ ...n, label: e.target.value }))} style={inpS} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
+              <input value={newItem.desc} placeholder="opcional" onChange={(e) => setNewItem((n) => ({ ...n, desc: e.target.value }))} style={inpS} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 120 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
+              <input value={newItem.file} placeholder="index-e.html"
+                onChange={(e) => setNewItem((n) => ({ ...n, file: e.target.value }))}
+                style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <input type="number" min={0} max={100} value={newItem.weight}
+                  onChange={(e) => setNewItem((n) => ({ ...n, weight: parseInt(e.target.value) || 0 }))}
+                  style={{ ...inpS, width: 52, textAlign: 'right' }} />
+                <span style={{ fontSize: 12, color: '#888' }}>%</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button onClick={addVariant}
+                style={{ padding: '7px 14px', background: CYAN, color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>
+                Adicionar
+              </button>
+              <button onClick={() => { setShowAdd(false); setError(''); setNewItem(EMPTY_VARIANT); }}
+                style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13 }}>
+                Cancelar
+              </button>
             </div>
           </div>
-        ))}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 4 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#2e7d32' : '#c62828' }}>
-            Total: {total}%
-          </span>
         </div>
-      </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)}
+          style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: 10 }}>
+          + Adicionar variante
+        </button>
+      )}
 
       {error && <p style={{ fontSize: 12, color: '#c62828', margin: '0 0 8px' }}>{error}</p>}
 
