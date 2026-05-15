@@ -9,7 +9,7 @@ const DEFAULT_VARIANTS = [
   { key: 'b', label: 'Variante B', desc: 'Formulário com chat integrado', file: 'index-b.html', weight: 100 },
   { key: 'c', label: 'Variante C', desc: '', file: 'index-c.html', weight: 0 },
   { key: 'd', label: 'Variante D', desc: '', file: 'index-d.html', weight: 0 },
-  { key: 'chat', label: 'Chat puro', desc: 'Widget de chat', file: 'index-chat.html', weight: 0 },
+  { key: 'chat', label: 'Chat puro', desc: 'Widget de chat', file: 'index-chat-b.html', weight: 0 },
 ];
 
 export type VariantItem = { key: string; label: string; desc: string; file: string; weight: number };
