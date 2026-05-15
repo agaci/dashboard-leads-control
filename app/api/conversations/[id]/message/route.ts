@@ -118,7 +118,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // ── Verificar peso máximo da expedição ────────────────────────────────
       const maxExpKg24 = maxExpeditionKg(tariffDocs);
       if (maxExpKg24 > 0 && kg > maxExpKg24) {
-        const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+        const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (wantsSaturday) {
         fridayStep = 'ESCALATED_TO_HUMAN';
         fridayEscalate = true;
-        fridayBotText = `O serviço de entrega ao *sábado* requer análise individual — o nosso parceiro opera apenas em dias úteis.\n\n${contactSuffix}`;
+        fridayBotText = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${contactSuffix}`;
         await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             // ── Verificar peso máximo da expedição ────────────────────────
             const maxExpKgFri = maxExpeditionKg(tariffDocs);
             if (maxExpKgFri > 0 && kg > maxExpKgFri) {
-              fridayBotText = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro (máximo *${maxExpKgFri} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+              fridayBotText = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgFri} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
               fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
               history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
               const fridayFieldsEsc2: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
@@ -358,7 +358,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           .find({ active: true, zone: 'Nacional' }).toArray() as unknown as PartnerTariff[];
         const maxExpKgTmr = maxExpeditionKg(tariffDocsTmrPre);
         if (maxExpKgTmr > 0 && kg > maxExpKgTmr) {
-          const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+          const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
           await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', 'data.weightKg': kg, history, escalatedAt: now, updatedAt: now } });
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -416,7 +416,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           // ── Verificar peso máximo da expedição ──────────────────────────
           const maxExpKgTmr2 = maxExpeditionKg(tariffDocs);
           if (maxExpKgTmr2 > 0 && kg > maxExpKgTmr2) {
-            const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima de expedição do nosso parceiro de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+            const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
             history.push({ role: 'bot', text: escMsg, timestamp: now });
             await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
             return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
