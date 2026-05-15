@@ -34,6 +34,12 @@ export interface PriceResult {
   GLX_GPT: number;
 }
 
+export interface PartnerDepot {
+  name: string;    // "Alfragide"
+  address: string; // endereço completo para geocoding
+  maxKm: number;   // distância máxima rodoviária da recolha ao depósito
+}
+
 export type RoutingDecision = 'AUTO' | 'MANUAL';
 
 export interface LeadDocument {
@@ -74,6 +80,7 @@ export interface LeadRoutingConfig {
   evolutionApiKey?: string;
   evolutionInstance?: string;
   aggEscalationThreshold?: number;
+  partnerDepots?: PartnerDepot[];
   botScheduleOverride?: {
     startHour: number;
     endHour: number;

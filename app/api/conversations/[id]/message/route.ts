@@ -3,14 +3,27 @@ import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { getLlmResponse } from '@/lib/agent/llmResponder';
 import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
-import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
-import { calculatePrice } from '@/lib/pricing/calculatePrice';
+import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
 import type { PartnerTariff } from '@/types/partner';
+import type { PartnerDepot } from '@/types/pricing';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
+
+function businessHoursContact(): string {
+  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const h = l.getHours(), m = l.getMinutes(), dow = l.getDay();
+  const inHours = dow >= 1 && dow <= 5 && (h > 8 || (h === 8 && m >= 30)) && h < 20;
+  return inHours
+    ? 'Um operador vai analisar e contactá-lo brevemente.'
+    : 'Respondemos no próximo dia útil a partir das 08h30.';
+}
+
+const DEPOT_OUT_OF_RANGE_MSG =
+  'O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. ' +
+  'A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.';
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -76,6 +89,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const db2 = db;
       const routingDoc = await db2.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
       const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+
+      // ── Depósito dinâmico ──────────────────────────────────────────────────
+      const depots24 = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
+      let depotPrice24: number | undefined;
+      if (depots24.length > 0 && convDoc.data.origem) {
+        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db);
+        if (!dr) {
+          const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+          history.push({ role: 'bot', text: escMsg, timestamp: now });
+          await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+          return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+        }
+        depotPrice24 = dr.pickupPrice;
+      }
+
       const tariffDocs = await db2.collection('partnerTariffs')
         .find({ active: true, zone: 'Nacional' })
         .sort({ sortOrder: 1 })
@@ -83,7 +111,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       const kg = (convDoc.data as any).weightKg ?? 1;
       const isSaturday = new Date().getDay() === 6;
-      const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+      const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPrice24);
       const sorted = [...prices].reverse();
       const recommended = sorted[Math.floor(sorted.length / 2)];
       const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
@@ -117,13 +145,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       history.push({ role: 'lead', text: mensagem, timestamp: now });
 
       const wantsSaturday = /s[áa]bado|[ée]\s*amanh[aã]|tem\s*de\s*ser|precis[ao]\s*ser|n[aã]o\s*pode\s*esperar|urgente/i.test(mensagem);
-
-      const lisbonNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
-      const h = lisbonNow.getHours(), m = lisbonNow.getMinutes(), dow = lisbonNow.getDay();
-      const inBizHours = dow >= 1 && dow <= 5 && (h > 8 || (h === 8 && m >= 30)) && h < 20;
-      const contactSuffix = inBizHours
-        ? 'Um operador vai analisar e contactá-lo brevemente.'
-        : 'Respondemos no próximo dia útil a partir das 08h30.';
+      const contactSuffix = businessHoursContact();
 
       let fridayBotText: string;
       let fridayStep: string;
@@ -157,9 +179,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           try {
             const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
             const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+
+            // ── Depósito dinâmico ────────────────────────────────────────────
+            const depotsFri = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
+            let depotPriceFri: number | undefined;
+            if (depotsFri.length > 0 && convDoc.data.origem) {
+              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db);
+              if (!dr) {
+                fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+                fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
+                history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
+                const fridayFieldsEsc: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
+                await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFieldsEsc });
+                return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
+              }
+              depotPriceFri = dr.pickupPrice;
+            }
+
             const tariffDocs = await db.collection('partnerTariffs')
               .find({ active: true, zone: 'Nacional' }).sort({ sortOrder: 1 }).toArray() as unknown as PartnerTariff[];
-            const prices = calcAllActiveTariffs(tariffDocs, kg, totalCmKnown, false, defaultMarkup);
+            const prices = calcAllActiveTariffs(tariffDocs, kg, totalCmKnown, false, defaultMarkup, depotPriceFri);
             if (prices.length > 0) {
               const sorted = [...prices].reverse();
               const rec = sorted[Math.floor(sorted.length / 2)];
@@ -315,6 +354,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         try {
           const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
           const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
+
+          // ── Depósito dinâmico ──────────────────────────────────────────────
+          const depotsTmr = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
+          let depotPriceTmr: number | undefined;
+          if (depotsTmr.length > 0 && convDoc.data.origem) {
+            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db);
+            if (!dr) {
+              const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+              history.push({ role: 'bot', text: escMsg, timestamp: now });
+              await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+              return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+            }
+            depotPriceTmr = dr.pickupPrice;
+          }
+
           const tariffDocs = await db.collection('partnerTariffs')
             .find({ active: true, zone: 'Nacional' })
             .sort({ sortOrder: 1 })
@@ -322,7 +376,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
           const totalCm = totalCmKnown;
           const isSaturday = new Date().getDay() === 6;
-          const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+          const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPriceTmr);
 
           if (prices.length > 0) {
             const sorted = [...prices].reverse();

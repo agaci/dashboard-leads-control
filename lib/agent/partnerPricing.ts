@@ -14,6 +14,7 @@ export function calcPartnerPrice(
   totalCm = 0,
   isSaturday = false,
   markup?: number,
+  depotPickupPrice?: number,
 ): PartnerPriceResult {
   // ── Preço por peso ────────────────────────────────────────────────────────
   const kgRounded = Math.max(kg, tariff.conditions.minWeightPerVolume);
@@ -60,7 +61,9 @@ export function calcPartnerPrice(
 
   // ── Suplementos base ──────────────────────────────────────────────────────
   let supplementsTotal = 0;
-  if (tariff.supplements.above25km) supplementsTotal += tariff.supplements.above25km;
+  // depotPickupPrice substitui above25km quando fornecido (calculado dinamicamente)
+  const above25km = depotPickupPrice !== undefined ? depotPickupPrice : (tariff.supplements.above25km ?? 0);
+  if (above25km > 0) supplementsTotal += above25km;
   if (isSaturday && tariff.supplements.saturday) supplementsTotal += tariff.supplements.saturday;
 
   // ── Preço base total ──────────────────────────────────────────────────────
@@ -104,11 +107,12 @@ export function calcAllActiveTariffs(
   totalCm = 0,
   isSaturday = false,
   defaultMarkup = 1.0,
+  depotPickupPrice?: number,
 ): PartnerPriceResult[] {
   return tariffs
     .filter((t) => t.active)
     .sort((a, b) => a.sortOrder - b.sortOrder)
-    .map((t) => calcPartnerPrice(t, kg, totalCm, isSaturday, t.markup ?? defaultMarkup));
+    .map((t) => calcPartnerPrice(t, kg, totalCm, isSaturday, t.markup ?? defaultMarkup, depotPickupPrice));
 }
 
 /** Extrai a soma C+L+A (cm) do texto do utilizador.

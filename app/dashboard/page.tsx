@@ -1188,6 +1188,8 @@ function ConfigPage() {
           <RoutingPanel />
           <div style={{ height: 1, background: '#e8e8e8', margin: '32px 0' }} />
           <VariantPanel />
+          <div style={{ height: 1, background: '#e8e8e8', margin: '32px 0' }} />
+          <DepotPanel />
         </>
       )}
     </div>
@@ -2054,6 +2056,149 @@ function VariantPanel() {
         {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar distribuição'}
       </button>
       <p style={{ fontSize: 11, color: '#aaa', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
+    </div>
+  );
+}
+
+// ── Depot Panel ───────────────────────────────────────────────────────────────
+
+type DepotItem = { name: string; address: string; maxKm: number };
+const EMPTY_DEPOT: DepotItem = { name: '', address: '', maxKm: 50 };
+
+function DepotPanel() {
+  const [depots, setDepots] = useState<DepotItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+  const [showAdd, setShowAdd] = useState(false);
+  const [newDepot, setNewDepot] = useState<DepotItem>(EMPTY_DEPOT);
+
+  useEffect(() => {
+    fetch('/api/routing-config')
+      .then((r) => r.json())
+      .then((d) => setDepots(d.config?.partnerDepots ?? []))
+      .finally(() => setLoading(false));
+  }, []);
+
+  function updateDepot(idx: number, field: keyof DepotItem, value: string | number) {
+    setDepots((ds) => ds.map((d, i) => i === idx ? { ...d, [field]: value } : d));
+  }
+
+  function deleteDepot(idx: number) {
+    setDepots((ds) => ds.filter((_, i) => i !== idx));
+  }
+
+  function addDepot() {
+    if (!newDepot.name.trim() || !newDepot.address.trim()) { setError('Nome e morada são obrigatórios'); return; }
+    setDepots((ds) => [...ds, { ...newDepot, name: newDepot.name.trim(), address: newDepot.address.trim() }]);
+    setNewDepot(EMPTY_DEPOT);
+    setShowAdd(false);
+    setError('');
+  }
+
+  async function save() {
+    setError(''); setSaving(true); setSaved(false);
+    try {
+      const res = await fetch('/api/routing-config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ partnerDepots: depots }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) setError(data.error ?? 'Erro ao guardar');
+      else { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    } catch (e: any) { setError('Erro de rede: ' + e.message); }
+    finally { setSaving(false); }
+  }
+
+  if (loading) return <p style={{ fontSize: 13, color: '#aaa' }}>A carregar...</p>;
+
+  const cardS: React.CSSProperties = { background: '#fff', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: '#fafafa', width: '100%' };
+
+  return (
+    <div>
+      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Depósitos Parceiro 24h</h2>
+      <p style={{ fontSize: 13, color: '#aaa', marginBottom: 16 }}>
+        Localizações de entrega ao parceiro. O bot calcula o preço da recolha até ao depósito mais próximo dentro do limite de km. Se nenhum depósito estiver dentro do limite, escala para operador.
+      </p>
+
+      {depots.map((d, idx) => (
+        <div key={idx} style={cardS}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 100 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome</span>
+              <input value={d.name} onChange={(e) => updateDepot(idx, 'name', e.target.value)} style={inpS} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 160 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada (para geocoding)</span>
+              <input value={d.address} placeholder="ex: Alfragide, Amadora, Portugal" onChange={(e) => updateDepot(idx, 'address', e.target.value)} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 90 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <input type="number" min={1} max={500} value={d.maxKm}
+                  onChange={(e) => updateDepot(idx, 'maxKm', parseInt(e.target.value) || 50)}
+                  style={{ ...inpS, width: 60, textAlign: 'right' }} />
+                <span style={{ fontSize: 12, color: '#888' }}>km</span>
+              </div>
+            </div>
+            <button onClick={() => deleteDepot(idx)}
+              style={{ flexShrink: 0, background: 'none', border: `1.5px solid #ffcdd2`, borderRadius: 7, padding: '5px 11px', cursor: 'pointer', fontSize: 18, color: '#c62828', lineHeight: 1 }}
+              title="Remover depósito">×</button>
+          </div>
+        </div>
+      ))}
+
+      {depots.length === 0 && !showAdd && (
+        <div style={{ ...cardS, textAlign: 'center', color: '#aaa', fontSize: 13 }}>
+          Nenhum depósito configurado — o suplemento fixo "acima 25km" das tarifas será usado.
+        </div>
+      )}
+
+      {showAdd ? (
+        <div style={{ ...cardS, borderStyle: 'dashed', background: '#fafcff' }}>
+          <p style={{ fontSize: 12, fontWeight: 700, color: NAVY, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Novo depósito</p>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 100 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome *</span>
+              <input value={newDepot.name} placeholder="ex: Alfragide" onChange={(e) => setNewDepot((n) => ({ ...n, name: e.target.value }))} style={inpS} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 160 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada *</span>
+              <input value={newDepot.address} placeholder="Alfragide, Amadora, Portugal" onChange={(e) => setNewDepot((n) => ({ ...n, address: e.target.value }))} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 90 }}>
+              <span style={{ fontSize: 10, color: '#aaa', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <input type="number" min={1} max={500} value={newDepot.maxKm}
+                  onChange={(e) => setNewDepot((n) => ({ ...n, maxKm: parseInt(e.target.value) || 50 }))}
+                  style={{ ...inpS, width: 60, textAlign: 'right' }} />
+                <span style={{ fontSize: 12, color: '#888' }}>km</span>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+              <button onClick={addDepot} style={{ padding: '7px 14px', background: CYAN, color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Adicionar</button>
+              <button onClick={() => { setShowAdd(false); setError(''); setNewDepot(EMPTY_DEPOT); }} style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13 }}>Cancelar</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowAdd(true)} style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: '#888', marginBottom: 10 }}>
+          + Adicionar depósito
+        </button>
+      )}
+
+      {error && <p style={{ fontSize: 12, color: '#c62828', margin: '0 0 8px' }}>{error}</p>}
+
+      <button onClick={save} disabled={saving}
+        style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#2e7d32' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
+        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar depósitos'}
+      </button>
+      <p style={{ fontSize: 11, color: '#aaa', marginTop: 6 }}>
+        Se a recolha estiver fora do limite de todos os depósitos, o bot escala automaticamente para operador com mensagem de cotação personalizada.
+      </p>
     </div>
   );
 }
