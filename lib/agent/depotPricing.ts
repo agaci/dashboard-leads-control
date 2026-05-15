@@ -1,7 +1,9 @@
 import type { Db } from 'mongodb';
-import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
+import { geocode } from '@/lib/pricing/geocode';
+import { classifyPoints } from '@/lib/pricing/cityPolygon';
+import { getDistanceMatrix } from '@/lib/pricing/distanceMatrix';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
-import type { PartnerDepot } from '@/types/pricing';
+import type { PartnerDepot, FixCityPriceResult } from '@/types/pricing';
 
 export type { PartnerDepot };
 
@@ -14,6 +16,9 @@ export interface DepotPricingResult {
 /**
  * Calcula o preço de recolha da origem até ao depósito mais próximo dentro do limite.
  * Retorna null se nenhum depósito estiver dentro do limite de km → sinal de escalamento.
+ *
+ * Usa distância DIRETA origem→depósito (getDistanceMatrix com 2 pontos), não a rota
+ * circular do fixCityPrice (que calcula Lisboa→A→B→Lisboa e daria distâncias erradas).
  */
 export async function calcDepotPickupPrice(
   origem: string,
@@ -30,14 +35,24 @@ export async function calcDepotPickupPrice(
   });
   if (!settings) return null;
 
-  // Distância rodoviária para todos os depósitos em paralelo
+  // Geocodificar origem uma vez
+  const origemCoords = await geocode(origem);
+
+  // Para cada depósito: geocodificar + distância direta A→B em paralelo
   const results = await Promise.allSettled(
-    depots.map((depot) => fixCityPrice(origem, depot.address, settings.poligonos)),
+    depots.map(async (depot) => {
+      const depotCoords = await geocode(depot.address);
+      const { distanciaFinal, duracaoTotal } = await getDistanceMatrix([origem, depot.address]);
+      const { LX, PT, GLX_GPT } = classifyPoints([origemCoords, depotCoords], settings.poligonos);
+      const milestone: 'Lisboa' | 'Porto' = LX >= PT ? 'Lisboa' : 'Porto';
+      const fixResult: FixCityPriceResult = { LX, PT, GLX_GPT, milestone, distanciaFinal, duracaoTotal };
+      return { fixResult, distanciaFinal };
+    }),
   );
 
   // Depósito mais próximo dentro do limite
   let bestDepot: PartnerDepot | null = null;
-  let bestFixResult: Awaited<ReturnType<typeof fixCityPrice>> | null = null;
+  let bestFixResult: FixCityPriceResult | null = null;
   let bestDistance = Infinity;
 
   for (let i = 0; i < depots.length; i++) {
@@ -46,7 +61,7 @@ export async function calcDepotPickupPrice(
     const dist = r.value.distanciaFinal;
     if (dist <= depots[i].maxKm && dist < bestDistance) {
       bestDepot = depots[i];
-      bestFixResult = r.value;
+      bestFixResult = r.value.fixResult;
       bestDistance = dist;
     }
   }
