@@ -9,9 +9,10 @@ export type ConversationStep =
   | 'CALCULATING_PRICE'
   | 'PRESENTING_PRICE'
   | 'HANDLING_OBJECTION'
-  // fluxo arrasto (amanhã) — parceiro
+  // fluxo arrasto (amanhã) — YourBox
   | 'COLLECTING_WEIGHT'
   | 'COLLECTING_VOLUMES'    // arrasto: nº volumes + dimensões, antes do cálculo de preço
+  | 'CONFIRMING_FRIDAY_DELIVERY' // 6ª feira: sábado vs segunda
   | 'PRESENTING_PARTNER_PRICE'
   // fecho — recolha de dados
   | 'COLLECTING_NOME'

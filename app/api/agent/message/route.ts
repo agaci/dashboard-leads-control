@@ -25,10 +25,21 @@ import { findAggregationHints } from '@/lib/agent/aggregation';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { calcAllActiveTariffs, parseWeight } from '@/lib/agent/partnerPricing';
+import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import type { PartnerDepot } from '@/types/pricing';
 import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/lib/agent/addressParser';
 import type { ConversationData } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
+
+function businessHoursContactWA(): string {
+  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const h = l.getHours(), m = l.getMinutes(), dow = l.getDay();
+  const inHours = dow >= 1 && dow <= 5 && (h > 8 || (h === 8 && m >= 30)) && h < 20;
+  return inHours
+    ? 'Um operador vai analisar e contactá-lo brevemente.'
+    : 'Respondemos no próximo dia útil a partir das 08h30.';
+}
 
 function isSaltar(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.,?]+$/, '');
@@ -152,7 +163,30 @@ export async function POST(request: NextRequest) {
       conv.data.activeSituacaoId = sitId;
     }
 
-    let response = processMessage(conv, mensagem);
+    // ── Step: confirmar entrega 6ª feira (sábado vs segunda) ─────────────────
+    if (conv.step === 'CONFIRMING_FRIDAY_DELIVERY') {
+      const wantsSat = /s[áa]bado/i.test(mensagem);
+      if (wantsSat) {
+        const text = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${businessHoursContactWA()}`;
+        await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
+        await escalateConversation(telemovel);
+        const dbFri = await getDb();
+        await dbFri.collection('messages').insertOne({
+          company: 'Yourbox', messageType: 'newLead', to: 'admin',
+          presentationMessage: 'stick', deletedAfter: 0,
+          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado</p></div>`,
+          companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Entrega Sábado', variante: 'BOT',
+          timeStamp: new Date(), closed: false, reply: [],
+          leadData: { ...conv.data, telefone: telemovel, converted: false, source: 'whatsapp_saturday_delivery' },
+        });
+        return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
+      }
+      // Segunda-feira → calcular preço (o bloco CALCULATING_PARTNER_PRICE trata a seguir)
+    }
+
+    let response: any = conv.step === 'CONFIRMING_FRIDAY_DELIVERY'
+      ? { text: '', nextStep: 'CALCULATING_PARTNER_PRICE', escalate: false, quickReplies: [] }
+      : processMessage(conv, mensagem);
 
     // Intercepção: oferta de agregação aceite → escalar como agg_request
     if (conv.step === 'PRESENTING_PRICE' && conv.data.aggOfferShown) {
@@ -358,10 +392,21 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // ── Calcular preço — fluxo ARRASTO (parceiro) ─────────────────────────────
+    // ── Calcular preço — fluxo ARRASTO (entrega amanhã YourBox) ──────────────
     if ((response.nextStep as string) === 'CALCULATING_PARTNER_PRICE') {
       try {
         const db = await getDb();
+
+        // ── 6ª feira: pedir Sábado vs Segunda antes de calcular ──────────────
+        const lisbonNowWA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+        if (lisbonNowWA.getDay() === 5 && conv.step !== 'CONFIRMING_FRIDAY_DELIVERY') {
+          const kgFri = conv.data.weightKg ?? 1;
+          const fridayQ = `Como hoje é *sexta-feira*, a entrega *amanhã* seria ao *sábado*.\n\nPrefere entrega no *sábado* ou pode aguardar até *segunda-feira*?`;
+          await setConversationStep(telemovel, 'CONFIRMING_FRIDAY_DELIVERY');
+          await updateConversationData(telemovel, { weightKg: kgFri });
+          await appendMessage(telemovel, { role: 'bot', text: fridayQ, timestamp: new Date() });
+          return Response.json({ success: true, response: fridayQ, nextStep: 'CONFIRMING_FRIDAY_DELIVERY', quickReplies: ['Sábado', 'Segunda-feira'], situacaoId: null, escalate: false });
+        }
 
         // Ler markup global
         const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
@@ -374,10 +419,34 @@ export async function POST(request: NextRequest) {
           .toArray() as unknown as PartnerTariff[];
 
         const kg = conv.data.weightKg ?? 1;
+
+        // ── Verificar peso máximo da expedição ────────────────────────────────
+        const maxExpKgWA = tariffDocs.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
+        if (maxExpKgWA > 0 && kg > maxExpKgWA) {
+          const text = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgWA} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContactWA()}`;
+          await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
+          await escalateConversation(telemovel);
+          return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
+        }
+
+        // ── Depósito dinâmico ─────────────────────────────────────────────────
+        const depotsWA = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
+        let depotPriceWA: number | undefined;
+        if (depotsWA.length > 0 && conv.data.origem) {
+          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db);
+          if (!dr) {
+            const text = `O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.\n\n${businessHoursContactWA()}`;
+            await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
+            await escalateConversation(telemovel);
+            return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
+          }
+          depotPriceWA = dr.pickupPrice;
+        }
+
         const totalCm = conv.data.totalCm ?? 0;
         const isSaturday = new Date().getDay() === 6;
 
-        const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup);
+        const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPriceWA);
 
         if (prices.length === 0) throw new Error('Sem tarifas activas');
 
