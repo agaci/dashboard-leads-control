@@ -1186,6 +1186,8 @@ function ConfigPage() {
           <div style={{ height: 1, background: '#e8e8e8', margin: '28px 0' }} />
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: NAVY }}>Configuração do Bot</h3>
           <RoutingPanel />
+          <div style={{ height: 1, background: '#e8e8e8', margin: '32px 0' }} />
+          <VariantPanel />
         </>
       )}
     </div>
