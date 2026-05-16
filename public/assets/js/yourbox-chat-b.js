@@ -167,7 +167,6 @@
     if (step === 'ESCALATED_TO_HUMAN') {
       setInputDisabled(true);
       stopPolling();
-      if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A nossa equipa entrará em contacto consigo o mais brevemente possível.</p>';
       return;
     }
     setInputDisabled(true);

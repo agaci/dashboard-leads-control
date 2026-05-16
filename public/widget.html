@@ -853,7 +853,6 @@
         var footer = document.getElementById('ybChatFooter');
         if (step === 'ESCALATED_TO_HUMAN') {
           setDisabled(true); stopPoll();
-          if (footer) footer.innerHTML = '<p class="yb-done yb-done--escalated">A nossa equipa entrará em contacto consigo o mais brevemente possível.</p>';
           notifyHeight(); return;
         }
         setDisabled(true); stopPoll();

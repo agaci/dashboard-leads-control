@@ -22,8 +22,16 @@ function businessHoursContact(): string {
 }
 
 const DEPOT_OUT_OF_RANGE_MSG =
-  'O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. ' +
-  'A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.';
+  'O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. ' +
+  'A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.';
+
+const URGENCY_NOTE = '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
+
+function dimQuestion(nVol: number): string {
+  return nVol > 1
+    ? `Indique as dimensões *do conjunto das ${nVol} caixas* (C × L × A em cm):\n\n_(ex: 100×150×40)_\n\nPode responder *saltar* se não souber.`
+    : `Indique as dimensões *da caixa* (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+}
 
 function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
   const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
@@ -134,7 +142,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       if (maxVolKgNV > 0 && (kg / nVol) > maxVolKgNV) {
         const kgPerVol = (kg / nVol).toFixed(1);
-        const escMsg = `Com *${kg} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução para a sua carga. ${businessHoursContact()}`;
+        const escMsg = `Com *${kg} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db.collection('conversations').updateOne(
           { _id: oid },
@@ -143,7 +151,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
 
-      const dimQ = `Obrigado. Indique as *dimensões* de cada caixa (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+      const dimQ = `Obrigado. ${dimQuestion(nVol)}`;
       history.push({ role: 'bot', text: dimQ, timestamp: now });
       await db.collection('conversations').updateOne(
         { _id: oid },
@@ -170,7 +178,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (depots24.length > 0 && convDoc.data.origem) {
         const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db);
         if (!dr) {
-          const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+          const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
           await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -188,7 +196,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // ── Verificar peso máximo da expedição ────────────────────────────────
       const maxExpKg24 = maxExpeditionKg(tariffDocs);
       if (maxExpKg24 > 0 && kg > maxExpKg24) {
-        const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+        const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -201,14 +209,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
       if (maxVolKgVal > 0 && (kg / nVol24) > maxVolKgVal) {
         const kgPerVol = (kg / nVol24).toFixed(1);
-        const escMsg = `Com *${kg} kg* em *${nVol24} volume${nVol24 > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgVal} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução. ${businessHoursContact()}`;
+        const escMsg = `Com *${kg} kg* em *${nVol24} volume${nVol24 > 1 ? 's' : ''}*, o peso por volume (${kgPerVol} kg) excede o limite de *${maxVolKgVal} kg/volume* do serviço YourBox.\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
-      if (totalCm > 0 && maxDimCmVal > 0 && (totalCm * nVol24) > maxDimCmVal) {
-        const totalDim = totalCm * nVol24;
-        const escMsg = `As dimensões totais dos *${nVol24} volume${nVol24 > 1 ? 's' : ''}* (${totalCm} cm × ${nVol24} = ${totalDim} cm de C+L+A) excedem o limite de *${maxDimCmVal} cm* do serviço YourBox.\n\nA nossa equipa vai analisar soluções para o seu envio. ${businessHoursContact()}`;
+      if (totalCm > 0 && maxDimCmVal > 0 && totalCm > maxDimCmVal) {
+        const escMsg = `As dimensões totais da carga (C+L+A = *${totalCm} cm*) excedem o máximo de *${maxDimCmVal} cm* do serviço YourBox de entrega amanhã.\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -264,7 +271,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (wantsSaturday) {
         fridayStep = 'ESCALATED_TO_HUMAN';
         fridayEscalate = true;
-        fridayBotText = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${contactSuffix}`;
+        fridayBotText = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${contactSuffix}\n\n${URGENCY_NOTE}`;
         await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
@@ -287,7 +294,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           );
         } else if (totalCmKnown === 0) {
           fridayStep = 'COLLECTING_DIMENSIONS_24H';
-          fridayBotText = `Óptimo, agendamos para *segunda-feira*!\n\nPara o preço mais preciso, indique as *dimensões* da(s) caixa(s):\n\n*Comprimento × Largura × Altura* em cm _(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+          fridayBotText = `Óptimo, agendamos para *segunda-feira*!\n\n${dimQuestion(nVolumesFri)}`;
           await db.collection('conversations').updateOne(
             { _id: oid },
             { $set: { step: 'COLLECTING_DIMENSIONS_24H', updatedAt: now } }
@@ -304,7 +311,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             if (depotsFri.length > 0 && convDoc.data.origem) {
               const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db);
               if (!dr) {
-                fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+                fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
                 fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
                 history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
                 const fridayFieldsEsc: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
@@ -320,7 +327,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             // ── Verificar peso máximo da expedição ────────────────────────
             const maxExpKgFri = maxExpeditionKg(tariffDocs);
             if (maxExpKgFri > 0 && kg > maxExpKgFri) {
-              fridayBotText = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgFri} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+              fridayBotText = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgFri} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
               history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
               const fridayFieldsEsc2: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
@@ -470,7 +477,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           .find({ active: true, zone: 'Nacional' }).toArray() as unknown as PartnerTariff[];
         const maxExpKgTmr = maxExpeditionKg(tariffDocsTmrPre);
         if (maxExpKgTmr > 0 && kg > maxExpKgTmr) {
-          const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+          const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
           await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', 'data.weightKg': kg, history, escalatedAt: now, updatedAt: now } });
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -506,7 +513,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // Se não temos dimensões, pedir antes de calcular
       if (totalCmKnown === 0) {
         nextStep = 'COLLECTING_DIMENSIONS_24H';
-        botText = `Obrigado. Para apresentar o preço mais preciso, indique as *dimensões* da(s) caixa(s):\n\n*Comprimento × Largura × Altura* em cm _(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+        botText = `Obrigado. ${dimQuestion(nVolumesTmr)}`;
         await db.collection('conversations').updateOne(
           { _id: oid },
           { $set: { step: 'COLLECTING_DIMENSIONS_24H', 'data.weightKg': kg, updatedAt: now } }
@@ -524,7 +531,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           if (depotsTmr.length > 0 && convDoc.data.origem) {
             const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db);
             if (!dr) {
-              const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}`;
+              const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               history.push({ role: 'bot', text: escMsg, timestamp: now });
               await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
               return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
@@ -540,7 +547,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           // ── Verificar peso máximo da expedição ──────────────────────────
           const maxExpKgTmr2 = maxExpeditionKg(tariffDocs);
           if (maxExpKgTmr2 > 0 && kg > maxExpKgTmr2) {
-            const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContact()}`;
+            const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
             history.push({ role: 'bot', text: escMsg, timestamp: now });
             await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
             return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });

@@ -41,6 +41,14 @@ function businessHoursContactWA(): string {
     : 'Respondemos no próximo dia útil a partir das 08h30.';
 }
 
+const URGENCY_NOTE_WA = '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
+
+function dimQuestionWA(nVol: number): string {
+  return nVol > 1
+    ? `Indique as dimensões *do conjunto das ${nVol} caixas* (C × L × A em cm):\n\n_(ex: 100×150×40)_\n\nPode responder *saltar* se não souber.`
+    : `Indique as dimensões *da caixa* (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+}
+
 function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
   const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
   const afterCutoff = l.getHours() >= 16;
@@ -209,7 +217,7 @@ export async function POST(request: NextRequest) {
 
       if (maxVolKgNV > 0 && (kgNV / nVol) > maxVolKgNV) {
         const kgPerVol = (kgNV / nVol).toFixed(1);
-        const text = `Com *${kgNV} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução para a sua carga. ${businessHoursContactWA()}`;
+        const text = `Com *${kgNV} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
         await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
         await escalateConversation(telemovel);
         await dbNV.collection('messages').insertOne({
@@ -488,7 +496,7 @@ export async function POST(request: NextRequest) {
         const maxDimCmWA = tariffDocs.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxDimensionCm ?? 0), 0);
 
         if (maxExpKgWA > 0 && kg > maxExpKgWA) {
-          const text = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgWA} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContactWA()}`;
+          const text = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgWA} kg* por expedição).\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
           await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
           await escalateConversation(telemovel);
           return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
@@ -509,7 +517,7 @@ export async function POST(request: NextRequest) {
         if (depotsWA.length > 0 && conv.data.origem) {
           const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db);
           if (!dr) {
-            const text = `O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.\n\n${businessHoursContactWA()}`;
+            const text = `O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
             await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
             await escalateConversation(telemovel);
             return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
