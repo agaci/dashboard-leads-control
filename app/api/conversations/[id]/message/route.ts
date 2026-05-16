@@ -28,6 +28,25 @@ const DEPOT_OUT_OF_RANGE_MSG =
 function maxExpeditionKg(tariffDocs: PartnerTariff[]): number {
   return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
 }
+function maxVolumeKg(tariffDocs: PartnerTariff[]): number {
+  return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxWeightPerVolume ?? 0), 0);
+}
+function maxAllVolumesCm(tariffDocs: PartnerTariff[]): number {
+  return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxDimensionCm ?? 0), 0);
+}
+function parseNVolumes(text: string): number | null {
+  const wordMap: Record<string, number> = {
+    'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'tres': 3,
+    'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10,
+  };
+  const m = text.match(/\b(\d+)\b/);
+  if (m) return parseInt(m[1], 10);
+  const lower = text.toLowerCase().trim();
+  for (const [word, val] of Object.entries(wordMap)) {
+    if (lower.includes(word)) return val;
+  }
+  return null;
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -82,6 +101,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const mensagem = text.trim();
     const now = new Date();
 
+    // ── Step estruturado: recolha do nº de volumes (serviço 24h) ────────────
+    if (convDoc.step === 'COLLECTING_NVOLUMES_24H') {
+      const history = convDoc.history ?? [];
+      history.push({ role: 'lead', text: mensagem, timestamp: now });
+
+      const nVol = parseNVolumes(mensagem);
+      if (!nVol || nVol < 1 || nVol > 99) {
+        const retryText = 'Não percebi. Quantas *caixas/volumes* tem a carga? _(ex: 1, 2, 3...)_';
+        history.push({ role: 'bot', text: retryText, timestamp: now });
+        await db.collection('conversations').updateOne({ _id: oid }, { $set: { history, updatedAt: now } });
+        return Response.json({ success: true, message: retryText, step: 'COLLECTING_NVOLUMES_24H', quickReplies: ['1', '2', '3', '4 ou mais'] });
+      }
+
+      const kg = (convDoc.data as any).weightKg ?? 1;
+      const tariffDocsNV = await db.collection('partnerTariffs')
+        .find({ active: true, zone: 'Nacional' }).sort({ sortOrder: 1 }).toArray() as unknown as PartnerTariff[];
+      const maxVolKgNV = maxVolumeKg(tariffDocsNV);
+
+      if (maxVolKgNV > 0 && (kg / nVol) > maxVolKgNV) {
+        const kgPerVol = (kg / nVol).toFixed(1);
+        const escMsg = `Com *${kg} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução para a sua carga. ${businessHoursContact()}`;
+        history.push({ role: 'bot', text: escMsg, timestamp: now });
+        await db.collection('conversations').updateOne(
+          { _id: oid },
+          { $set: { step: 'ESCALATED_TO_HUMAN', 'data.nVolumes': nVol, history, escalatedAt: now, updatedAt: now } }
+        );
+        return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+      }
+
+      const dimQ = `Obrigado. Indique as *dimensões* de cada caixa (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
+      history.push({ role: 'bot', text: dimQ, timestamp: now });
+      await db.collection('conversations').updateOne(
+        { _id: oid },
+        { $set: { step: 'COLLECTING_DIMENSIONS_24H', 'data.nVolumes': nVol, history, updatedAt: now } }
+      );
+      return Response.json({ success: true, message: dimQ, step: 'COLLECTING_DIMENSIONS_24H', quickReplies: [] });
+    }
+
     // ── Step estruturado: recolha de dimensões para serviço 24h ─────────────
     if (convDoc.step === 'COLLECTING_DIMENSIONS_24H') {
       const history = convDoc.history ?? [];
@@ -124,6 +181,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
 
+      // ── Verificar peso por volume e dimensões totais ───────────────────────
+      const nVol24 = (convDoc.data as any).nVolumes ?? 1;
+      const maxVolKgVal = maxVolumeKg(tariffDocs);
+      const maxDimCmVal = maxAllVolumesCm(tariffDocs);
+
+      if (maxVolKgVal > 0 && (kg / nVol24) > maxVolKgVal) {
+        const kgPerVol = (kg / nVol24).toFixed(1);
+        const escMsg = `Com *${kg} kg* em *${nVol24} volume${nVol24 > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgVal} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução. ${businessHoursContact()}`;
+        history.push({ role: 'bot', text: escMsg, timestamp: now });
+        await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+      }
+      if (totalCm > 0 && maxDimCmVal > 0 && (totalCm * nVol24) > maxDimCmVal) {
+        const totalDim = totalCm * nVol24;
+        const escMsg = `As dimensões totais dos *${nVol24} volume${nVol24 > 1 ? 's' : ''}* (${totalCm} cm × ${nVol24} = ${totalDim} cm de C+L+A) excedem o limite de *${maxDimCmVal} cm* do serviço YourBox.\n\nA nossa equipa vai analisar soluções para o seu envio. ${businessHoursContact()}`;
+        history.push({ role: 'bot', text: escMsg, timestamp: now });
+        await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
+      }
+
       const isSaturday = new Date().getDay() === 6;
       const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPrice24);
       const sorted = [...prices].reverse();
@@ -132,7 +209,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const dimNote = totalCm === 0
         ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
         : '';
-      const botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}\n\nQual janela prefere?`;
+      const showLimitsNote24 = nVol24 > 1 || kg > maxVolKgVal;
+      const limitsNote24 = showLimitsNote24 && maxVolKgVal > 0
+        ? `\n\n_Atenção: máximo *${maxVolKgVal} kg por volume* e *${maxDimCmVal} cm* de C+L+A no total de todos os volumes._`
+        : '';
+      const botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}\n\nQual janela prefere?`;
 
       history.push({ role: 'bot', text: botText, timestamp: now });
       await db2.collection('conversations').updateOne(
@@ -181,7 +262,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       } else {
         const kg = (convDoc.data as any).weightKg ?? 1;
         const totalCmKnown = (convDoc.data as any).totalCm ?? 0;
-        if (totalCmKnown === 0) {
+        const nVolumesFri = (convDoc.data as any).nVolumes;
+        if (!nVolumesFri) {
+          fridayStep = 'COLLECTING_NVOLUMES_24H';
+          fridayBotText = `Óptimo, agendamos para *segunda-feira*!\n\nQuantas *caixas/volumes* tem a carga? _(ex: 1 caixa, 2 volumes)_`;
+          fridayQuickReplies.push('1', '2', '3', '4 ou mais');
+          await db.collection('conversations').updateOne(
+            { _id: oid },
+            { $set: { step: 'COLLECTING_NVOLUMES_24H', updatedAt: now } }
+          );
+        } else if (totalCmKnown === 0) {
           fridayStep = 'COLLECTING_DIMENSIONS_24H';
           fridayBotText = `Óptimo, agendamos para *segunda-feira*!\n\nPara o preço mais preciso, indique as *dimensões* da(s) caixa(s):\n\n*Comprimento × Largura × Altura* em cm _(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
           await db.collection('conversations').updateOne(
@@ -229,7 +319,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const sorted = [...prices].reverse();
               const rec = sorted[Math.floor(sorted.length / 2)];
               const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
-              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
+              const nVolFri = (convDoc.data as any).nVolumes ?? 1;
+              const maxVolKgFriVal = maxVolumeKg(tariffDocs);
+              const maxDimCmFriVal = maxAllVolumesCm(tariffDocs);
+              const showLimitsNoteFri = nVolFri > 1 || kg > maxVolKgFriVal;
+              const limitsNoteFri = showLimitsNoteFri && maxVolKgFriVal > 0
+                ? `\n\n_Atenção: máximo *${maxVolKgFriVal} kg por volume* e *${maxDimCmFriVal} cm* de C+L+A no total de todos os volumes._`
+                : '';
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
               await db.collection('conversations').updateOne(
                 { _id: oid },
@@ -377,6 +474,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         return Response.json({ success: true, message: fridayQ, step: 'CONFIRMING_FRIDAY_DELIVERY', quickReplies: ['Sábado', 'Segunda-feira'] });
       }
 
+      // Se não temos nVolumes, pedir primeiro
+      const nVolumesTmr = (convDoc.data as any).nVolumes;
+      if (!nVolumesTmr) {
+        const nVolQ = `Quantas *caixas/volumes* tem a carga? _(ex: 1 caixa, 2 volumes)_`;
+        history.push({ role: 'bot', text: nVolQ, timestamp: now });
+        await db.collection('conversations').updateOne(
+          { _id: oid },
+          { $set: { step: 'COLLECTING_NVOLUMES_24H', 'data.weightKg': kg, history, updatedAt: now } }
+        );
+        return Response.json({ success: true, message: nVolQ, step: 'COLLECTING_NVOLUMES_24H', quickReplies: ['1', '2', '3', '4 ou mais'] });
+      }
+
       const totalCmKnown = (convDoc.data as any).totalCm ?? 0;
 
       // Se não temos dimensões, pedir antes de calcular
@@ -430,7 +539,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const sorted = [...prices].reverse();
             const recommended = sorted[Math.floor(sorted.length / 2)];
             const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
-            botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.\n\nQual janela prefere?`;
+            const nVolTmr = (convDoc.data as any).nVolumes ?? 1;
+            const maxVolKgTmr = maxVolumeKg(tariffDocs);
+            const maxDimCmTmr = maxAllVolumesCm(tariffDocs);
+            const showLimitsNoteTmr = nVolTmr > 1 || kg > maxVolKgTmr;
+            const limitsNoteTmr = showLimitsNoteTmr && maxVolKgTmr > 0
+              ? `\n\n_Atenção: máximo *${maxVolKgTmr} kg por volume* e *${maxDimCmTmr} cm* de C+L+A no total de todos os volumes._`
+              : '';
+            botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}\n\nQual janela prefere?`;
             await db.collection('conversations').updateOne(
               { _id: oid },
               { $set: {

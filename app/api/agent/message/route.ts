@@ -41,6 +41,20 @@ function businessHoursContactWA(): string {
     : 'Respondemos no próximo dia útil a partir das 08h30.';
 }
 
+function parseNVolumes(text: string): number | null {
+  const wordMap: Record<string, number> = {
+    'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'tres': 3,
+    'quatro': 4, 'cinco': 5, 'seis': 6, 'sete': 7, 'oito': 8, 'nove': 9, 'dez': 10,
+  };
+  const m = text.match(/\b(\d+)\b/);
+  if (m) return parseInt(m[1], 10);
+  const lower = text.toLowerCase().trim();
+  for (const [word, val] of Object.entries(wordMap)) {
+    if (lower.includes(word)) return val;
+  }
+  return null;
+}
+
 function isSaltar(text: string): boolean {
   const t = text.trim().toLowerCase().replace(/[!.,?]+$/, '');
   return ['saltar', 'skip', 'avançar', 'avancar', 'passar', 'não', 'nao'].includes(t);
@@ -163,6 +177,41 @@ export async function POST(request: NextRequest) {
       conv.data.activeSituacaoId = sitId;
     }
 
+    // ── Step: recolha do nº de volumes (serviço 24h) ─────────────────────────
+    if (conv.step === 'COLLECTING_NVOLUMES_24H') {
+      const nVol = parseNVolumes(mensagem);
+      if (!nVol || nVol < 1 || nVol > 99) {
+        const retryText = 'Não percebi. Quantas *caixas/volumes* tem a carga? _(ex: 1, 2, 3...)_';
+        await appendMessage(telemovel, { role: 'bot', text: retryText, timestamp: new Date() });
+        return Response.json({ success: true, response: retryText, nextStep: 'COLLECTING_NVOLUMES_24H', quickReplies: ['1', '2', '3', '4 ou mais'], situacaoId: null, escalate: false });
+      }
+      await updateConversationData(telemovel, { nVolumes: nVol });
+      conv.data.nVolumes = nVol;
+
+      const kgNV = conv.data.weightKg ?? 1;
+      const dbNV = await getDb();
+      const tariffDocsNV = await dbNV.collection('partnerTariffs')
+        .find({ active: true, zone: 'Nacional' }).sort({ sortOrder: 1 }).toArray() as unknown as PartnerTariff[];
+      const maxVolKgNV = tariffDocsNV.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxWeightPerVolume ?? 0), 0);
+
+      if (maxVolKgNV > 0 && (kgNV / nVol) > maxVolKgNV) {
+        const kgPerVol = (kgNV / nVol).toFixed(1);
+        const text = `Com *${kgNV} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso médio por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\nA nossa equipa vai analisar a melhor solução para a sua carga. ${businessHoursContactWA()}`;
+        await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
+        await escalateConversation(telemovel);
+        await dbNV.collection('messages').insertOne({
+          company: 'Yourbox', messageType: 'newLead', to: 'admin',
+          presentationMessage: 'stick', deletedAfter: 0,
+          message: `<div><p><b>ESCALAMENTO — PESO/VOLUME 24H</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>${kgNV}kg em ${nVol} vol. (${kgPerVol}kg/vol > limite ${maxVolKgNV}kg)</p></div>`,
+          companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Peso/Volume', variante: 'BOT',
+          timeStamp: new Date(), closed: false, reply: [],
+          leadData: { ...conv.data, nVolumes: nVol, telefone: telemovel, converted: false, source: 'whatsapp_volume_limit' },
+        });
+        return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
+      }
+      // nVolumes válido — avançar para cálculo de preço
+    }
+
     // ── Step: confirmar entrega 6ª feira (sábado vs segunda) ─────────────────
     if (conv.step === 'CONFIRMING_FRIDAY_DELIVERY') {
       const wantsSat = /s[áa]bado/i.test(mensagem);
@@ -184,7 +233,7 @@ export async function POST(request: NextRequest) {
       // Segunda-feira → calcular preço (o bloco CALCULATING_PARTNER_PRICE trata a seguir)
     }
 
-    let response: any = conv.step === 'CONFIRMING_FRIDAY_DELIVERY'
+    let response: any = (conv.step === 'CONFIRMING_FRIDAY_DELIVERY' || conv.step === 'COLLECTING_NVOLUMES_24H')
       ? { text: '', nextStep: 'CALCULATING_PARTNER_PRICE', escalate: false, quickReplies: [] }
       : processMessage(conv, mensagem);
 
@@ -422,11 +471,23 @@ export async function POST(request: NextRequest) {
 
         // ── Verificar peso máximo da expedição ────────────────────────────────
         const maxExpKgWA = tariffDocs.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
+        const maxVolKgWA = tariffDocs.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxWeightPerVolume ?? 0), 0);
+        const maxDimCmWA = tariffDocs.reduce((m: number, t: PartnerTariff) => Math.max(m, t.conditions?.maxDimensionCm ?? 0), 0);
+
         if (maxExpKgWA > 0 && kg > maxExpKgWA) {
           const text = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgWA} kg* por expedição).\n\nA nossa equipa vai analisar soluções para a sua carga. ${businessHoursContactWA()}`;
           await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
           await escalateConversation(telemovel);
           return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
+        }
+
+        // ── Verificar nVolumes (pedir se ainda não disponível) ────────────────
+        const nVolWA = conv.data.nVolumes;
+        if (!nVolWA) {
+          const nVolQ = 'Quantas *caixas/volumes* tem a carga? _(ex: 1 caixa, 2 volumes)_';
+          await setConversationStep(telemovel, 'COLLECTING_NVOLUMES_24H');
+          await appendMessage(telemovel, { role: 'bot', text: nVolQ, timestamp: new Date() });
+          return Response.json({ success: true, response: nVolQ, nextStep: 'COLLECTING_NVOLUMES_24H', quickReplies: ['1', '2', '3', '4 ou mais'], situacaoId: null, escalate: false });
         }
 
         // ── Depósito dinâmico ─────────────────────────────────────────────────
@@ -473,6 +534,12 @@ export async function POST(request: NextRequest) {
         });
 
         response = buildPartnerPriceMessage(sortedPrices, kg, totalCm > 0);
+        const nVolWA2 = conv.data.nVolumes ?? 1;
+        const showLimitsNoteWA = nVolWA2 > 1 || kg > maxVolKgWA;
+        if (showLimitsNoteWA && maxVolKgWA > 0) {
+          const limitsNoteWA = `\n\n_Atenção: máximo *${maxVolKgWA} kg por volume* e *${maxDimCmWA} cm* de C+L+A no total de todos os volumes._`;
+          response = { ...response, text: response.text + limitsNoteWA };
+        }
       } catch (err) {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto brevemente.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };
       }

@@ -12,6 +12,7 @@ export type ConversationStep =
   // fluxo arrasto (amanhã) — YourBox
   | 'COLLECTING_WEIGHT'
   | 'COLLECTING_VOLUMES'    // arrasto: nº volumes + dimensões, antes do cálculo de preço
+  | 'COLLECTING_NVOLUMES_24H'    // 24h: nº caixas/volumes (antes do peso)
   | 'CONFIRMING_FRIDAY_DELIVERY' // 6ª feira: sábado vs segunda
   | 'PRESENTING_PARTNER_PRICE'
   // fecho — recolha de dados
@@ -84,6 +85,7 @@ export interface ConversationData {
   totalCm?: number;
   notas?: string;
   source?: string;   // domain/origin identifier (e.g. 'yourbox.com.pt', 'meusite.pt', 'bot')
+  nVolumes?: number;
   aggOfferShown?: boolean;
   // fase 1 — moradas e contactos completos
   origemCompleta?: EnderecoCompleto;
