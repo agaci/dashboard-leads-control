@@ -17,6 +17,7 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   evolutionApiKey: '',
   evolutionInstance: 'yourbox',
   aggEscalationThreshold: 0,
+  urgencyPhone: '',
 };
 
 export function decideMode(

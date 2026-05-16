@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { buildPriceMessage, build24hIntroMessage } from '@/lib/agent/botResponder';
 import { findAggregationHints } from '@/lib/agent/aggregation';
-import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
+import { calcAllActiveTariffs, parseTotalCm, parseNVolumesFromText } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { decideMode, defaultRoutingConfig } from '@/lib/routing/decideMode';
@@ -121,6 +121,7 @@ export async function POST(request: NextRequest) {
       ...(source      ? { source:      source.trim()      } : {}),
       ...(observacoes ? { notas:       observacoes.trim() } : {}),
       ...(observacoes ? (() => { const cm = parseTotalCm(observacoes); return cm ? { totalCm: cm } : {}; })() : {}),
+      ...(observacoes ? (() => { const nv = parseNVolumesFromText(observacoes); return nv ? { nVolumes: nv } : {}; })() : {}),
     };
 
     let firstBotMessage: string;

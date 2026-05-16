@@ -25,7 +25,6 @@ const DEPOT_OUT_OF_RANGE_MSG =
   'O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. ' +
   'A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.';
 
-const URGENCY_NOTE = '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
 function dimQuestion(nVol: number): string {
   return nVol > 1
@@ -121,6 +120,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const mensagem = text.trim();
     const now = new Date();
+
+    const routingCfgDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
+    const _urgencyPhone: string = (routingCfgDoc as any)?.urgencyPhone ?? '';
+    const URGENCY_NOTE = _urgencyPhone
+      ? `_Em caso de urgência, ligue *${_urgencyPhone}*._`
+      : '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
     // ── Step estruturado: recolha do nº de volumes (serviço 24h) ────────────
     if (convDoc.step === 'COLLECTING_NVOLUMES_24H') {

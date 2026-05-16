@@ -135,6 +135,16 @@ export function parseTotalCm(text: string): number | null {
   return null;
 }
 
+/** Extrai o número de volumes/caixas de texto livre (ex: "3 cx 100 100 80", "2 caixas"). */
+export function parseNVolumesFromText(text: string): number | null {
+  const m = text.match(/(\d+)\s*(cx?\.?|caixas?|volumes?)\b/i);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    return n >= 1 && n <= 99 ? n : null;
+  }
+  return null;
+}
+
 /** Extrai um número de kg do texto do utilizador. */
 export function parseWeight(text: string): number | null {
   const match = text.match(/(\d+([,.]\d+)?)/);

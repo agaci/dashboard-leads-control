@@ -41,7 +41,6 @@ function businessHoursContactWA(): string {
     : 'Respondemos no próximo dia útil a partir das 08h30.';
 }
 
-const URGENCY_NOTE_WA = '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
 function dimQuestionWA(nVol: number): string {
   return nVol > 1
@@ -171,6 +170,10 @@ export async function POST(request: NextRequest) {
     const dbCfg = await getDb();
     const routingDoc = await dbCfg.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
     const cfg = routingDoc ? { ...defaultRoutingConfig, ...routingDoc } : defaultRoutingConfig;
+    const _urgencyPhoneWA: string = (cfg as any).urgencyPhone ?? '';
+    const URGENCY_NOTE_WA = _urgencyPhoneWA
+      ? `_Em caso de urgência, ligue *${_urgencyPhoneWA}*._`
+      : '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
     const silentResponse = Response.json({ success: true, response: '', nextStep: conv.step, quickReplies: [], situacaoId: null, escalate: false });
     let isAggEscalationRequest = false;

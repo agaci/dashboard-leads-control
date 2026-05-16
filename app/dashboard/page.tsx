@@ -39,6 +39,7 @@ type RoutingConfig = {
   evolutionApiKey: string;
   evolutionInstance: string;
   aggEscalationThreshold: number;
+  urgencyPhone: string;
 };
 
 type LeadData = {
@@ -1708,7 +1709,7 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
-    aggEscalationThreshold: 0,
+    aggEscalationThreshold: 0, urgencyPhone: '',
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1810,6 +1811,21 @@ function RoutingPanel() {
         <input type="number" min={0} step={10} value={config.aggEscalationThreshold} onChange={(e) => num('aggEscalationThreshold', e.target.value)}
           style={{ width: 120, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }} />
         <span style={{ fontSize: 12, color: '#aaa', marginLeft: 8 }}>{config.aggEscalationThreshold === 0 ? 'desactivado' : `activo para orçamentos &gt; €${config.aggEscalationThreshold}`}</span>
+      </div>
+
+      {/* ── Contacto de urgência ── */}
+      <div style={cardS}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: NAVY, display: 'block', marginBottom: 4 }}>Número de urgência</label>
+        <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>
+          Apresentado em negrito nas mensagens de escalamento. Deixe em branco para usar mensagem genérica.
+        </p>
+        <input
+          type="tel"
+          placeholder="ex: 214 304 546"
+          value={config.urgencyPhone ?? ''}
+          onChange={(e) => setConfig((c) => ({ ...c, urgencyPhone: e.target.value }))}
+          style={{ width: 200, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'monospace' }}
+        />
       </div>
 
       {/* ── WhatsApp / Evolution API ── */}
