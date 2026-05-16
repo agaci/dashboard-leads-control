@@ -171,8 +171,9 @@ export async function POST(request: NextRequest) {
     const routingDoc = await dbCfg.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
     const cfg = routingDoc ? { ...defaultRoutingConfig, ...routingDoc } : defaultRoutingConfig;
     const _urgencyPhoneWA: string = (cfg as any).urgencyPhone ?? '';
+    const _assistantNameWA: string = (cfg as any).assistantName ?? '';
     const URGENCY_NOTE_WA = _urgencyPhoneWA
-      ? `_Em caso de urgência, ligue *${_urgencyPhoneWA}*._`
+      ? `_Em caso de urgência, ligue *${_urgencyPhoneWA}*${_assistantNameWA ? ` — ${_assistantNameWA}` : ''}._`
       : '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
     const silentResponse = Response.json({ success: true, response: '', nextStep: conv.step, quickReplies: [], situacaoId: null, escalate: false });

@@ -32,6 +32,15 @@ function dimQuestion(nVol: number): string {
     : `Indique as dimensões *da caixa* (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
 }
 
+function cargoRecapLine(nVol: number | undefined, totalCm: number, kg: number): string {
+  if (!nVol && !totalCm) return '';
+  const parts: string[] = [];
+  if (nVol && nVol > 0) parts.push(`*${nVol} ${nVol > 1 ? 'caixas' : 'caixa'}*`);
+  if (totalCm > 0) parts.push(`C+L+A *${totalCm} cm*`);
+  parts.push(`*${kg} kg*`);
+  return `_Carga confirmada: ${parts.join(' · ')}_\n\n`;
+}
+
 function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
   const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
   const afterCutoff = l.getHours() >= 16;
@@ -123,8 +132,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const routingCfgDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
     const _urgencyPhone: string = (routingCfgDoc as any)?.urgencyPhone ?? '';
+    const _assistantName: string = (routingCfgDoc as any)?.assistantName ?? '';
     const URGENCY_NOTE = _urgencyPhone
-      ? `_Em caso de urgência, ligue *${_urgencyPhone}*._`
+      ? `_Em caso de urgência, ligue *${_urgencyPhone}*${_assistantName ? ` — ${_assistantName}` : ''}._`
       : '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
     // ── Step estruturado: recolha do nº de volumes (serviço 24h) ────────────
@@ -239,7 +249,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ? `\n\n_Atenção: máximo *${maxVolKgVal} kg por volume* e *${maxDimCmVal} cm* de C+L+A no total de todos os volumes._`
         : '';
       const { header: hdr24, cutoffNote: cn24 } = build24hPriceHeader(kg);
-      const botText = `${hdr24}\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}\n\nQual janela prefere?`;
+      const recap24 = cargoRecapLine(nVol24, totalCm === 0 ? 0 : totalCm, kg);
+      const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}\n\nQual janela prefere?`;
 
       history.push({ role: 'bot', text: botText, timestamp: now });
       await db2.collection('conversations').updateOne(
@@ -353,7 +364,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 ? `\n\n_Atenção: máximo *${maxVolKgFriVal} kg por volume* e *${maxDimCmFriVal} cm* de C+L+A no total de todos os volumes._`
                 : '';
               const { cutoffNote: cnFri } = build24hPriceHeader(kg);
-              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}\n\nQual janela prefere?`;
+              const totalCmFri = (convDoc.data as any).totalCm ?? 0;
+              const recapFri = cargoRecapLine(nVolFri, totalCmFri, kg);
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
               await db.collection('conversations').updateOne(
                 { _id: oid },
@@ -574,7 +587,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               ? `\n\n_Atenção: máximo *${maxVolKgTmr} kg por volume* e *${maxDimCmTmr} cm* de C+L+A no total de todos os volumes._`
               : '';
             const { header: hdrTmr, cutoffNote: cnTmr } = build24hPriceHeader(kg);
-            botText = `${hdrTmr}\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
+            const recapTmr = cargoRecapLine(nVolTmr, totalCmKnown, kg);
+            botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
             await db.collection('conversations').updateOne(
               { _id: oid },
               { $set: {

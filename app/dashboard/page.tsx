@@ -40,6 +40,7 @@ type RoutingConfig = {
   evolutionInstance: string;
   aggEscalationThreshold: number;
   urgencyPhone: string;
+  assistantName: string;
 };
 
 type LeadData = {
@@ -1709,7 +1710,7 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
-    aggEscalationThreshold: 0, urgencyPhone: '',
+    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '',
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1815,17 +1816,37 @@ function RoutingPanel() {
 
       {/* ── Contacto de urgência ── */}
       <div style={cardS}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: NAVY, display: 'block', marginBottom: 4 }}>Número de urgência</label>
-        <p style={{ fontSize: 11, color: '#aaa', marginBottom: 8 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: NAVY, display: 'block', marginBottom: 4 }}>Contacto de urgência</label>
+        <p style={{ fontSize: 11, color: '#aaa', marginBottom: 10 }}>
           Apresentado em negrito nas mensagens de escalamento. Deixe em branco para usar mensagem genérica.
         </p>
-        <input
-          type="tel"
-          placeholder="ex: 214 304 546"
-          value={config.urgencyPhone ?? ''}
-          onChange={(e) => setConfig((c) => ({ ...c, urgencyPhone: e.target.value }))}
-          style={{ width: 200, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'monospace' }}
-        />
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Número de telefone</label>
+            <input
+              type="tel"
+              placeholder="ex: 214 304 546"
+              value={config.urgencyPhone ?? ''}
+              onChange={(e) => setConfig((c) => ({ ...c, urgencyPhone: e.target.value }))}
+              style={{ width: 170, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', fontFamily: 'monospace' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Nome do assistente</label>
+            <input
+              type="text"
+              placeholder="ex: Rui Almeida"
+              value={config.assistantName ?? ''}
+              onChange={(e) => setConfig((c) => ({ ...c, assistantName: e.target.value }))}
+              style={{ width: 200, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }}
+            />
+          </div>
+        </div>
+        {config.urgencyPhone && (
+          <p style={{ fontSize: 11, color: '#aaa', marginTop: 8 }}>
+            Preview: <em>Em caso de urgência, ligue <strong>{config.urgencyPhone}</strong>{config.assistantName ? ` — ${config.assistantName}` : ''}.</em>
+          </p>
+        )}
       </div>
 
       {/* ── WhatsApp / Evolution API ── */}

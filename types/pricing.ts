@@ -82,6 +82,7 @@ export interface LeadRoutingConfig {
   aggEscalationThreshold?: number;
   partnerDepots?: PartnerDepot[];
   urgencyPhone?: string;
+  assistantName?: string;
   botScheduleOverride?: {
     startHour: number;
     endHour: number;

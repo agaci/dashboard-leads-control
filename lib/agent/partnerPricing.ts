@@ -145,6 +145,16 @@ export function parseNVolumesFromText(text: string): number | null {
   return null;
 }
 
+/** Extrai peso (kg) de texto livre que inclui sufixo kg/kgs (ex: "50kg", "3 cx 100 100 80 50kgs"). */
+export function parseWeightKgFromText(text: string): number | null {
+  const m = text.match(/(\d+(?:[.,]\d+)?)\s*kgs?\b/i);
+  if (m) {
+    const val = parseFloat(m[1].replace(',', '.'));
+    return isNaN(val) || val <= 0 ? null : val;
+  }
+  return null;
+}
+
 /** Extrai um número de kg do texto do utilizador. */
 export function parseWeight(text: string): number | null {
   const match = text.match(/(\d+([,.]\d+)?)/);
