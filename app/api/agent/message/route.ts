@@ -41,6 +41,19 @@ function businessHoursContactWA(): string {
     : 'Respondemos no próximo dia útil a partir das 08h30.';
 }
 
+function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
+  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const afterCutoff = l.getHours() >= 16;
+  return {
+    header: afterCutoff
+      ? `*Entrega YourBox — 2 dias úteis — ${kg} kg*`
+      : `*Entrega YourBox Amanhã — ${kg} kg*`,
+    cutoffNote: afterCutoff
+      ? `\n\n⚠️ *Atenção:* após as 16h00, a recolha hoje já não é possível. A carga ficará agendada para *amanhã de manhã*, com entrega no *dia seguinte*.`
+      : `\n\n_Nota: confirme antes das *16h00* para garantir recolha hoje._`,
+  };
+}
+
 function parseNVolumes(text: string): number | null {
   const wordMap: Record<string, number> = {
     'um': 1, 'uma': 1, 'dois': 2, 'duas': 2, 'três': 3, 'tres': 3,
@@ -535,11 +548,17 @@ export async function POST(request: NextRequest) {
 
         response = buildPartnerPriceMessage(sortedPrices, kg, totalCm > 0);
         const nVolWA2 = conv.data.nVolumes ?? 1;
+        const { header: hdrWA, cutoffNote: cnWA } = build24hPriceHeader(kg);
         const showLimitsNoteWA = nVolWA2 > 1 || kg > maxVolKgWA;
-        if (showLimitsNoteWA && maxVolKgWA > 0) {
-          const limitsNoteWA = `\n\n_Atenção: máximo *${maxVolKgWA} kg por volume* e *${maxDimCmWA} cm* de C+L+A no total de todos os volumes._`;
-          response = { ...response, text: response.text + limitsNoteWA };
-        }
+        const limitsNoteWA = showLimitsNoteWA && maxVolKgWA > 0
+          ? `\n\n_Atenção: máximo *${maxVolKgWA} kg por volume* e *${maxDimCmWA} cm* de C+L+A no total de todos os volumes._`
+          : '';
+        response = {
+          ...response,
+          text: response.text
+            .replace(/^\*Entrega YourBox.*?kg\*/, hdrWA)
+            .replace('Escolha a janela de entrega:', `${limitsNoteWA}${cnWA}\n\nEscolha a janela de entrega:`),
+        };
       } catch (err) {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto brevemente.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };
       }

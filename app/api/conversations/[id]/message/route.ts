@@ -25,6 +25,19 @@ const DEPOT_OUT_OF_RANGE_MSG =
   'O serviço de entrega amanhã YourBox cobre directamente as zonas de Lisboa e Porto. ' +
   'A sua recolha fica fora dessa cobertura directa, o que implica uma cotação personalizada.';
 
+function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
+  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const afterCutoff = l.getHours() >= 16;
+  return {
+    header: afterCutoff
+      ? `*Entrega YourBox — 2 dias úteis — ${kg} kg*`
+      : `*Entrega YourBox Amanhã — ${kg} kg*`,
+    cutoffNote: afterCutoff
+      ? `\n\n⚠️ *Atenção:* após as 16h00, a recolha hoje já não é possível. A carga ficará agendada para *amanhã de manhã*, com entrega no *dia seguinte*.`
+      : `\n\n_Nota: confirme antes das *16h00* para garantir recolha hoje._`,
+  };
+}
+
 function maxExpeditionKg(tariffDocs: PartnerTariff[]): number {
   return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
 }
@@ -213,7 +226,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const limitsNote24 = showLimitsNote24 && maxVolKgVal > 0
         ? `\n\n_Atenção: máximo *${maxVolKgVal} kg por volume* e *${maxDimCmVal} cm* de C+L+A no total de todos os volumes._`
         : '';
-      const botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}\n\nQual janela prefere?`;
+      const { header: hdr24, cutoffNote: cn24 } = build24hPriceHeader(kg);
+      const botText = `${hdr24}\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}\n\nQual janela prefere?`;
 
       history.push({ role: 'bot', text: botText, timestamp: now });
       await db2.collection('conversations').updateOne(
@@ -326,7 +340,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const limitsNoteFri = showLimitsNoteFri && maxVolKgFriVal > 0
                 ? `\n\n_Atenção: máximo *${maxVolKgFriVal} kg por volume* e *${maxDimCmFriVal} cm* de C+L+A no total de todos os volumes._`
                 : '';
-              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}\n\nQual janela prefere?`;
+              const { cutoffNote: cnFri } = build24hPriceHeader(kg);
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
               await db.collection('conversations').updateOne(
                 { _id: oid },
@@ -546,7 +561,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const limitsNoteTmr = showLimitsNoteTmr && maxVolKgTmr > 0
               ? `\n\n_Atenção: máximo *${maxVolKgTmr} kg por volume* e *${maxDimCmTmr} cm* de C+L+A no total de todos os volumes._`
               : '';
-            botText = `*Entrega YourBox Amanhã — ${kg} kg*\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}\n\nQual janela prefere?`;
+            const { header: hdrTmr, cutoffNote: cnTmr } = build24hPriceHeader(kg);
+            botText = `${hdrTmr}\n\n${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
             await db.collection('conversations').updateOne(
               { _id: oid },
               { $set: {
