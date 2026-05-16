@@ -396,8 +396,19 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const history = convDoc.history ?? [];
     history.push({ role: 'lead', text: mensagem, timestamp: now });
 
+    // ── Bypass LLM: se peso pré-preenchido do form e lead quer serviço amanhã ─
+    const _msgLower = mensagem.toLowerCase().trim();
+    const _preFilledKg: number | undefined = (convDoc.data as any).weightKg;
+    const _inPriceStep = ['PRESENTING_PRICE', 'HANDLING_OBJECTION', 'PRESENTING_PARTNER_PRICE'].includes(convDoc.step);
+    const _isAmanhaSwitch =
+      _inPriceStep &&
+      _preFilledKg && _preFilledKg > 0 &&
+      (_msgLower.includes('entrega amanhã') || _msgLower === 'amanhã');
+
     // Chamar LLM
-    const result = await getLlmResponse(convDoc.data, history, mensagem);
+    const result = _isAmanhaSwitch
+      ? ({ type: 'calculate_tomorrow', weightKg: _preFilledKg, text: '' } as any)
+      : await getLlmResponse(convDoc.data, history, mensagem);
 
     let botText = result.text;
     let nextStep: string = convDoc.step;
