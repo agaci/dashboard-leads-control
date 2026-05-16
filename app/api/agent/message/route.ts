@@ -50,7 +50,16 @@ function dimQuestionWA(nVol: number): string {
 
 function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
   const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const dow = l.getDay();
   const afterCutoff = l.getHours() >= 16;
+
+  if (dow === 0 || dow === 6) {
+    return {
+      header: `*Entrega YourBox — 3ª feira — ${kg} kg*`,
+      cutoffNote: `\n\n_Nota: como é fim de semana, a recolha será na *segunda-feira de manhã*, com entrega na *terça-feira*._`,
+    };
+  }
+
   return {
     header: afterCutoff
       ? `*Entrega YourBox — 2 dias úteis — ${kg} kg*`
