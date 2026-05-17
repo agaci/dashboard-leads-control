@@ -25,7 +25,6 @@ export async function sendEscalationEmail(opts: {
   const html = `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
   <div style="background:#1a2332;padding:18px 24px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:20px">🚨</span>
     <span style="color:#fff;font-weight:700;font-size:16px">Conversa escalada para humano</span>
   </div>
   <div style="padding:24px">
@@ -50,7 +49,7 @@ export async function sendEscalationEmail(opts: {
   await resend.emails.send({
     from:    FROM,
     to:      recipients,
-    subject: `🚨 ${ref} — Conversa escalada · ${nome}`,
+    subject: `${ref} — Conversa escalada · ${nome}`,
     html,
   }).catch(err => console.error('[Resend] falha ao enviar email de escalada:', err));
 }
@@ -76,7 +75,6 @@ export async function sendLeadEmail(opts: {
   const html = `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
   <div style="background:#1a2332;padding:18px 24px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:20px">✅</span>
     <span style="color:#fff;font-weight:700;font-size:16px">Nova lead registada</span>
   </div>
   <div style="padding:24px">
@@ -101,7 +99,7 @@ export async function sendLeadEmail(opts: {
   await resend.emails.send({
     from:    FROM,
     to:      recipients,
-    subject: `✅ ${ref} — Nova lead · ${nome}`,
+    subject: `${ref} — Nova lead · ${nome}`,
     html,
   }).catch(err => console.error('[Resend] falha ao enviar email de lead:', err));
 }

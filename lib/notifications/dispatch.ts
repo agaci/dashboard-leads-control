@@ -37,7 +37,7 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
     : null;
 
   const waLines = [
-    event === 'escalation' ? '🚨 *Conversa escalada para humano*' : '✅ *Nova lead registada*',
+    event === 'escalation' ? '*Conversa escalada para humano*' : '*Nova lead registada*',
     `Ref: *${ref}*`,
     `Lead: *${nome}*`,
     ...(payload.telemovel ? [`Tel: ${payload.telemovel}`] : []),
@@ -48,7 +48,7 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
     ...(event === 'lead' && payload.price != null
       ? [`Preço: *€${payload.price.toFixed(2)}*`]
       : []),
-    `👉 ${appUrl}/dashboard`,
+    `${appUrl}/dashboard`,
   ];
   const waText = waLines.join('\n');
 

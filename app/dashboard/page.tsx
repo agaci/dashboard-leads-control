@@ -1931,7 +1931,7 @@ function RoutingPanel() {
                       tgts[i] = { ...tgts[i], events: evts };
                       return { ...c, notificationTargets: tgts };
                     })} />
-                  {ev === 'escalation' ? '🚨 Escalamento' : '✅ Nova Lead'}
+                  {ev === 'escalation' ? 'Escalamento' : 'Nova Lead'}
                 </label>
               ))}
             </div>
