@@ -435,7 +435,9 @@ export default function DashboardPage() {
                   const rota = lead.leadData.origem
                     ? `${lead.leadData.origem.split(',')[0]} → ${(lead.leadData.destino ?? '?').split(',')[0]}`
                     : lead.senderName;
-                  const price = lead.leadData.priceWithDiscount ?? lead.leadData.partnerFinalPrice;
+                  const price = lead.leadData.serviceType === 'arrasto'
+                    ? (lead.leadData.partnerFinalPrice ?? lead.leadData.priceWithDiscount)
+                    : (lead.leadData.priceWithDiscount ?? lead.leadData.partnerFinalPrice);
                   const unread = !lead.closed && lead.messageType === 'newLead';
 
                   return (

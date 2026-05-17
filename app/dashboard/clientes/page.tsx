@@ -376,8 +376,10 @@ export default function ClientesPage() {
                   <p style={{ fontSize: 12, color: '#aaa', margin: 0 }}>Sem serviços registados.</p>
                 )}
                 {detail.leads.map(l => {
-                  const price = l.priceWithDiscount ?? l.partnerFinalPrice;
                   const isArrasto = l.serviceType === 'arrasto';
+                  const price = isArrasto
+                    ? (l.partnerFinalPrice ?? l.priceWithDiscount)
+                    : (l.priceWithDiscount ?? l.partnerFinalPrice);
                   return (
                     <div key={l.id} style={{
                       display: 'flex', alignItems: 'center', gap: 12,

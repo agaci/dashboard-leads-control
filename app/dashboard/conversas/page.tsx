@@ -504,9 +504,12 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       )}
                       {selected.data?.urgencia && <span>{selected.data.urgencia}</span>}
                       {selected.data?.weightKg && <span>{selected.data.weightKg} kg</span>}
-                      {(selected.data?.priceWithDiscount ?? selected.data?.partnerFinalPrice) && (
+                      {(selected.data?.partnerFinalPrice ?? selected.data?.priceWithDiscount) != null && (
                         <span className="text-success font-semibold">
-                          €{(selected.data.priceWithDiscount ?? selected.data.partnerFinalPrice).toFixed(2)}
+                          €{(selected.data.serviceType === 'arrasto'
+                            ? (selected.data.partnerFinalPrice ?? selected.data.priceWithDiscount)
+                            : (selected.data.priceWithDiscount ?? selected.data.partnerFinalPrice)
+                          )!.toFixed(2)}
                         </span>
                       )}
                     </div>
