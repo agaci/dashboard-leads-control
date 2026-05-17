@@ -27,6 +27,7 @@ import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { calcAllActiveTariffs, parseWeight } from '@/lib/agent/partnerPricing';
 import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { PartnerDepot } from '@/types/pricing';
 import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/lib/agent/addressParser';
 import type { ConversationData } from '@/types/agent';
@@ -233,6 +234,7 @@ export async function POST(request: NextRequest) {
         const text = `Com *${kgNV} kg* em *${nVol} volume${nVol > 1 ? 's' : ''}*, o peso por volume (${kgPerVol} kg) excede o limite de *${maxVolKgNV} kg/volume* do serviço YourBox.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
         await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
         await escalateConversation(telemovel);
+        dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
         await dbNV.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
@@ -253,6 +255,7 @@ export async function POST(request: NextRequest) {
         const text = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${businessHoursContactWA()}`;
         await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
         await escalateConversation(telemovel);
+        dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
         const dbFri = await getDb();
         await dbFri.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
@@ -512,6 +515,7 @@ export async function POST(request: NextRequest) {
           const text = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgWA} kg* por expedição).\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
           await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
           await escalateConversation(telemovel);
+          dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
           return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
         }
 
@@ -533,6 +537,7 @@ export async function POST(request: NextRequest) {
             const text = `O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
             await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
             await escalateConversation(telemovel);
+            dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
             return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
           }
           depotPriceWA = dr.pickupPrice;
@@ -819,6 +824,7 @@ export async function POST(request: NextRequest) {
         },
       });
       await closeConversation(telemovel, leadResult.insertedId.toString());
+      dispatchNotification('lead', { convId: leadResult.insertedId.toString(), nome, telemovel, origem: conv.data.origem, destino: conv.data.destino, price: finalPrice ?? undefined });
       response = buildLeadRegisteredMessage(nome, finalPrice, conv.data.serviceType);
     }
 
@@ -839,6 +845,7 @@ export async function POST(request: NextRequest) {
       });
     } else if (response.escalate || response.nextStep === 'ESCALATED_TO_HUMAN') {
       await escalateConversation(telemovel);
+      dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
       const db = await getDb();
       await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin',

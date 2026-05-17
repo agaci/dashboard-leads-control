@@ -5,6 +5,7 @@ import { getLlmResponse } from '@/lib/agent/llmResponder';
 import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
 import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { PartnerTariff } from '@/types/partner';
 import type { PartnerDepot } from '@/types/pricing';
 
@@ -172,6 +173,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           { _id: oid },
           { $set: { step: 'ESCALATED_TO_HUMAN', 'data.nVolumes': nVol, history, escalatedAt: now, updatedAt: now } }
         );
+        dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
 
@@ -205,6 +207,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
           await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+          dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
         }
         depotPrice24 = dr.pickupPrice;
@@ -223,6 +226,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKg24} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
 
@@ -236,12 +240,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         const escMsg = `Com *${kg} kg* em *${nVol24} volume${nVol24 > 1 ? 's' : ''}*, o peso por volume (${kgPerVol} kg) excede o limite de *${maxVolKgVal} kg/volume* do serviço YourBox.\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
       if (totalCm > 0 && maxDimCmVal > 0 && totalCm > maxDimCmVal) {
         const escMsg = `As dimensões totais da carga (C+L+A = *${totalCm} cm*) excedem o máximo de *${maxDimCmVal} cm* do serviço YourBox de entrega amanhã.\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
         history.push({ role: 'bot', text: escMsg, timestamp: now });
         await db2.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+        dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
         return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
       }
 
@@ -518,6 +524,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
           await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', 'data.weightKg': kg, history, escalatedAt: now, updatedAt: now } });
+          dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
         }
       }
@@ -572,6 +579,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               history.push({ role: 'bot', text: escMsg, timestamp: now });
               await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+              dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
               return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
             }
             depotPriceTmr = dr.pickupPrice;
@@ -588,6 +596,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const escMsg = `Com *${kg} kg*, a carga excede a capacidade máxima do serviço YourBox de entrega amanhã (máximo *${maxExpKgTmr2} kg* por expedição).\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
             history.push({ role: 'bot', text: escMsg, timestamp: now });
             await db.collection('conversations').updateOne({ _id: oid }, { $set: { step: 'ESCALATED_TO_HUMAN', history, escalatedAt: now, updatedAt: now } });
+            dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
             return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
           }
 
@@ -640,6 +649,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     if (escalate) updateFields.escalatedAt = now;
 
     await db.collection('conversations').updateOne({ _id: oid }, { $set: updateFields });
+
+    if (escalate && nextStep === 'ESCALATED_TO_HUMAN') {
+      dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
+    } else if (leadRegistered && nextStep === 'LEAD_REGISTERED') {
+      const isArrasto = convDoc.data?.serviceType === 'arrasto';
+      dispatchNotification('lead', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, price: isArrasto ? convDoc.data?.partnerFinalPrice : convDoc.data?.priceWithDiscount });
+    }
 
     return Response.json({
       success: true,

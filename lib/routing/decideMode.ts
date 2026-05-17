@@ -19,6 +19,7 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   aggEscalationThreshold: 0,
   urgencyPhone: '',
   assistantName: '',
+  notificationTargets: [],
 };
 
 export function decideMode(

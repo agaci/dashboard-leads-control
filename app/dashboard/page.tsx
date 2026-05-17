@@ -41,6 +41,14 @@ type RoutingConfig = {
   aggEscalationThreshold: number;
   urgencyPhone: string;
   assistantName: string;
+  notificationTargets: NotificationTarget[];
+};
+
+type NotificationTarget = {
+  name: string;
+  phone: string;
+  email: string;
+  events: ('escalation' | 'lead')[];
 };
 
 type LeadData = {
@@ -1712,7 +1720,7 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
-    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '',
+    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '', notificationTargets: [],
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1877,6 +1885,58 @@ function RoutingPanel() {
               onChange={(v) => setConfig((c) => ({ ...c, evolutionInstance: v }))} />
           </div>
         )}
+      </div>
+
+      {/* ── Notificações ── */}
+      <div style={{ ...cardS, borderTop: `3px solid #f59e0b`, marginTop: 16 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: NAVY, margin: 0 }}>Notificações de Alerta</h3>
+            <p style={{ fontSize: 11, color: '#aaa', margin: '3px 0 0' }}>Aviso por WhatsApp e/ou email quando há escalamento ou nova lead</p>
+          </div>
+          <button onClick={() => setConfig((c) => ({ ...c, notificationTargets: [...(c.notificationTargets ?? []), { name: '', phone: '', email: '', events: ['escalation', 'lead'] }] }))}
+            style={{ fontSize: 12, fontWeight: 700, background: CYAN, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}>
+            + Adicionar
+          </button>
+        </div>
+
+        {(config.notificationTargets ?? []).length === 0 && (
+          <p style={{ fontSize: 12, color: '#bbb', margin: 0 }}>Nenhum destinatário configurado. Adicione pelo menos um para receber alertas.</p>
+        )}
+
+        {(config.notificationTargets ?? []).map((t, i) => (
+          <div key={i} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 12px', marginBottom: 8, background: '#fafafa' }}>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+              <input placeholder="Nome" value={t.name}
+                onChange={(e) => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts[i] = { ...tgts[i], name: e.target.value }; return { ...c, notificationTargets: tgts }; })}
+                style={{ flex: 1, padding: '6px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 6, fontSize: 12, outline: 'none' }} />
+              <button onClick={() => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts.splice(i, 1); return { ...c, notificationTargets: tgts }; })}
+                style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', lineHeight: 1 }}>✕</button>
+            </div>
+            <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+              <input placeholder="Telefone (351914...)" value={t.phone}
+                onChange={(e) => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts[i] = { ...tgts[i], phone: e.target.value }; return { ...c, notificationTargets: tgts }; })}
+                style={{ flex: 1, padding: '6px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 6, fontSize: 12, outline: 'none' }} />
+              <input placeholder="Email (opcional)" value={t.email}
+                onChange={(e) => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts[i] = { ...tgts[i], email: e.target.value }; return { ...c, notificationTargets: tgts }; })}
+                style={{ flex: 1, padding: '6px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 6, fontSize: 12, outline: 'none' }} />
+            </div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              {(['escalation', 'lead'] as const).map((ev) => (
+                <label key={ev} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
+                  <input type="checkbox" checked={t.events.includes(ev)}
+                    onChange={(e) => setConfig((c) => {
+                      const tgts = [...(c.notificationTargets ?? [])];
+                      const evts = e.target.checked ? [...tgts[i].events, ev] : tgts[i].events.filter(x => x !== ev);
+                      tgts[i] = { ...tgts[i], events: evts };
+                      return { ...c, notificationTargets: tgts };
+                    })} />
+                  {ev === 'escalation' ? '🚨 Escalamento' : '✅ Nova Lead'}
+                </label>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
 
       <button onClick={save} disabled={saving}

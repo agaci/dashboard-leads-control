@@ -63,6 +63,13 @@ export interface LeadDocument {
   botAssignedAt?: Date;
 }
 
+export interface NotificationTarget {
+  name: string;
+  phone: string;
+  email: string;
+  events: ('escalation' | 'lead')[];
+}
+
 export interface LeadRoutingConfig {
   systemActive: boolean;
   alwaysBot: boolean;
@@ -83,6 +90,7 @@ export interface LeadRoutingConfig {
   partnerDepots?: PartnerDepot[];
   urgencyPhone?: string;
   assistantName?: string;
+  notificationTargets?: NotificationTarget[];
   botScheduleOverride?: {
     startHour: number;
     endHour: number;
