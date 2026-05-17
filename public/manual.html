@@ -253,6 +253,7 @@
     <a href="#relatorios">Relatórios</a>
     <a href="#widgets">Widgets</a>
     <a href="#config">Configuração</a>
+    <a href="#bot-config">Configuração do Bot</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Integrações</div>
@@ -274,7 +275,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.0</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.1</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -460,6 +461,14 @@
         <li>Timestamp de receção</li>
       </ul>
 
+      <h3>Preço apresentado na lista de leads</h3>
+      <p>O preço mostrado na coluna de leads e no painel de detalhe reflecte sempre o serviço <strong>que ficou efectivamente acordado</strong> com a lead:</p>
+      <ul>
+        <li>Se a lead começou com serviço <strong>direto</strong> (1h/4h) e mudou para <strong>amanhã (arrasto)</strong> durante o chat, o preço apresentado é o do parceiro logístico — não o preço inicial do direto.</li>
+        <li>O sistema distingue automaticamente os dois tipos (<code>serviceType: direto</code> vs <code>arrasto</code>) e exibe o preço correspondente.</li>
+      </ul>
+      <div class="callout tip"><div class="callout-icon">💡</div><div>Isto garante que a coluna de preço na lista de leads é sempre fiel ao valor real negociado, mesmo quando houve mudança de serviço durante o diálogo.</div></div>
+
       <h3>Urgência das Leads</h3>
       <div class="table-wrap">
         <table>
@@ -520,6 +529,50 @@
         <li>Markup configurável por tarifa ou global</li>
         <li>Apresentação ordenada no bot (3-5 opções)</li>
       </ul>
+
+      <h3>Regras de Data e Horário — Serviço 24h</h3>
+      <p>O cabeçalho do orçamento de entrega para o dia seguinte adapta-se automaticamente conforme a hora e o dia da semana:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Condição</th><th>Cabeçalho do Orçamento</th><th>Nota ao Cliente</th></tr></thead>
+          <tbody>
+            <tr>
+              <td>Semana, antes das 16h00</td>
+              <td><em>Entrega YourBox Amanhã — X kg</em></td>
+              <td>Confirme antes das 16h00 para garantir recolha hoje.</td>
+            </tr>
+            <tr>
+              <td>Semana, após as 16h00</td>
+              <td><em>Entrega YourBox — 2 dias úteis — X kg</em></td>
+              <td>⚠️ Após as 16h00 a recolha hoje já não é possível. Carga agendada para amanhã de manhã, entrega no dia seguinte.</td>
+            </tr>
+            <tr>
+              <td>Sábado ou Domingo (qualquer hora)</td>
+              <td><em>Entrega YourBox — 3ª feira — X kg</em></td>
+              <td>Como é fim de semana, a recolha será na segunda-feira de manhã, com entrega na terça-feira.</td>
+            </tr>
+            <tr>
+              <td>Sexta-feira (caso especial)</td>
+              <td>Bot confirma se o cliente aceita entrega na segunda-feira</td>
+              <td>Passo <code>CONFIRMING_FRIDAY_DELIVERY</code> antes de apresentar orçamento.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Pré-preenchimento de Dados da Carga (24h)</h3>
+      <p>Quando o cliente preenche o campo <strong>Observações</strong> no formulário com informação sobre a carga, o sistema extrai automaticamente:</p>
+      <ul>
+        <li><strong>Número de volumes/caixas</strong> (ex: "4 caixas" → 4)</li>
+        <li><strong>Dimensões totais</strong> em cm (ex: "100×80×60" → 240 cm de soma)</li>
+        <li><strong>Peso total</strong> em kg (ex: "5kg" → 5)</li>
+      </ul>
+      <p>Com estes dados pré-preenchidos, o bot <strong>não volta a perguntar</strong> esses valores durante o fluxo de 24h — passa directamente para o orçamento. A mensagem de preço inclui sempre uma linha de confirmação da carga:</p>
+      <div class="callout info" style="font-style:italic;font-size:0.92rem;">
+        <div class="callout-icon">💬</div>
+        <div><em>Carga confirmada: <strong>4 caixas</strong> · C+L+A <strong>240 cm</strong> · <strong>5 kg</strong></em></div>
+      </div>
+      <p>Se algum dos valores não tiver sido detectado (ex: cliente não indicou o peso), o bot pergunta apenas o que falta.</p>
 
       <h3>Configurações disponíveis</h3>
       <div class="table-wrap">
@@ -680,6 +733,40 @@
       <div class="callout info" style="margin-top:0.75rem;"><div class="callout-icon">ℹ️</div><div><strong>Sistema Activo vs. fora de horário:</strong> São dois comportamentos distintos. <strong>Sistema OFF</strong> → chat em tempo real, operador responde via Inbox (badge roxo). <strong>Fora de horário</strong> → bot recolhe contacto automaticamente e a equipa faz follow-up no próximo período de atendimento.</div></div>
     </div>
 
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="bot-config"></span>
+    <div class="section">
+      <h2>Configuração do Bot</h2>
+      <p>Em <strong>Perfil → Configurações</strong>, na secção <em>Configuração do Bot</em>, o administrador pode personalizar a identidade e os contactos de urgência apresentados pelo assistente automático.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Descrição</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Telefone de Urgência</strong></td>
+              <td>Número que o bot apresenta em <strong>negrito</strong> nas mensagens de escalamento e fora de horário. Guardado na base de dados — pode ser alterado sem necessidade de nova versão da aplicação.</td>
+              <td><code>214 304 546</code></td>
+            </tr>
+            <tr>
+              <td><strong>Nome do Assistente</strong></td>
+              <td>Nome pessoal que aparece depois do número de urgência, conferindo um toque humano à mensagem. Se estiver em branco, o bot omite esta parte.</td>
+              <td><code>Rui Almeida</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Exemplo de mensagem gerada</h3>
+      <div class="callout info" style="font-style:italic;font-size:0.92rem;">
+        <div class="callout-icon">💬</div>
+        <div><em>Em caso de urgência, ligue <strong>214 304 546</strong> — Rui Almeida.</em></div>
+      </div>
+      <p>Se o campo <strong>Telefone de Urgência</strong> estiver vazio, o bot usa uma mensagem genérica: <em>"Em caso de urgência, contacte-nos pelo número que já tem da YourBox."</em></p>
+
+      <div class="callout tip"><div class="callout-icon">💡</div><div>Quando o número de urgência muda (ex: férias de um colaborador), basta actualizar o campo no Dashboard — o bot começa imediatamente a usar o novo número sem qualquer deploy.</div></div>
+    </div>
+
     <hr>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -815,8 +902,10 @@
       <div class="states">
         <span class="state-pill">COLLECTING_WEIGHT</span>
         <span class="state-pill">COLLECTING_VOLUMES</span>
+        <span class="state-pill">CONFIRMING_FRIDAY_DELIVERY</span>
         <span class="state-pill">PRESENTING_PARTNER_PRICE</span>
       </div>
+      <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted);">Se o peso e/ou número de caixas foram detectados nas observações do formulário, os estados <code>COLLECTING_WEIGHT</code> e <code>COLLECTING_VOLUMES</code> são saltados automaticamente. O estado <code>CONFIRMING_FRIDAY_DELIVERY</code> só ocorre às sextas-feiras para confirmar que o cliente aceita entrega na segunda-feira. O orçamento inclui sempre uma linha de <em>carga confirmada</em> com os dados recolhidos.</p>
 
       <h3>Recolha de contacto</h3>
       <div class="states">
@@ -847,7 +936,11 @@
       <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted);">Dois cenários possíveis: (1) <strong>Sistema Activo OFF</strong> — bot desativado manualmente, operador atende diretamente pela Inbox; (2) <strong>Lead pediu análise de agregação</strong> (<code>agg_request</code>) — conversa escalada mantendo input aberto de ambos os lados. O cliente vê "A aguardar operador" e pode continuar a escrever.</p>
 
       <h3>Nota sobre o campo Observações</h3>
-      <p style="font-size:0.88rem;color:var(--muted);">Se a lead preencheu o campo Observações no formulário (ex: dimensões e volumes), esses dados são incluídos automaticamente na primeira mensagem de orçamento do bot (<em>Obs.: ...</em>) e guardados no registo da conversa. O bot <strong>não voltará a pedir notas</strong> durante o diálogo — salta o passo <code>COLLECTING_NOTAS</code> automaticamente.</p>
+      <p style="font-size:0.88rem;color:var(--muted);">Se a lead preencheu o campo Observações no formulário, esses dados têm dois efeitos:</p>
+      <ul style="font-size:0.88rem;color:var(--muted);margin-top:0.25rem;">
+        <li>O texto é incluído na primeira mensagem de orçamento (<em>Obs.: ...</em>) e guardado no registo da conversa. O bot salta o passo <code>COLLECTING_NOTAS</code> automaticamente.</li>
+        <li>O sistema extrai automaticamente número de caixas, dimensões (cm) e peso (kg) das observações. Se detectados, o bot salta os passos <code>COLLECTING_WEIGHT</code> e/ou <code>COLLECTING_VOLUMES</code> no fluxo de 24h, avançando directamente para o orçamento com uma linha de <em>carga confirmada</em>.</li>
+      </ul>
 
       <h3>Estados terminais</h3>
       <div class="states">
@@ -916,7 +1009,7 @@
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.0 — Maio 2026</span>
+      <span>YourBox Dashboard — Manual v1.1 — Maio 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
