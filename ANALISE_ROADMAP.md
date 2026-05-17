@@ -1,6 +1,7 @@
 # Análise e Roadmap — YourBox Dashboard Leads Control
 
-> Documento gerado em Maio 2026. Análise profunda ao código-fonte da aplicação.
+> Documento gerado em Maio 2026. Análise profunda ao código-fonte da aplicação.  
+> Última actualização: Maio 2026 (sessões 2-4 com Claude Code).
 
 ---
 
@@ -41,6 +42,25 @@ Stack: Google Maps, WhatsApp Business (Evolution API), Stripe, Ifthenpay, Resend
 - Parse morada com LLM (Anthropic Claude SDK)
 - Sugestão de agregação em background
 - Suporte mensagem pré-preenchida da landing page
+- **Estado**: Completo
+
+### 1.10 Melhorias ao Fluxo 24h (Maio 2026)
+- **Pré-preenchimento de carga** a partir das observações do formulário: `nVolumes`, `totalCm`, `weightKg` detectados automaticamente — bot salta perguntas já respondidas
+- **Bypass LLM para troca de serviço**: se peso pré-preenchido + lead em passo de preço + mensagem "amanhã", o sistema fabrica directamente `{type:'calculate_tomorrow'}` sem chamar o LLM
+- **Cargo recap** em toda mensagem de orçamento: `_Carga confirmada: *N caixas* · C+L+A *X cm* · *Y kg*_`
+- **Cutoff 16h00**: após as 16h o cabeçalho passa de "Amanhã" para "2 dias úteis" com aviso ⚠️
+- **Fim-de-semana**: sábado e domingo → cabeçalho "3ª feira" com nota de recolha na 2ª-feira
+- **Estado**: Completo
+
+### 1.11 Configuração do Bot via BD (Maio 2026)
+- **Telefone de urgência** (`urgencyPhone`) e **nome do assistente** (`assistantName`) configuráveis no Dashboard sem necessidade de deploy
+- `URGENCY_NOTE` construído dinamicamente em cada handler a partir da BD
+- UI de configuração em Dashboard → Perfil com preview em tempo real
+- **Estado**: Completo
+
+### 1.12 Exibição de Preço por Tipo de Serviço (Maio 2026)
+- Corrigido bug em que leads que mudaram de serviço direto → arrasto continuavam a mostrar o preço direto na lista
+- Discriminação explícita por `serviceType` em `page.tsx` de Leads, Clientes e Conversas
 - **Estado**: Completo
 
 ### 1.5 Widgets e Embed
