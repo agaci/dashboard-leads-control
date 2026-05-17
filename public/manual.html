@@ -254,6 +254,7 @@
     <a href="#widgets">Widgets</a>
     <a href="#config">Configuração</a>
     <a href="#bot-config">Configuração do Bot</a>
+    <a href="#notificacoes">Notificações de Alerta</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Integrações</div>
@@ -275,7 +276,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.1</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.2</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -320,7 +321,7 @@
         </table>
       </div>
 
-      <div class="callout info"><div class="callout-icon">ℹ️</div><div>A criação de novos utilizadores é feita pelo administrador através da rota <code>/api/auth/signup</code>. Se precisar de acesso, contacte o administrador da plataforma.</div></div>
+      <div class="callout info"><div class="callout-icon">i</div><div>A criação de novos utilizadores é feita pelo administrador através da rota <code>/api/auth/signup</code>. Se precisar de acesso, contacte o administrador da plataforma.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -421,8 +422,8 @@
         </table>
       </div>
 
-      <div class="callout tip"><div class="callout-icon">💡</div><div><strong>Dica:</strong> conversas em modo <strong>Chat ao Vivo</strong> (badge roxo) aguardam resposta do operador. O cliente vê o aviso "A aguardar operador" mas o input está habilitado — pode escrever enquanto aguarda. Responda pelo campo de texto no fundo do painel.</div></div>
-      <div class="callout warning" style="margin-top:0.75rem;"><div class="callout-icon">⚠️</div><div>Conversas <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas e as de Chat ao Vivo antes das restantes.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Dica:</strong> conversas em modo <strong>Chat ao Vivo</strong> (badge roxo) aguardam resposta do operador. O cliente vê o aviso "A aguardar operador" mas o input está habilitado — pode escrever enquanto aguarda. Responda pelo campo de texto no fundo do painel.</div></div>
+      <div class="callout warning" style="margin-top:0.75rem;"><div class="callout-icon">!</div><div>Conversas <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas e as de Chat ao Vivo antes das restantes.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -467,7 +468,7 @@
         <li>Se a lead começou com serviço <strong>direto</strong> (1h/4h) e mudou para <strong>amanhã (arrasto)</strong> durante o chat, o preço apresentado é o do parceiro logístico — não o preço inicial do direto.</li>
         <li>O sistema distingue automaticamente os dois tipos (<code>serviceType: direto</code> vs <code>arrasto</code>) e exibe o preço correspondente.</li>
       </ul>
-      <div class="callout tip"><div class="callout-icon">💡</div><div>Isto garante que a coluna de preço na lista de leads é sempre fiel ao valor real negociado, mesmo quando houve mudança de serviço durante o diálogo.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div>Isto garante que a coluna de preço na lista de leads é sempre fiel ao valor real negociado, mesmo quando houve mudança de serviço durante o diálogo.</div></div>
 
       <h3>Urgência das Leads</h3>
       <div class="table-wrap">
@@ -481,7 +482,7 @@
         </table>
       </div>
 
-      <div class="callout warn"><div class="callout-icon">⚠️</div><div><strong>Atenção:</strong> leads com urgência <strong>1 Hora</strong> devem ser tratadas imediatamente. O sistema toca um alerta sonoro distinto para este tipo de lead.</div></div>
+      <div class="callout warn"><div class="callout-icon">!</div><div><strong>Atenção:</strong> leads com urgência <strong>1 Hora</strong> devem ser tratadas imediatamente. O sistema toca um alerta sonoro distinto para este tipo de lead.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -569,7 +570,7 @@
       </ul>
       <p>Com estes dados pré-preenchidos, o bot <strong>não volta a perguntar</strong> esses valores durante o fluxo de 24h — passa directamente para o orçamento. A mensagem de preço inclui sempre uma linha de confirmação da carga:</p>
       <div class="callout info" style="font-style:italic;font-size:0.92rem;">
-        <div class="callout-icon">💬</div>
+        <div class="callout-icon">"</div>
         <div><em>Carga confirmada: <strong>4 caixas</strong> · C+L+A <strong>240 cm</strong> · <strong>5 kg</strong></em></div>
       </div>
       <p>Se algum dos valores não tiver sido detectado (ex: cliente não indicou o peso), o bot pergunta apenas o que falta.</p>
@@ -617,7 +618,7 @@
         <li><strong>SIT-015</strong> — Cliente pede factura: bot recolhe NIF e encaminha para BO</li>
       </ul>
 
-      <div class="callout tip"><div class="callout-icon">💡</div><div>Pode editar qualquer situação directamente na interface. As alterações ficam activas imediatamente sem necessidade de reiniciar o sistema.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div>Pode editar qualquer situação directamente na interface. As alterações ficam activas imediatamente sem necessidade de reiniciar o sistema.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -637,7 +638,7 @@
 
       <h3>Oferta de análise de agregação (bot → lead)</h3>
       <p>Quando o preço de um serviço direto (1h ou 4h) ultrapassa o limiar configurado em <strong>Agregação — Limiar de Preço</strong>, o bot apresenta automaticamente uma proposta ao cliente:</p>
-      <div class="callout info" style="font-style:italic;font-size:0.9rem;"><div class="callout-icon">💬</div><div>"Para esta rota <strong>poderá existir</strong> a possibilidade de agregar a sua carga, o que <strong>poderá</strong> contribuir para reduzir o preço — sujeito a análise e disponibilidade."</div></div>
+      <div class="callout info" style="font-style:italic;font-size:0.9rem;"><div class="callout-icon">"</div><div>"Para esta rota <strong>poderá existir</strong> a possibilidade de agregar a sua carga, o que <strong>poderá</strong> contribuir para reduzir o preço — sujeito a análise e disponibilidade."</div></div>
       <p>O cliente pode escolher entre três opções de resposta rápida:</p>
       <ul>
         <li><strong>Quero análise de agregação</strong> — conversa é escalada para LIVE_CHAT (<code>agg_request</code>). O operador recebe notificação e pode continuar o diálogo diretamente pela Inbox</li>
@@ -645,7 +646,7 @@
         <li><strong>Ver entrega amanhã</strong> — bot apresenta opções de entrega para o dia seguinte</li>
       </ul>
 
-      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O ícone de Agregações na barra lateral fica a piscar a amarelo quando há sugestões pendentes. Conversas escaladas por pedido de análise de agregação ficam com badge <span style="background:#f3e8ff;color:#7e22ce;padding:1px 6px;border-radius:4px;font-size:0.8rem;">Chat ao vivo</span> na Inbox.</div></div>
+      <div class="callout info"><div class="callout-icon">i</div><div>O ícone de Agregações na barra lateral fica a piscar a amarelo quando há sugestões pendentes. Conversas escaladas por pedido de análise de agregação ficam com badge <span style="background:#f3e8ff;color:#7e22ce;padding:1px 6px;border-radius:4px;font-size:0.8rem;">Chat ao vivo</span> na Inbox.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -730,7 +731,7 @@
           </tbody>
         </table>
       </div>
-      <div class="callout info" style="margin-top:0.75rem;"><div class="callout-icon">ℹ️</div><div><strong>Sistema Activo vs. fora de horário:</strong> São dois comportamentos distintos. <strong>Sistema OFF</strong> → chat em tempo real, operador responde via Inbox (badge roxo). <strong>Fora de horário</strong> → bot recolhe contacto automaticamente e a equipa faz follow-up no próximo período de atendimento.</div></div>
+      <div class="callout info" style="margin-top:0.75rem;"><div class="callout-icon">i</div><div><strong>Sistema Activo vs. fora de horário:</strong> São dois comportamentos distintos. <strong>Sistema OFF</strong> → chat em tempo real, operador responde via Inbox (badge roxo). <strong>Fora de horário</strong> → bot recolhe contacto automaticamente e a equipa faz follow-up no próximo período de atendimento.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -759,12 +760,80 @@
 
       <h3>Exemplo de mensagem gerada</h3>
       <div class="callout info" style="font-style:italic;font-size:0.92rem;">
-        <div class="callout-icon">💬</div>
+        <div class="callout-icon">"</div>
         <div><em>Em caso de urgência, ligue <strong>214 304 546</strong> — Rui Almeida.</em></div>
       </div>
       <p>Se o campo <strong>Telefone de Urgência</strong> estiver vazio, o bot usa uma mensagem genérica: <em>"Em caso de urgência, contacte-nos pelo número que já tem da YourBox."</em></p>
 
-      <div class="callout tip"><div class="callout-icon">💡</div><div>Quando o número de urgência muda (ex: férias de um colaborador), basta actualizar o campo no Dashboard — o bot começa imediatamente a usar o novo número sem qualquer deploy.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div>Quando o número de urgência muda (ex: férias de um colaborador), basta actualizar o campo no Dashboard — o bot começa imediatamente a usar o novo número sem qualquer deploy.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="notificacoes"></span>
+    <div class="section">
+      <h2>Notificações de Alerta</h2>
+      <p>O sistema envia avisos automáticos por <strong>WhatsApp</strong> e/ou <strong>email</strong> sempre que ocorre um evento relevante: escalamento de conversa para humano ou registo de nova lead.</p>
+      <p>Os destinatários são configuráveis individualmente — cada pessoa pode receber apenas os eventos que lhe dizem respeito.</p>
+
+      <h3>Como configurar</h3>
+      <p>Em <strong>Perfil → Configurações → Notificações de Alerta</strong>, clique em <strong>+ Adicionar</strong> para criar um destinatário.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Descrição</th><th>Exemplo</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Nome</strong></td>
+              <td>Identificação do destinatário (uso interno).</td>
+              <td><code>Helder Caldas</code></td>
+            </tr>
+            <tr>
+              <td><strong>Telefone</strong></td>
+              <td>Número para receber aviso por WhatsApp. Formato internacional sem espaços.</td>
+              <td><code>351961234567</code></td>
+            </tr>
+            <tr>
+              <td><strong>Email</strong></td>
+              <td>Endereço para receber aviso por email.</td>
+              <td><code>helder@yourbox.com.pt</code></td>
+            </tr>
+            <tr>
+              <td><strong>Eventos</strong></td>
+              <td>Tipo de avisos a receber: <strong>Escalamento</strong> e/ou <strong>Nova Lead</strong>. Pelo menos um deve estar seleccionado.</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Eventos disponíveis</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Evento</th><th>Quando dispara</th><th>Informação incluída</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Escalamento</strong></td>
+              <td>Quando o bot transfere uma conversa para atendimento humano.</td>
+              <td>Referência, nome, telefone, rota, última mensagem do cliente, link para a Inbox.</td>
+            </tr>
+            <tr>
+              <td><strong>Nova Lead</strong></td>
+              <td>Quando o bot regista uma lead com sucesso.</td>
+              <td>Referência, nome, telefone, rota, preço negociado, link para o Dashboard.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Como chega o aviso</h3>
+      <ul>
+        <li><strong>WhatsApp</strong> — mensagem de texto enviada para o número configurado com os dados principais do evento.</li>
+        <li><strong>Email</strong> — email HTML com tabela resumo e botão de acesso directo à plataforma. Remetente: YourBox BackOffice.</li>
+        <li>É possível configurar ambos em simultâneo para o mesmo destinatário.</li>
+        <li>Podem existir vários destinatários activos em simultâneo.</li>
+      </ul>
+
+      <div class="callout info"><div class="callout-icon">i</div><div>Os avisos são enviados em modo assíncrono — não afectam o tempo de resposta do bot ao cliente. Se o envio falhar (ex: rede indisponível), o sistema regista o erro internamente mas não interrompe o fluxo da conversa.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> o helpdesk recebe <strong>Escalamento</strong> para resposta imediata via WhatsApp, e a equipa comercial recebe <strong>Nova Lead</strong> por email para follow-up.</div></div>
     </div>
 
     <hr>
@@ -805,9 +874,9 @@
         <li>Chat com bot IA integrado após submissão</li>
         <li>Personalização visual via configuração do cliente no dashboard</li>
       </ul>
-      <div class="callout info"><div class="callout-icon">ℹ️</div><div>O widget usa a chave Google Maps da YourBox — o site do cliente <strong>não precisa</strong> de ter chave própria. O domínio do cliente também não é relevante para o autocomplete, pois o widget corre num iframe alojado em <code>leads.comgo.pt</code>.</div></div>
+      <div class="callout info"><div class="callout-icon">i</div><div>O widget usa a chave Google Maps da YourBox — o site do cliente <strong>não precisa</strong> de ter chave própria. O domínio do cliente também não é relevante para o autocomplete, pois o widget corre num iframe alojado em <code>leads.comgo.pt</code>.</div></div>
 
-      <div class="callout warn"><div class="callout-icon">⚠️</div><div>O domínio onde o widget está instalado deve constar na lista <strong>Domínios Permitidos</strong> do cliente no dashboard. Caso contrário, o widget não carrega.</div></div>
+      <div class="callout warn"><div class="callout-icon">!</div><div>O domínio onde o widget está instalado deve constar na lista <strong>Domínios Permitidos</strong> do cliente no dashboard. Caso contrário, o widget não carrega.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -1009,7 +1078,7 @@
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.1 — Maio 2026</span>
+      <span>YourBox Dashboard — Manual v1.2 — Maio 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
