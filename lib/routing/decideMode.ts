@@ -19,6 +19,8 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   aggEscalationThreshold: 0,
   urgencyPhone: '',
   assistantName: '',
+  voiceAssistantName: 'Yox',
+  voiceAssistantGender: 'female',
   notificationTargets: [],
 };
 

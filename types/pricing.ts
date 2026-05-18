@@ -90,6 +90,8 @@ export interface LeadRoutingConfig {
   partnerDepots?: PartnerDepot[];
   urgencyPhone?: string;
   assistantName?: string;
+  voiceAssistantName?: string;
+  voiceAssistantGender?: 'female' | 'male';
   notificationTargets?: NotificationTarget[];
   botScheduleOverride?: {
     startHour: number;

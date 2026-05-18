@@ -41,6 +41,8 @@ type RoutingConfig = {
   aggEscalationThreshold: number;
   urgencyPhone: string;
   assistantName: string;
+  voiceAssistantName: string;
+  voiceAssistantGender: 'female' | 'male';
   notificationTargets: NotificationTarget[];
 };
 
@@ -1739,7 +1741,8 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
-    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '', notificationTargets: [],
+    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '',
+    voiceAssistantName: 'Yox', voiceAssistantGender: 'female', notificationTargets: [],
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -1876,6 +1879,35 @@ function RoutingPanel() {
             Preview: <em>Em caso de urgência, ligue <strong>{config.urgencyPhone}</strong>{config.assistantName ? ` — ${config.assistantName}` : ''}.</em>
           </p>
         )}
+      </div>
+
+      {/* ── Assistente de voz ── */}
+      <div style={{ ...cardS, borderTop: `3px solid #5b8dee`, marginTop: 16 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: NAVY, margin: '0 0 4px' }}>Assistente de Voz</h3>
+        <p style={{ fontSize: 11, color: '#aaa', margin: '0 0 12px' }}>Configuração do motor de voz nas versões _voz das landing pages</p>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Nome do assistente de voz</label>
+            <input
+              type="text"
+              placeholder="ex: Yox"
+              value={config.voiceAssistantName ?? ''}
+              onChange={(e) => setConfig((c) => ({ ...c, voiceAssistantName: e.target.value }))}
+              style={{ width: 200, padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none' }}
+            />
+          </div>
+          <div>
+            <label style={{ fontSize: 11, color: '#aaa', display: 'block', marginBottom: 4 }}>Género da voz</label>
+            <select
+              value={config.voiceAssistantGender ?? 'female'}
+              onChange={(e) => setConfig((c) => ({ ...c, voiceAssistantGender: e.target.value as 'female' | 'male' }))}
+              style={{ padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', background: '#fff' }}
+            >
+              <option value="female">Feminino</option>
+              <option value="male">Masculino</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {/* ── WhatsApp / Evolution API ── */}
