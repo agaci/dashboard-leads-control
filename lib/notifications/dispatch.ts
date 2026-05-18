@@ -6,6 +6,7 @@ export type NotificationEvent = 'escalation' | 'lead';
 
 export interface NotificationPayload {
   convId:     string;
+  leadId?:    string;
   nome?:      string;
   telemovel?: string;
   origem?:    string;
@@ -29,7 +30,10 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
   );
   if (relevant.length === 0) return;
 
-  const appUrl = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.comgo.pt').replace(/\/$/, '');
+  const appUrl   = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.comgo.pt').replace(/\/$/, '');
+  const deepLink = event === 'lead' && payload.leadId
+    ? `${appUrl}/dashboard?lead=${payload.leadId}`
+    : `${appUrl}/dashboard?conv=${payload.convId}`;
   const ref    = '#' + payload.convId.slice(-5).toUpperCase();
   const nome   = payload.nome ?? payload.telemovel ?? '—';
   const rota   = payload.origem
@@ -48,7 +52,7 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
     ...(event === 'lead' && payload.price != null
       ? [`Preço: *€${payload.price.toFixed(2)}*`]
       : []),
-    `${appUrl}/dashboard`,
+    deepLink,
   ];
   const waText = waLines.join('\n');
 
@@ -70,6 +74,7 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
       } else {
         sendLeadEmail({
           convId:     payload.convId,
+          leadId:     payload.leadId,
           telemovel:  payload.telemovel ?? '',
           nome:       payload.nome,
           origem:     payload.origem,

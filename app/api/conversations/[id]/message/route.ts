@@ -429,6 +429,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let nextStep: string = convDoc.step;
     let escalate = false;
     let leadRegistered = false;
+    let leadInsertedId: string | undefined;
 
     // ── Processar resultado do LLM ───────────────────────────────────────────
 
@@ -474,7 +475,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const volumesHtml = result.volumes ? `<p><b>Volumes:</b> ${result.volumes}</p>` : '';
       const canalLabel = isEscalatedCase ? 'WEB CHAT FORA DE HORÁRIO' : 'WEB CHAT BOT LLM';
 
-      await db.collection('messages').insertOne({
+      const _leadInsert = await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p>` : ''}<p style="color:${isEscalatedCase ? 'orange' : 'green'};"><b>CONTACTAR [canal: ${canalLabel}]</b></p></div>`,
@@ -498,6 +499,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
         },
       });
+      leadInsertedId = _leadInsert.insertedId.toString();
 
       // Atualizar conversa
       await db.collection('conversations').updateOne(
@@ -654,7 +656,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
     } else if (leadRegistered && nextStep === 'LEAD_REGISTERED') {
       const isArrasto = convDoc.data?.serviceType === 'arrasto';
-      dispatchNotification('lead', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, price: isArrasto ? convDoc.data?.partnerFinalPrice : convDoc.data?.priceWithDiscount });
+      dispatchNotification('lead', { convId: oid.toString(), leadId: leadInsertedId, nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, price: isArrasto ? convDoc.data?.partnerFinalPrice : convDoc.data?.priceWithDiscount });
     }
 
     return Response.json({

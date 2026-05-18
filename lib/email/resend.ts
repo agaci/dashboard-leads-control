@@ -20,7 +20,7 @@ export async function sendEscalationEmail(opts: {
   const ref  = '#' + opts.convId.slice(-5).toUpperCase();
   const nome = opts.nome ?? opts.telemovel;
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
-  const link = `${APP_URL}/dashboard`;
+  const link = `${APP_URL}/dashboard?conv=${opts.convId}`;
 
   const html = `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
@@ -56,6 +56,7 @@ export async function sendEscalationEmail(opts: {
 
 export async function sendLeadEmail(opts: {
   convId:      string;
+  leadId?:     string;
   telemovel:   string;
   nome?:       string;
   origem?:     string;
@@ -70,7 +71,7 @@ export async function sendLeadEmail(opts: {
   const ref  = '#' + opts.convId.slice(-5).toUpperCase();
   const nome = opts.nome ?? opts.telemovel;
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
-  const link = `${APP_URL}/dashboard`;
+  const link = opts.leadId ? `${APP_URL}/dashboard?lead=${opts.leadId}` : `${APP_URL}/dashboard`;
 
   const html = `
 <div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
@@ -152,7 +153,8 @@ function Tag({ label, type }: { label: string; type: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const isMobile = useIsMobile();
+  const isMobile    = useIsMobile();
+  const searchParams = useSearchParams();
   const [tab, setTab] = useState<NavTab>('inbox');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
@@ -186,6 +188,24 @@ export default function DashboardPage() {
   const autoSelectedLeadRef = useRef(false);
   const [showDatePopover, setShowDatePopover] = useState(false);
   const datePopoverRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const convId = searchParams.get('conv');
+    const leadId = searchParams.get('lead');
+    if (convId) {
+      setPendingConvId(convId);
+      setTab('inbox');
+      window.history.replaceState(null, '', '/dashboard');
+    } else if (leadId) {
+      setTab('leads');
+      setDateFilter('all');
+      fetch(`/api/leads/${leadId}`)
+        .then(r => r.json())
+        .then(data => { if (data.lead) setSelected(data.lead); })
+        .catch(() => {});
+      window.history.replaceState(null, '', '/dashboard');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function buildDateParams(df: 'all' | 'hoje' | 'ontem' | 'semana' | 'custom'): string {
     if (df === 'all') return '';

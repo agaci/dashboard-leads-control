@@ -824,7 +824,7 @@ export async function POST(request: NextRequest) {
         },
       });
       await closeConversation(telemovel, leadResult.insertedId.toString());
-      dispatchNotification('lead', { convId: leadResult.insertedId.toString(), nome, telemovel, origem: conv.data.origem, destino: conv.data.destino, price: finalPrice ?? undefined });
+      dispatchNotification('lead', { convId: conv._id?.toString() ?? telemovel, leadId: leadResult.insertedId.toString(), nome, telemovel, origem: conv.data.origem, destino: conv.data.destino, price: finalPrice ?? undefined });
       response = buildLeadRegisteredMessage(nome, finalPrice, conv.data.serviceType);
     }
 
