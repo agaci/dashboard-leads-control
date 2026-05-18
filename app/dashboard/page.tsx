@@ -1,7 +1,6 @@
 'use client';
 
 import { useEffect, useState, useCallback, useRef } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
@@ -153,8 +152,7 @@ function Tag({ label, type }: { label: string; type: string }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const isMobile    = useIsMobile();
-  const searchParams = useSearchParams();
+  const isMobile = useIsMobile();
   const [tab, setTab] = useState<NavTab>('inbox');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
@@ -190,8 +188,9 @@ export default function DashboardPage() {
   const datePopoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const convId = searchParams.get('conv');
-    const leadId = searchParams.get('lead');
+    const sp     = new URLSearchParams(window.location.search);
+    const convId = sp.get('conv');
+    const leadId = sp.get('lead');
     if (convId) {
       setPendingConvId(convId);
       setTab('inbox');
