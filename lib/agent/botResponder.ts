@@ -13,8 +13,8 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
     text: 'E o local de *entrega*?',
   },
   COLLECTING_VIATURA: {
-    text: 'Que tipo de transporte precisa?\n\n*Moto* — até 2 kg\n*Furgão Classe 1* — até 150 kg\n*Furgão Classe 2* — acima de 150 kg',
-    quickReplies: ['Moto', 'Furgão Classe 1', 'Furgão Classe 2'],
+    text: 'Que tipo de transporte precisa?\n\n*Moto* — até 2 kg\n*Auto* — até 50 kg\n*Furgão Classe 1* — até 150 kg\n*Furgão Classe 2* — acima de 150 kg',
+    quickReplies: ['Moto', 'Auto', 'Furgão Classe 1', 'Furgão Classe 2'],
   },
   COLLECTING_URGENCIA: {
     text: 'Qual a urgência?\n\n*1 Hora* — entrega em 1 hora\n*4 Horas* — entrega em 4 horas\n*24 Horas* — entrega no dia seguinte',
@@ -75,6 +75,7 @@ export function buildWelcomeMessage(): BotResponse {
 
 const VEHICLE_CAPACITY: Record<string, string> = {
   'Moto': '2 kg / 10 L',
+  'Auto': '50 kg / 1 m³',
   'Furgão Classe 1': '150 kg / 3 m³',
   'Furgão Classe 2': '300 kg / 9 m³',
 };
@@ -293,7 +294,7 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       const viatura = normalizeViatura(mensagem);
       if (!viatura) {
         return {
-          text: 'Por favor escolha uma das opções: *Moto*, *Furgão Classe 1* ou *Furgão Classe 2*.',
+          text: 'Por favor escolha uma das opções: *Moto*, *Auto*, *Furgão Classe 1* ou *Furgão Classe 2*.',
           nextStep: 'COLLECTING_VIATURA',
           quickReplies: QUESTIONS.COLLECTING_VIATURA.quickReplies,
         };
@@ -487,6 +488,7 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
 export function normalizeViatura(text: string): string | null {
   const t = text.toLowerCase();
   if (t.includes('moto'))          return 'Moto';
+  if (t === 'auto' || t.includes('auto ') || t.includes(' auto') || t.includes('50kg') || t.includes('50 kg')) return 'Auto';
   if (t.includes('classe 1') || t.includes('furgão 1') || t.includes('furgao 1')) return 'Furgão Classe 1';
   if (t.includes('classe 2') || t.includes('furgão 2') || t.includes('furgao 2')) return 'Furgão Classe 2';
   if (t.includes('furgão') || t.includes('furgao')) return 'Furgão Classe 1';

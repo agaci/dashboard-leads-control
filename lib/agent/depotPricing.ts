@@ -71,6 +71,7 @@ export async function calcDepotPickupPrice(
   // Determinar type e precedence com a mesma lógica do agente principal
   const pesoMap: Record<string, string> = {
     'Moto': '2',
+    'Auto': '50',
     'Furgão Classe 1': '150',
     'Furgão Classe 2': '300',
   };

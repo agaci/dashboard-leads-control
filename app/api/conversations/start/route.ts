@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
 
         if (settings && origem && destino) {
           const fixResult = await fixCityPrice(origem, destino, settings.poligonos);
-          const pesoMap: Record<string, string> = { Moto: '2', 'Furgão Classe 1': '150', 'Furgão Classe 2': '300' };
+          const pesoMap: Record<string, string> = { Moto: '2', Auto: '50', 'Furgão Classe 1': '150', 'Furgão Classe 2': '300' };
           const pesoRaw = pesoMap[viatura ?? 'Moto'] ?? '2';
           const typeMap = (p: string) => { const n = parseInt(p); if (n <= 2) return '2'; if (n <= 50) return '50'; if (n <= 150) return '150'; return '300'; };
           let type = typeMap(pesoRaw);
