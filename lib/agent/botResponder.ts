@@ -50,6 +50,7 @@ const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[
   COLLECTING_WEIGHT: { text: '' },
   COLLECTING_NVOLUMES_24H: { text: '' },
   CONFIRMING_FRIDAY_DELIVERY: { text: '' },
+  CALCULATING_PARTNER_PRICE: { text: '' },
   COLLECTING_VOLUMES: {
     text: 'Quantos volumes tem o envio e quais as dimensões aproximadas?\n\n_(ex: 3 caixas, 50×40×30 cm cada)_\n\nPode responder *saltar* se não souber.',
     quickReplies: ['Saltar'],
