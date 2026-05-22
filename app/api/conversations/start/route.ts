@@ -77,7 +77,10 @@ export async function POST(request: NextRequest) {
       const contactPrompt = hasPhone
         ? `Os seus dados: *Nome: ${nome}, Telemóvel: ${phoneFromForm}*. Confirma ou quer alterar algum?`
         : `Para agilizarmos o contacto, *${nome}* — qual é o seu *número de telemóvel*?`;
-      const botMsg = `Pedido recebido!\n\nEstamos fora do horário de atendimento automático (Segunda a Sexta, das 9h às 20h), mas a nossa equipa entrará em contacto brevemente.\n\nPara casos urgentes contacte-nos diretamente pelo *214 304 546*.\n\n${contactPrompt}`;
+      const _dias = cfg.autoWeekends ? 'todos os dias' : 'Segunda a Sexta';
+      const _horario = `das ${cfg.autoStartHour}h às ${cfg.autoEndHour}h`;
+      const _urgPhone = (cfg as any).urgencyPhone || '214 304 546';
+      const botMsg = `Pedido recebido!\n\nEstamos fora do horário de atendimento automático (${_dias}, ${_horario}), mas a nossa equipa entrará em contacto brevemente.\n\nPara casos urgentes contacte-nos diretamente pelo *${_urgPhone}*.\n\n${contactPrompt}`;
       const escalatedConv = await db.collection('conversations').insertOne({
         telemovel: identifier,
         canal: 'web',
