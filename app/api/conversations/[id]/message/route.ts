@@ -416,9 +416,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const _preFilledKg: number | undefined = (convDoc.data as any).weightKg;
     const _inPriceStep = ['PRESENTING_PRICE', 'HANDLING_OBJECTION', 'PRESENTING_PARTNER_PRICE'].includes(convDoc.step);
     const _isAmanhaSwitch =
-      _inPriceStep &&
       _preFilledKg && _preFilledKg > 0 &&
-      (_msgLower.includes('entrega amanhã') || _msgLower === 'amanhã');
+      (
+        // A partir de PRESENTING_PRICE / HANDLING_OBJECTION: switch para 24h
+        (_inPriceStep && (
+          _msgLower.includes('entrega amanhã') ||
+          _msgLower === 'amanhã' ||
+          /\b24\s*h(oras?)?\b/i.test(mensagem) ||
+          /recalcul|refazer.*calc|calcul.*amanhã|calcul.*24/i.test(mensagem)
+        )) ||
+        // Em COLLECTING_WEIGHT: peso já conhecido, qualquer confirmação dispara cálculo
+        (convDoc.step === 'COLLECTING_WEIGHT' && /^(sim|ok|okay|confirmar?|s|m|p|certo|correto|exato)$/i.test(_msgLower))
+      );
 
     // Chamar LLM
     const result = _isAmanhaSwitch

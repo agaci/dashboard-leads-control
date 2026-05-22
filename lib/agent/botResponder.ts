@@ -372,6 +372,9 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       const is24h = lower.includes('amanhã') || lower.includes('amanha') || lower.includes('24h') || lower.includes('ver entrega');
 
       if (is24h) {
+        if (conv.data.weightKg && conv.data.weightKg > 0) {
+          return { text: '', nextStep: 'CALCULATING_PARTNER_PRICE' };
+        }
         return {
           text: 'Para calcular o preço de entrega para amanhã, indique o *peso total* do envio (em kg):',
           nextStep: 'COLLECTING_WEIGHT',
@@ -394,6 +397,9 @@ export function processMessage(conv: Conversation, mensagem: string): BotRespons
       const lower = mensagem.toLowerCase();
       // "sim" aqui é resposta a "Quer que calcule [entrega amanhã]?" — vai para arrasto
       if (lower.includes('amanhã') || lower.includes('amanha') || lower.includes('24h') || lower.includes('ver entrega') || /\bsim\b/.test(lower)) {
+        if (conv.data.weightKg && conv.data.weightKg > 0) {
+          return { text: '', nextStep: 'CALCULATING_PARTNER_PRICE' };
+        }
         return {
           text: 'Para calcular o preço de entrega para amanhã, indique o *peso total* do envio (em kg):',
           nextStep: 'COLLECTING_WEIGHT',

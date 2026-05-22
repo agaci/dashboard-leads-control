@@ -54,7 +54,7 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: 'calculate_tomorrow_delivery',
     description:
-      'Chama SOMENTE depois de teres o peso em kg do utilizador. Se ainda não tens o peso, pede-o primeiro. Nunca menciones "parceiro" ao utilizador — é um detalhe interno.',
+      'Calcula o preço de entrega amanhã (serviço 24h). Se já existir peso em kg no contexto da conversa (secção "Dados de carga"), usa-o directamente SEM perguntar de novo. Só perguntas o peso se não estiver disponível. Nunca menciones "parceiro" ao utilizador — é um detalhe interno.',
     input_schema: {
       type: 'object' as const,
       properties: {
@@ -198,12 +198,24 @@ Se o utilizador recusar dar telefone, usa \`escalate_to_human\`.`;
     ? `\n\n## Oferta de análise de agregação mostrada\nO orçamento já incluiu a proposta de agregação. Se o utilizador pedir análise de agregação, quiser ser contactado pelo helpdesk, ou mostrar interesse em reduzir o preço via agregação → chama \`escalate_to_human\` com reason a começar por \`[AGG_REQUEST]\`. Se quiser avançar com o serviço direto → fluxo normal de recolha de contacto.`
     : '';
 
+  // Dados de carga 24h (pré-preenchidos do formulário, se existirem)
+  const weightKg: number | undefined = (data as any).weightKg;
+  const nVolumes: number | undefined = (data as any).nVolumes;
+  const totalCm: number | undefined = (data as any).totalCm;
+  const cargoLines: string[] = [];
+  if (weightKg && weightKg > 0) cargoLines.push(`- **Peso:** ${weightKg} kg`);
+  if (nVolumes && nVolumes > 0) cargoLines.push(`- **Nº volumes:** ${nVolumes}`);
+  if (totalCm && totalCm > 0)   cargoLines.push(`- **Dimensões totais (C+L+A):** ${totalCm} cm`);
+  const cargoSection = cargoLines.length > 0
+    ? `\n\n## Dados de carga (já conhecidos — NÃO perguntar de novo)\n${cargoLines.join('\n')}`
+    : '';
+
   return `## Serviço cotado nesta conversa
 - **Rota:** ${data.origem ?? '?'} → ${data.destino ?? '?'}
 - **Viatura:** ${data.viatura ?? '?'}
 - **Tipo de serviço:** ${serviceType}
 - **Distância:** ${data.distance ? `${data.distance} km` : 'a calcular'}
-- **Preço:** ${price}${contactSection}${notasPreBlock}${aggOfferBlock}
+- **Preço:** ${price}${contactSection}${cargoSection}${notasPreBlock}${aggOfferBlock}
 
 ## Objectivo desta conversa
 1. Esclarecer dúvidas com base na Base de Conhecimento
@@ -220,7 +232,7 @@ ${contactConfirmation}
 5. Assim que tiveres os dados que o utilizador quis partilhar, chamas \`register_lead\`. Não anunces — age directamente.
    - Na mensagem de confirmação após o registo, inclui SEMPRE: ${isArrasto ? '"A nossa equipa de coordenação entrará em contacto em breve para confirmar todos os detalhes logísticos do serviço."' : '"Dado tratar-se de um serviço expresso, um coordenador YourBox entrará em contacto nos próximos minutos para validar todos os detalhes operacionais e garantir a recolha dentro do prazo previsto."'}
 6. Se o utilizador recusar dar telefone: "Precisamos de um contacto para confirmar a recolha — sem número não conseguimos avançar." — se insistir, usa \`escalate_to_human\`
-7. Se quiser entrega amanhã: pedir peso em kg e chamar \`calculate_tomorrow_delivery\``;
+7. Se quiser entrega amanhã (ou recalcular 24h): se já existir peso em "Dados de carga" acima, usa-o directamente e chama \`calculate_tomorrow_delivery\` com esse valor — NÃO perguntes o peso de novo. Só pedes o peso se não estiver disponível.`;
 }
 
 // ── Tipos de resultado ───────────────────────────────────────────────────────

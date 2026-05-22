@@ -181,11 +181,18 @@ export async function POST(request: NextRequest) {
       step = 'PRESENTING_PRICE';
 
     } else {
-      // Servico 24h — perguntar peso
-      const resp = build24hIntroMessage();
-      firstBotMessage = resp.text;
-      quickReplies = resp.quickReplies;
-      step = 'COLLECTING_WEIGHT';
+      // Servico 24h — se peso já pré-preenchido, confirmar em vez de perguntar
+      const preKg: number | undefined = (data as any).weightKg;
+      if (preKg && preKg > 0) {
+        firstBotMessage = `Encontrei o peso de *${preKg} kg* nas suas notas.\n\nPara calcular o preço de entrega amanhã com este peso, responda *confirmar* — ou corrija o valor se necessário.`;
+        quickReplies = ['Confirmar'];
+        step = 'COLLECTING_WEIGHT';
+      } else {
+        const resp = build24hIntroMessage();
+        firstBotMessage = resp.text;
+        quickReplies = resp.quickReplies;
+        step = 'COLLECTING_WEIGHT';
+      }
     }
 
     const botMsg: ConversationMessage = {
