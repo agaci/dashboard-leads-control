@@ -2,33 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getToken } from 'next-auth/jwt';
 
 // ── Rate limiting em memória ─────────────────────────────────────────────────
-// Protege /api/conversations/start contra abuso (bots que ignoram o form HTML).
 // Em deployment de instância única (next start) o Map persiste entre requests.
 
-const RATE_LIMIT_MAX    = 5;              // pedidos permitidos por janela
-const RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutos em ms
+const RATE_RULES: Record<string, { max: number; windowMs: number }> = {
+  start:   { max: 5,  windowMs: 15 * 60 * 1000 }, // 5 conversas novas  / IP / 15 min
+  message: { max: 30, windowMs: 60 * 60 * 1000  }, // 30 mensagens       / IP / hora
+  price:   { max: 15, windowMs: 60 * 60 * 1000  }, // 15 simulações      / IP / hora
+};
 
 type RateEntry = { count: number; resetAt: number };
 const ipStore = new Map<string, RateEntry>();
 
-function checkRateLimit(ip: string): boolean {
+function checkRateLimit(key: string, rule: { max: number; windowMs: number }): boolean {
   const now = Date.now();
-  const entry = ipStore.get(ip);
+  const entry = ipStore.get(key);
 
   if (!entry || now > entry.resetAt) {
-    ipStore.set(ip, { count: 1, resetAt: now + RATE_LIMIT_WINDOW });
-    if (ipStore.size > 2000) purgeExpired(now);
+    ipStore.set(key, { count: 1, resetAt: now + rule.windowMs });
+    if (ipStore.size > 5000) purgeExpired(now);
     return true;
   }
 
-  if (entry.count >= RATE_LIMIT_MAX) return false;
+  if (entry.count >= rule.max) return false;
   entry.count++;
   return true;
 }
 
 function purgeExpired(now: number) {
-  for (const [ip, entry] of ipStore) {
-    if (now > entry.resetAt) ipStore.delete(ip);
+  for (const [k, entry] of ipStore) {
+    if (now > entry.resetAt) ipStore.delete(k);
   }
 }
 
@@ -54,14 +56,20 @@ export async function proxy(request: NextRequest) {
     });
   }
 
-  // Rate limit — só no endpoint de criação de conversa
-  if (request.method === 'POST' && pathname === '/api/conversations/start') {
+  // Rate limiting por IP
+  if (request.method === 'POST') {
     const ip = getClientIp(request);
-    if (!checkRateLimit(ip)) {
-      return new NextResponse(
-        JSON.stringify({ error: 'Demasiados pedidos. Aguarde alguns minutos e tente novamente.' }),
-        { status: 429, headers: { 'Content-Type': 'application/json' } },
-      );
+    const tooMany = new NextResponse(
+      JSON.stringify({ error: 'Demasiados pedidos. Tente novamente mais tarde.' }),
+      { status: 429, headers: { 'Content-Type': 'application/json', 'Retry-After': '3600' } },
+    );
+
+    if (pathname === '/api/conversations/start') {
+      if (!checkRateLimit(`start:${ip}`, RATE_RULES.start)) return tooMany;
+    } else if (pathname.startsWith('/api/conversations/') && pathname.endsWith('/message')) {
+      if (!checkRateLimit(`msg:${ip}`, RATE_RULES.message)) return tooMany;
+    } else if (pathname === '/api/price') {
+      if (!checkRateLimit(`price:${ip}`, RATE_RULES.price)) return tooMany;
     }
   }
 
