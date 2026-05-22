@@ -439,6 +439,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let escalate = false;
     let leadRegistered = false;
     let leadInsertedId: string | undefined;
+    const extraDataUpdate: Record<string, unknown> = {};
+    const clientIp =
+      request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
+      request.headers.get('x-real-ip') ??
+      'unknown';
 
     // ── Processar resultado do LLM ───────────────────────────────────────────
 
@@ -516,8 +521,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { $set: { step: nextStep, 'data.nome': nome, 'data.telefone': telefone, 'data.email': email ?? null, updatedAt: now } }
       );
 
+    } else if (result.type === 'signal_off_topic') {
+      const newStreak = (convDoc.data.offTopicStreak ?? 0) + 1;
+      extraDataUpdate['data.offTopicStreak'] = newStreak;
+      if (newStreak >= 3) {
+        nextStep = 'CLOSED';
+        botText = 'Este chat é dedicado a pedidos de transporte. Se precisar de ajuda com um envio, estamos à disposição.';
+        extraDataUpdate['data.closedForOffTopic'] = true;
+        extraDataUpdate['data.abuseIp'] = clientIp;
+      } else {
+        botText = result.redirectMessage;
+      }
+
     } else if (result.type === 'close') {
       nextStep = 'CLOSED';
+      extraDataUpdate['data.abuseIp'] = clientIp;
       await db.collection('conversations').updateOne(
         { _id: oid },
         { $set: { step: 'CLOSED', updatedAt: now } }
@@ -655,6 +673,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const updateFields: Record<string, unknown> = {
       history,
       updatedAt: now,
+      ...extraDataUpdate,
     };
     if (!leadRegistered) updateFields.step = nextStep;
     if (escalate) updateFields.escalatedAt = now;

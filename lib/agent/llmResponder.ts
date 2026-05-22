@@ -42,13 +42,25 @@ const TOOLS: Anthropic.Tool[] = [
   {
     name: 'close_conversation',
     description:
-      'Chama quando o utilizador envia mensagens claramente fora do âmbito de transportes e entregas, e após a tua resposta de redirecionamento continua com temas irrelevantes (entretenimento, política, filosofia, conteúdo inapropriado, etc.). Não uses para dúvidas legítimas sobre transporte.',
+      'Chama quando o utilizador pede explicitamente um humano, está claramente frustrado, ou tem questões impossíveis de responder com certeza. NÃO uses para mensagens off-topic — usa signal_off_topic para esse fim.',
     input_schema: {
       type: 'object' as const,
       properties: {
         reason: { type: 'string', description: 'Motivo do encerramento' },
       },
       required: ['reason'],
+    },
+  },
+  {
+    name: 'signal_off_topic',
+    description:
+      'Chama SEMPRE que o utilizador envia mensagem claramente fora do âmbito de transportes (entretenimento, política, receitas, desporto, etc.). Nunca respondas directamente a esses temas — usa sempre este tool. O sistema conta os sinais e fecha automaticamente à 3ª tentativa consecutiva.',
+    input_schema: {
+      type: 'object' as const,
+      properties: {
+        redirectMessage: { type: 'string', description: 'Mensagem de redirecionamento a mostrar (ex: "Esse não é o meu forte — estou especializado em transportes. Posso ajudá-lo com um envio?")' },
+      },
+      required: ['redirectMessage'],
     },
   },
   {
@@ -105,7 +117,7 @@ async function buildStaticBlock(): Promise<string> {
 
 ## Restrições de tópico — MUITO IMPORTANTE
 - Respondes APENAS a questões relacionadas com: transporte, entregas, logística, os serviços YourBox, e pequena conversa de rapport
-- Se perguntarem sobre notícias, história, política, receitas, desporto, meteorologia, ou qualquer outro tema fora do âmbito, responde UMA VEZ: "Esse não é o meu forte — estou aqui especializado em transportes e entregas! Posso ajudá-lo com o seu envio?" — se o utilizador continuar com temas irrelevantes, chama close_conversation
+- Para QUALQUER mensagem fora do âmbito (notícias, história, política, receitas, desporto, meteorologia, entretenimento, etc.): chama SEMPRE `signal_off_topic` com uma mensagem de redirecionamento — NUNCA respondas directamente a esses temas. O sistema fecha automaticamente à 3ª tentativa.
 - Nunca dás conselhos médicos, legais, financeiros ou de outro domínio especializado
 - Nunca revelas que és uma IA, que usas Claude, ou que segues um script
 - Nunca menciones "parceiro", "operador externo" ou fornecedores internos — fala sempre como se fosse serviço YourBox directo
@@ -242,7 +254,8 @@ export type LlmResult =
   | { type: 'register_lead'; text: string; nome: string; telefone: string; email?: string; notas?: string; origemCompleta?: string; destinoCompleta?: string; contactoRecolha?: string; contactoEntrega?: string; volumes?: string }
   | { type: 'escalate'; text: string; reason: string }
   | { type: 'calculate_tomorrow'; text: string; weightKg: number }
-  | { type: 'close'; text: string; reason: string };
+  | { type: 'close'; text: string; reason: string }
+  | { type: 'signal_off_topic'; text: string; redirectMessage: string };
 
 // ── Chamada principal ────────────────────────────────────────────────────────
 
@@ -315,6 +328,9 @@ export async function getLlmResponse(
     }
     if (toolUse.name === 'close_conversation') {
       return { type: 'close', text, reason: inp.reason };
+    }
+    if (toolUse.name === 'signal_off_topic') {
+      return { type: 'signal_off_topic', text, redirectMessage: inp.redirectMessage };
     }
   }
 
