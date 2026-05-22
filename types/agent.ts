@@ -11,9 +11,10 @@ export type ConversationStep =
   | 'HANDLING_OBJECTION'
   // fluxo arrasto (amanhã) — YourBox
   | 'COLLECTING_WEIGHT'
-  | 'COLLECTING_VOLUMES'    // arrasto: nº volumes + dimensões, antes do cálculo de preço
+  | 'COLLECTING_VOLUMES'         // arrasto: nº volumes + dimensões, antes do cálculo de preço
   | 'COLLECTING_NVOLUMES_24H'    // 24h: nº caixas/volumes (antes do peso)
   | 'CONFIRMING_FRIDAY_DELIVERY' // 6ª feira: sábado vs segunda
+  | 'CALCULATING_PARTNER_PRICE'  // transição interna: dispara cálculo 24h
   | 'PRESENTING_PARTNER_PRICE'
   // fecho — recolha de dados
   | 'COLLECTING_NOME'
