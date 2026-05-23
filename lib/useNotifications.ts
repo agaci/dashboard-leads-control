@@ -17,7 +17,7 @@ export type AggHintAlert = {
 };
 
 export type NotifAlert =
-  | { type: 'escalation' | 'agg_escalation' | 'lead' | 'live_chat' }
+  | { type: 'escalation' | 'agg_escalation' | 'lead' | 'live_chat' | 'new_conv' }
   | AggHintAlert;
 
 type LeadDetail = { urgencia: string | null; serviceType: string | null };
@@ -58,7 +58,7 @@ export function useNotifications(
         queue.push(() => {
           playLeadSound();
           speakNewBotConv();
-          onAlertRef.current({ type: 'lead' });
+          onAlertRef.current({ type: 'new_conv' });
         });
       }
       if (data.escalations > 0) {

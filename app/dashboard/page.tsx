@@ -165,6 +165,7 @@ export default function DashboardPage() {
   useNotifications((alert) => {
     if (alert.type === 'escalation') setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'live_chat')  setBadges((b) => ({ ...b, conversas: true }));
+    if (alert.type === 'new_conv')   setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'lead')       setBadges((b) => ({ ...b, leads: true }));
     if (alert.type === 'aggHint') {
       const id = ++toastCounter.current;
@@ -284,7 +285,8 @@ export default function DashboardPage() {
 
   function switchTab(t: NavTab) {
     setTab(t);
-    setBadges((b) => ({ ...b, [t]: false }));
+    if (t === 'inbox') setBadges((b) => ({ ...b, conversas: false }));
+    else if (t === 'leads') setBadges((b) => ({ ...b, leads: false }));
   }
 
   function dismissAggToast(id: number) {
@@ -316,7 +318,7 @@ export default function DashboardPage() {
       onTabChange={switchTab}
       leadsCount={total}
       alertsCount={badges.conversas ? 1 : 0}
-      inboxBadge={badges.leads ? 1 : 0}
+      inboxBadge={badges.conversas ? 1 : 0}
       leadsBadge={badges.leads ? 1 : 0}
       aggBlink={aggBlink}
     >
