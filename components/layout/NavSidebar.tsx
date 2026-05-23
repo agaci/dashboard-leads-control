@@ -569,7 +569,7 @@ export default function NavSidebar({
       {/* Logo */}
       <div style={{ marginBottom: 16, width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 36, height: 36, display: 'block', borderRadius: 8 }} />
+        <img src="/icons/icon-64x64.png" alt="YourBox" style={{ width: 36, height: 36, display: 'block', borderRadius: 8 }} />
       </div>
 
       <Divider />
