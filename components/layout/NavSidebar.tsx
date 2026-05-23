@@ -15,6 +15,7 @@ interface NavSidebarProps {
   leadsCount?: number;
   alertsCount?: number;
   inboxBadge?: number;
+  leadsBadge?: number;
   aggBlink?: boolean;
   mobile?: boolean;
 }
@@ -449,6 +450,7 @@ export default function NavSidebar({
   leadsCount = 0,
   alertsCount = 0,
   inboxBadge = 0,
+  leadsBadge = 0,
   aggBlink = false,
   mobile = false,
 }: NavSidebarProps) {
@@ -468,7 +470,7 @@ export default function NavSidebar({
   if (mobile) {
     const mobileItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: number; blink?: boolean }[] = [
       { id: 'inbox',      label: 'Inbox',      icon: <IcoInbox />,      badge: inboxBadge },
-      { id: 'leads',      label: 'Leads',      icon: <IcoLeads /> },
+      { id: 'leads',      label: 'Leads',      icon: <IcoLeads />,      badge: leadsBadge },
       { id: 'clientes',   label: 'Clientes',   icon: <IcoClientes /> },
       { id: 'agregacoes', label: 'Agreg.',     icon: <IcoAgregacoes />, blink: aggBlink },
       { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
@@ -574,7 +576,7 @@ export default function NavSidebar({
       {/* Main nav */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
         <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}     active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}  badge={inboxBadge} />
-        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}     active={activeTab === 'leads'}      onClick={() => onTabChange('leads')} />
+        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}     active={activeTab === 'leads'}      onClick={() => onTabChange('leads')}  badge={leadsBadge} />
         <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}  active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />
         <NavItem id="servicos"   label="Serviços"  icon={<IcoServicos />}  active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
         <NavItem id="precos"     label="Preços"    icon={<IcoPrecos />}    active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />

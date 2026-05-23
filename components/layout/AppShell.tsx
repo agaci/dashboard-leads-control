@@ -10,6 +10,7 @@ interface AppShellProps {
   leadsCount?: number;
   alertsCount?: number;
   inboxBadge?: number;
+  leadsBadge?: number;
   aggBlink?: boolean;
 }
 
@@ -20,6 +21,7 @@ export default function AppShell({
   leadsCount,
   alertsCount,
   inboxBadge,
+  leadsBadge,
   aggBlink,
 }: AppShellProps) {
   const isMobile = useIsMobile();
@@ -43,6 +45,7 @@ export default function AppShell({
           leadsCount={leadsCount}
           alertsCount={alertsCount}
           inboxBadge={inboxBadge}
+          leadsBadge={leadsBadge}
           aggBlink={aggBlink}
         />
       )}
@@ -66,6 +69,7 @@ export default function AppShell({
           leadsCount={leadsCount}
           alertsCount={alertsCount}
           inboxBadge={inboxBadge}
+          leadsBadge={leadsBadge}
           aggBlink={aggBlink}
           mobile
         />

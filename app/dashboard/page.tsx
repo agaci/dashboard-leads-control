@@ -317,6 +317,7 @@ export default function DashboardPage() {
       leadsCount={total}
       alertsCount={badges.conversas ? 1 : 0}
       inboxBadge={badges.leads ? 1 : 0}
+      leadsBadge={badges.leads ? 1 : 0}
       aggBlink={aggBlink}
     >
       {/* Toasts de hipótese de agregação */}
