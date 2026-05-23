@@ -83,15 +83,15 @@ const STEP_LABEL: Record<ConvStep, string> = {
 };
 
 const STEP_COLOR: Partial<Record<ConvStep, string>> = {
-  AWAITING_PAYMENT: 'bg-yellow-100 text-yellow-700',
-  LIVE_CHAT: 'bg-purple-100 text-purple-700',
-  ESCALATED_TO_HUMAN: 'bg-red-100 text-red-700',
-  LEAD_REGISTERED: 'bg-green-100 text-green-700',
-  CLOSED: 'bg-gray-100 text-gray-500',
+  AWAITING_PAYMENT: 'bg-amber-950/50 text-amber-400',
+  LIVE_CHAT: 'bg-purple-950/50 text-purple-400',
+  ESCALATED_TO_HUMAN: 'bg-red-950/50 text-red-400',
+  LEAD_REGISTERED: 'bg-success-soft text-success',
+  CLOSED: 'bg-secondary text-muted-foreground',
 };
 
 function stepColor(step: ConvStep) {
-  return STEP_COLOR[step] ?? 'bg-blue-100 text-blue-700';
+  return STEP_COLOR[step] ?? 'bg-cyan-soft text-cyan';
 }
 
 function isRealPhone(tel?: string) {

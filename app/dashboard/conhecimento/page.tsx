@@ -18,11 +18,11 @@ const CATEGORIAS = ['preco', 'agregacao', 'urgencia', 'viatura', 'faq', 'objecao
 const FREQUENCIAS = ['constante', 'muito_alta', 'alta', 'media', 'baixa'];
 
 const FREQ_COLORS: Record<string, string> = {
-  constante: 'bg-red-100 text-red-700',
-  muito_alta: 'bg-orange-100 text-orange-700',
-  alta: 'bg-amber-100 text-amber-700',
-  media: 'bg-blue-100 text-blue-700',
-  baixa: 'bg-gray-100 text-gray-500',
+  constante: 'bg-red-950/50 text-red-400',
+  muito_alta: 'bg-orange-950/50 text-orange-400',
+  alta: 'bg-amber-950/50 text-amber-400',
+  media: 'bg-blue-950/50 text-blue-400',
+  baixa: 'bg-secondary text-muted-foreground',
 };
 
 const empty: Omit<Situacao, '_id'> = {
@@ -156,7 +156,7 @@ export default function ConhecimentoPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-mono text-[--neu-muted]">{s.id}</span>
-                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-600 capitalize">{s.categoria}</span>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">{s.categoria}</span>
                       <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${FREQ_COLORS[s.frequencia] ?? 'bg-gray-100 text-gray-500'}`}>
                         {s.frequencia?.replace('_', ' ')}
                       </span>

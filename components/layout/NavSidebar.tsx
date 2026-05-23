@@ -151,36 +151,34 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
       onClick={onClick}
       title={label}
       style={{
-        width: 72, display: 'flex', flexDirection: 'column', alignItems: 'center',
-        gap: 4, padding: '8px 4px', borderRadius: 8, border: 'none', cursor: 'pointer',
+        width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        borderRadius: 10, border: 'none', cursor: 'pointer',
         position: 'relative',
-        background: active ? '#00bcd4' : 'transparent',
-        color: active ? '#fff' : 'rgba(255,255,255,0.4)',
+        background: active ? 'rgba(0,188,212,0.18)' : 'transparent',
+        color: active ? '#00bcd4' : 'rgba(255,255,255,0.38)',
         transition: 'background 0.15s, color 0.15s',
+        boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.3)' : 'none',
       }}
       onMouseEnter={(e) => {
         if (!active) {
           (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
-          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.75)';
+          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.72)';
         }
       }}
       onMouseLeave={(e) => {
         if (!active) {
           (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.4)';
+          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)';
         }
       }}
     >
       {icon}
-      <span style={{ fontSize: 10, fontWeight: 600, lineHeight: 1, letterSpacing: '0.01em' }}>
-        {label}
-      </span>
       {badge != null && badge > 0 && (
         <span style={{
-          position: 'absolute', top: 5, right: 8,
-          width: 15, height: 15, borderRadius: '50%',
-          background: '#ffc107', color: '#1a2332',
-          fontSize: 9, fontWeight: 800,
+          position: 'absolute', top: 6, right: 6,
+          width: 14, height: 14, borderRadius: '50%',
+          background: '#ffc107', color: '#0F1B2D',
+          fontSize: 8, fontWeight: 800,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           lineHeight: 1,
         }}>
@@ -548,10 +546,11 @@ export default function NavSidebar({
   return (
     <nav
       style={{
-        width: 82, flexShrink: 0,
-        background: '#1a2332',
+        width: 60, flexShrink: 0,
+        background: '#0F1B2D',
+        borderRight: '1px solid rgba(255,255,255,0.05)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '12px 5px 12px',
+        padding: '10px 0 10px',
         height: '100vh', overflowY: 'auto', overflowX: 'hidden',
         userSelect: 'none',
       }}
@@ -568,85 +567,71 @@ export default function NavSidebar({
       )}
 
       {/* Logo */}
-      <div style={{ marginBottom: 26, width: 52, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ marginBottom: 16, width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 44, height: 44, display: 'block', borderRadius: 10 }} />
-      </div>
-
-      {/* Main nav */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
-        <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}     active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}  badge={inboxBadge} />
-        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}     active={activeTab === 'leads'}      onClick={() => onTabChange('leads')}  badge={leadsBadge} />
-        <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}  active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />
-        <NavItem id="servicos"   label="Serviços"  icon={<IcoServicos />}  active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
-        <NavItem id="precos"     label="Preços"    icon={<IcoPrecos />}    active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
-        <NavItem id="baseIA"     label="Base IA"   icon={<IcoBaseIA />}    active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
-        <NavItem id="agregacoes" label="Agreg."    icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')}
-          badge={aggBlink ? 1 : 0} />
+        <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 36, height: 36, display: 'block', borderRadius: 8 }} />
       </div>
 
       <Divider />
 
-      <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
-      <NavItem id="widgets"    label="Widgets"    icon={<IcoWidgets />}    active={activeTab === 'widgets'}    onClick={() => onTabChange('widgets')} />
+      {/* Main nav */}
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%', padding: '4px 0' }}>
+        <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}      active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}      badge={inboxBadge} />
+        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}      active={activeTab === 'leads'}      onClick={() => onTabChange('leads')}      badge={leadsBadge} />
+        <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}   active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />
+        <NavItem id="agregacoes" label="Agregações" icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')} badge={aggBlink ? 1 : 0} />
+      </div>
+
+      <Divider />
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%', padding: '4px 0' }}>
+        <NavItem id="servicos"   label="Serviços"   icon={<IcoServicos />}   active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
+        <NavItem id="precos"     label="Preços"     icon={<IcoPrecos />}     active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
+        <NavItem id="baseIA"     label="Base IA"    icon={<IcoBaseIA />}     active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
+        <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
+        <NavItem id="widgets"    label="Widgets"    icon={<IcoWidgets />}    active={activeTab === 'widgets'}    onClick={() => onTabChange('widgets')} />
+      </div>
 
       <div style={{ flex: 1 }} />
 
       {/* Counters */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 10 }}>
-        <span style={{ background: '#00bcd4', color: '#fff', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 20 }}>
-          {leadsCount}
-        </span>
-        <span style={{ background: '#ffc107', color: '#1a2332', fontSize: 10, fontWeight: 700, padding: '3px 7px', borderRadius: 20 }}>
-          {alertsCount}
-        </span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', marginBottom: 8 }}>
+        {leadsCount > 0 && (
+          <span style={{ background: 'rgba(0,188,212,0.15)', color: '#00bcd4', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(0,188,212,0.25)' }}>
+            {leadsCount}
+          </span>
+        )}
+        {alertsCount > 0 && (
+          <span style={{ background: 'rgba(255,193,7,0.15)', color: '#ffc107', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(255,193,7,0.25)' }}>
+            {alertsCount}
+          </span>
+        )}
       </div>
 
       <SoundButton />
       <VoiceButton />
+
       <Divider />
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%' }}>
-        <NavItem id="config" label="Perfil" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
-      </div>
+      <NavItem id="config" label="Perfil & Config" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
 
-      {/* Docs links */}
-      <div style={{ display: 'flex', gap: 4, marginTop: 10, width: '100%', justifyContent: 'center' }}>
+      {/* Links utilitários */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, alignItems: 'center' }}>
         <a
           href="/manual.html" target="_blank" rel="noopener noreferrer"
           title="Manual de Utilizador"
           style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            padding: '6px 4px', borderRadius: 7, textDecoration: 'none',
-            color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600,
+            width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 7, textDecoration: 'none',
+            color: 'rgba(255,255,255,0.25)',
             transition: 'color 0.15s',
-            width: 36,
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.65)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.25)'; }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
           </svg>
-          Manual
-        </a>
-        <a
-          href="/roadmap.html" target="_blank" rel="noopener noreferrer"
-          title="Roadmap de Desenvolvimento"
-          style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
-            padding: '6px 4px', borderRadius: 7, textDecoration: 'none',
-            color: 'rgba(255,255,255,0.3)', fontSize: 9, fontWeight: 600,
-            transition: 'color 0.15s',
-            width: 36,
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.7)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.3)'; }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-          </svg>
-          Roadmap
         </a>
       </div>
     </nav>

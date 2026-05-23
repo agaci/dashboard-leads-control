@@ -31,50 +31,53 @@ export default function SignupPage() {
 
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '10px 12px',
-    border: '1.5px solid hsl(240 10% 88%)',
+    border: '1px solid rgba(255,255,255,0.1)',
     borderRadius: 8, fontSize: 14, outline: 'none',
-    boxSizing: 'border-box', color: 'hsl(235 21% 21%)', background: '#fff',
+    boxSizing: 'border-box', color: '#F0F4FF',
+    background: 'rgba(255,255,255,0.05)',
+    colorScheme: 'dark',
   };
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'hsl(240 23% 96%)',
+      minHeight: '100vh', background: '#0F1B2D',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      fontFamily: 'system-ui, sans-serif',
+      fontFamily: 'Inter, system-ui, sans-serif',
     }}>
       <div style={{
-        background: '#fff', borderRadius: 16,
-        boxShadow: '0 4px 24px rgba(0,0,0,0.08)',
+        background: '#162236', borderRadius: 16,
+        border: '1px solid rgba(255,255,255,0.08)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
         padding: '2.5rem 2rem', width: '100%', maxWidth: 380,
       }}>
         {/* Logo */}
         <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/yourbox-leads-icon.svg" alt="YourBox" style={{ width: 56, height: 56, display: 'block', margin: '0 auto 12px', borderRadius: 14 }} />
-          <span style={{ fontWeight: 700, fontSize: 18, color: 'hsl(235 21% 21%)' }}>dashboard <span style={{ color: 'hsl(13 100% 65%)' }}>LEADS</span></span>
-          <p style={{ color: 'hsl(235 15% 46%)', fontSize: 13, marginTop: 4 }}>Criar conta</p>
+          <span style={{ fontWeight: 700, fontSize: 18, color: '#F0F4FF' }}>dashboard <span style={{ color: '#00bcd4' }}>LEADS</span></span>
+          <p style={{ color: '#4a6080', fontSize: 13, marginTop: 4 }}>Criar conta</p>
         </div>
 
         {done ? (
           <div style={{ textAlign: 'center' }}>
             <div style={{
               width: 56, height: 56, borderRadius: '50%',
-              background: '#f0fdf4', border: '2px solid #bbf7d0',
+              background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 26, margin: '0 auto 16px',
+              fontSize: 26, margin: '0 auto 16px', color: '#10b981',
             }}>✓</div>
-            <p style={{ fontSize: 15, fontWeight: 700, color: 'hsl(235 21% 21%)', marginBottom: 8 }}>
+            <p style={{ fontSize: 15, fontWeight: 700, color: '#F0F4FF', marginBottom: 8 }}>
               Conta criada com sucesso
             </p>
-            <p style={{ fontSize: 13, color: '#666', marginBottom: 24, lineHeight: 1.6 }}>
+            <p style={{ fontSize: 13, color: '#8B9EC9', marginBottom: 24, lineHeight: 1.6 }}>
               A tua conta está a aguardar aprovação pelo administrador.<br />
               Receberás acesso em breve.
             </p>
             <Link href="/login" style={{
               display: 'block', textAlign: 'center',
               padding: '10px', borderRadius: 8,
-              background: 'hsl(13 100% 65%)', color: '#fff',
-              fontSize: 14, fontWeight: 600, textDecoration: 'none',
+              background: '#00bcd4', color: '#0F1B2D',
+              fontSize: 14, fontWeight: 700, textDecoration: 'none',
             }}>
               Ir para o login
             </Link>
@@ -82,7 +85,7 @@ export default function SignupPage() {
         ) : (
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'hsl(235 21% 21%)', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#8B9EC9', marginBottom: 6 }}>
                 Nome
               </label>
               <input
@@ -92,13 +95,13 @@ export default function SignupPage() {
                 onChange={(e) => setName(e.target.value)}
                 placeholder="O teu nome"
                 style={inputStyle}
-                onFocus={(e) => e.target.style.borderColor = 'hsl(13 100% 65%)'}
-                onBlur={(e) => e.target.style.borderColor = 'hsl(240 10% 88%)'}
+                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,188,212,0.5)'; }}
+                onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
             </div>
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'hsl(235 21% 21%)', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#8B9EC9', marginBottom: 6 }}>
                 Email
               </label>
               <input
@@ -108,13 +111,13 @@ export default function SignupPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="nome@yourbox.pt"
                 style={inputStyle}
-                onFocus={(e) => e.target.style.borderColor = 'hsl(13 100% 65%)'}
-                onBlur={(e) => e.target.style.borderColor = 'hsl(240 10% 88%)'}
+                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,188,212,0.5)'; }}
+                onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'hsl(235 21% 21%)', marginBottom: 6 }}>
+              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#8B9EC9', marginBottom: 6 }}>
                 Password
               </label>
               <input
@@ -125,16 +128,16 @@ export default function SignupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Mínimo 6 caracteres"
                 style={inputStyle}
-                onFocus={(e) => e.target.style.borderColor = 'hsl(13 100% 65%)'}
-                onBlur={(e) => e.target.style.borderColor = 'hsl(240 10% 88%)'}
+                onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,188,212,0.5)'; }}
+                onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.1)'; }}
               />
             </div>
 
             {error && (
               <div style={{
-                background: '#fef2f2', border: '1px solid #fecaca',
+                background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)',
                 borderRadius: 8, padding: '10px 12px',
-                fontSize: 13, color: '#dc2626', marginBottom: '1rem',
+                fontSize: 13, color: '#f87171', marginBottom: '1rem',
               }}>
                 {error}
               </div>
@@ -145,19 +148,19 @@ export default function SignupPage() {
               disabled={loading}
               style={{
                 width: '100%', padding: '11px',
-                background: loading ? 'hsl(13 100% 75%)' : 'hsl(13 100% 65%)',
-                color: '#fff', border: 'none', borderRadius: 8,
-                fontSize: 14, fontWeight: 600,
+                background: loading ? 'rgba(0,188,212,0.5)' : '#00bcd4',
+                color: '#0F1B2D', border: 'none', borderRadius: 8,
+                fontSize: 14, fontWeight: 700,
                 cursor: loading ? 'default' : 'pointer',
-                transition: 'background .15s',
+                transition: 'opacity .15s',
               }}
             >
               {loading ? 'A criar conta...' : 'Criar conta'}
             </button>
 
-            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#888' }}>
+            <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: '#4a6080' }}>
               Já tens conta?{' '}
-              <Link href="/login" style={{ color: 'hsl(13 100% 65%)', fontWeight: 600, textDecoration: 'none' }}>
+              <Link href="/login" style={{ color: '#00bcd4', fontWeight: 600, textDecoration: 'none' }}>
                 Entrar
               </Link>
             </p>

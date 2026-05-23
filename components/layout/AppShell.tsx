@@ -33,8 +33,8 @@ export default function AppShell({
         flexDirection: isMobile ? 'column' : 'row',
         height: '100vh',
         overflow: 'hidden',
-        fontFamily: 'Nunito, system-ui, sans-serif',
-        background: '#f5f6fa',
+        fontFamily: 'Inter, Nunito, system-ui, sans-serif',
+        background: 'hsl(var(--background))',
         position: 'relative',
       }}
     >

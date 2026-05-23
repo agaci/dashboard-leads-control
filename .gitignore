@@ -52,3 +52,6 @@ yourbox_situacoes_100.json
 # Env
 .env*
 !.env.example
+
+# Pasta de source dos ícones — não faz parte do repo
+/icons/

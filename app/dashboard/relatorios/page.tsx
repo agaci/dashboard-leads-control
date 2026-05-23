@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-const CYAN = '#00bcd4';
-const NAVY = '#1a2332';
-const BORDER = '#e5e7eb';
+const CYAN   = '#00bcd4';
+const NAVY   = '#F0F4FF';
+const BORDER = 'rgba(255,255,255,0.08)';
+const CARD_BG   = '#162236';
+const CARD_INNER = '#1E3050';
+const TEXT2  = '#8B9EC9';
+const TEXT3  = '#4a6080';
 
 type ReportData = {
   kpis: { leadsMonth: number; leadsAllTime: number; conversionRate: number; totalRevMonth: number; avgLeadValue: number; growthRate: number | null };
@@ -26,12 +30,12 @@ const STEP_PT: Record<string, string> = {
 
 function KPI({ label, value, sub, color, icon }: { label: string; value: string; sub?: string; color?: string; icon: string }) {
   return (
-    <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', flex: 1 }}>
+    <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', flex: 1 }}>
       <div className="flex items-start justify-between">
         <div>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 6 }}>{label}</p>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 6 }}>{label}</p>
           <p style={{ fontSize: 26, fontWeight: 700, color: color ?? NAVY, fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1 }}>{value}</p>
-          {sub && <p style={{ fontSize: 11, color: '#aaa', marginTop: 4 }}>{sub}</p>}
+          {sub && <p style={{ fontSize: 11, color: TEXT3, marginTop: 4 }}>{sub}</p>}
         </div>
         <span style={{ fontSize: 22 }}>{icon}</span>
       </div>
@@ -51,12 +55,12 @@ function BarChart({ data }: { data: { date: string; count: number }[] }) {
         const showLabel = i % 5 === 0;
         return (
           <g key={d.date}>
-            <rect x={x} y={H - h} width={barW} height={h} rx={2} fill={d.count > 0 ? CYAN : '#e5e7eb'} opacity={0.85} />
+            <rect x={x} y={H - h} width={barW} height={h} rx={2} fill={d.count > 0 ? CYAN : 'rgba(255,255,255,0.06)'} opacity={0.85} />
             {d.count > 0 && (
-              <text x={x + barW / 2} y={H - h - 4} textAnchor="middle" fontSize={9} fill="#555">{d.count}</text>
+              <text x={x + barW / 2} y={H - h - 4} textAnchor="middle" fontSize={9} fill={TEXT2}>{d.count}</text>
             )}
             {showLabel && (
-              <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={8} fill="#aaa">{d.date.slice(5)}</text>
+              <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={8} fill={TEXT3}>{d.date.slice(5)}</text>
             )}
           </g>
         );
@@ -69,8 +73,8 @@ function HBar({ label, value, max, color = CYAN }: { label: string; value: numbe
   const pct = max > 0 ? (value / max) * 100 : 0;
   return (
     <div className="flex items-center gap-3 mb-2">
-      <span style={{ fontSize: 12, color: '#555', width: 110, textAlign: 'right', flexShrink: 0 }}>{label}</span>
-      <div style={{ flex: 1, height: 8, background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
+      <span style={{ fontSize: 12, color: TEXT2, width: 110, textAlign: 'right', flexShrink: 0 }}>{label}</span>
+      <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.07)', borderRadius: 4, overflow: 'hidden' }}>
         <div style={{ width: `${pct}%`, height: '100%', background: color, borderRadius: 4, transition: 'width 0.6s ease' }} />
       </div>
       <span style={{ fontSize: 12, fontWeight: 600, color: NAVY, width: 30 }}>{value}</span>
@@ -120,14 +124,14 @@ export default function RelatoriosPage() {
     : 'primeiro mês';
 
   return (
-    <div style={{ overflowY: 'auto', height: '100%', background: '#f5f6fa', padding: 24 }}>
+    <div style={{ overflowY: 'auto', height: '100%', background: '#0F1B2D', padding: 24 }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: NAVY }}>Relatórios</h1>
-            <p style={{ fontSize: 12, color: '#aaa', marginTop: 2 }}>Dados em tempo real · {PERIOD_LABEL[period]}</p>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: '#F0F4FF' }}>Relatórios</h1>
+            <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {PERIOD_LABEL[period]}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {PERIODS.map(p => (
@@ -137,8 +141,8 @@ export default function RelatoriosPage() {
                 style={{
                   fontSize: 11, fontWeight: 600, padding: '5px 12px', borderRadius: 6, cursor: 'pointer', transition: 'all 0.15s',
                   border: `1px solid ${period === p.key ? CYAN : BORDER}`,
-                  background: period === p.key ? CYAN : '#fff',
-                  color: period === p.key ? '#fff' : '#666',
+                  background: period === p.key ? 'rgba(0,188,212,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: period === p.key ? CYAN : TEXT2,
                 }}
               >
                 {p.label}
@@ -146,7 +150,7 @@ export default function RelatoriosPage() {
             ))}
             <button
               onClick={() => load(period)}
-              style={{ fontSize: 12, color: '#aaa', border: `1px solid ${BORDER}`, borderRadius: 6, padding: '5px 10px', background: '#fff', cursor: 'pointer' }}
+              style={{ fontSize: 12, color: TEXT3, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '5px 10px', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}
               title="Actualizar"
             >↻</button>
           </div>
@@ -161,28 +165,28 @@ export default function RelatoriosPage() {
         </div>
 
         {/* Gráfico leads por dia */}
-        <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Leads confirmadas — {PERIOD_LABEL[period]}</p>
+        <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Leads confirmadas — {PERIOD_LABEL[period]}</p>
           <BarChart data={leadsPerDay} />
         </div>
 
         {/* Fonte + Urgência */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-          <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Por fonte</p>
-            {leadsPerSource.length === 0 && <p style={{ fontSize: 12, color: '#aaa' }}>Sem dados</p>}
+          <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Por fonte</p>
+            {leadsPerSource.length === 0 && <p style={{ fontSize: 12, color: TEXT3 }}>Sem dados</p>}
             {leadsPerSource.map(s => <HBar key={s.source} label={s.source} value={s.count} max={maxSource} />)}
           </div>
-          <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Por urgência</p>
-            {leadsPerUrgency.length === 0 && <p style={{ fontSize: 12, color: '#aaa' }}>Sem dados</p>}
+          <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Por urgência</p>
+            {leadsPerUrgency.length === 0 && <p style={{ fontSize: 12, color: TEXT3 }}>Sem dados</p>}
             {leadsPerUrgency.map(u => <HBar key={u.urgency} label={u.urgency ?? '—'} value={u.count} max={maxUrgency} color="#f59e0b" />)}
           </div>
         </div>
 
         {/* Performance do bot */}
-        <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 14 }}>Performance do Bot</p>
+        <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 14 }}>Performance do Bot</p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 16 }}>
             {[
               { label: 'Concluídas', value: bot.completed, color: '#22c55e' },
@@ -190,20 +194,20 @@ export default function RelatoriosPage() {
               { label: 'Fechadas', value: bot.closed, color: '#6b7280' },
               { label: 'Activas', value: bot.active, color: CYAN },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: 10, background: '#f9fafb' }}>
+              <div key={label} style={{ textAlign: 'center', padding: '10px 8px', borderRadius: 10, background: CARD_INNER }}>
                 <p style={{ fontSize: 22, fontWeight: 700, color, fontFamily: 'Space Grotesk' }}>{value}</p>
-                <p style={{ fontSize: 11, color: '#aaa' }}>{label}</p>
-                <p style={{ fontSize: 10, color: '#ccc' }}>{bot.total > 0 ? Math.round((value / bot.total) * 100) : 0}%</p>
+                <p style={{ fontSize: 11, color: TEXT2 }}>{label}</p>
+                <p style={{ fontSize: 10, color: TEXT3 }}>{bot.total > 0 ? Math.round((value / bot.total) * 100) : 0}%</p>
               </div>
             ))}
           </div>
-          <div style={{ background: '#f0f9ff', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontSize: 12, color: '#555' }}>Taxa de conclusão do bot:</span>
+          <div style={{ background: 'rgba(0,188,212,0.08)', borderRadius: 8, padding: '8px 12px', display: 'flex', alignItems: 'center', gap: 8, border: '1px solid rgba(0,188,212,0.15)' }}>
+            <span style={{ fontSize: 12, color: TEXT2 }}>Taxa de conclusão do bot:</span>
             <span style={{ fontSize: 14, fontWeight: 700, color: botCompletionRate >= 30 ? '#22c55e' : '#f59e0b' }}>{botCompletionRate}%</span>
           </div>
           {bot.topActiveSteps.length > 0 && (
             <div style={{ marginTop: 14 }}>
-              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 8 }}>Conversas activas por estado</p>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 8 }}>Conversas activas por estado</p>
               {bot.topActiveSteps.map(s => (
                 <HBar key={s.step} label={STEP_PT[s.step] ?? s.step} value={s.count} max={bot.topActiveSteps[0]?.count ?? 1} color="#94a3b8" />
               ))}
@@ -213,19 +217,19 @@ export default function RelatoriosPage() {
 
         {/* Motivos de fecho */}
         {closeReasons.length > 0 && (
-          <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 14 }}>Motivos de fecho</p>
+          <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 14 }}>Motivos de fecho</p>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               {closeReasons.map((r, i) => {
                 const isResolved = r.step === 'LEAD_REGISTERED';
                 return (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: isResolved ? '#f0fdf4' : '#f9fafb', border: `1px solid ${isResolved ? '#bbf7d0' : '#e5e7eb'}` }}>
-                    <span style={{ fontSize: 18 }}>{isResolved ? '✓' : '✕'}</span>
+                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: isResolved ? 'rgba(16,185,129,0.08)' : CARD_INNER, border: `1px solid ${isResolved ? 'rgba(16,185,129,0.2)' : BORDER}` }}>
+                    <span style={{ fontSize: 16, color: isResolved ? '#10b981' : TEXT3 }}>{isResolved ? '✓' : '✕'}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <p style={{ fontSize: 12, fontWeight: 600, color: '#1a2332', margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.reason}</p>
-                      <p style={{ fontSize: 10, color: '#aaa', margin: 0 }}>{isResolved ? 'Resolvida' : 'Fechada'}</p>
+                      <p style={{ fontSize: 12, fontWeight: 600, color: NAVY, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.reason}</p>
+                      <p style={{ fontSize: 10, color: TEXT3, margin: 0 }}>{isResolved ? 'Resolvida' : 'Fechada'}</p>
                     </div>
-                    <span style={{ fontSize: 18, fontWeight: 700, color: isResolved ? '#22c55e' : '#6b7280', flexShrink: 0 }}>{r.count}</span>
+                    <span style={{ fontSize: 18, fontWeight: 700, color: isResolved ? '#22c55e' : TEXT2, flexShrink: 0 }}>{r.count}</span>
                   </div>
                 );
               })}
@@ -234,20 +238,20 @@ export default function RelatoriosPage() {
         )}
 
         {/* Top rotas */}
-        <div style={{ background: '#fff', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 24 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: '#aaa', marginBottom: 12 }}>Top rotas</p>
-          {topRoutes.length === 0 && <p style={{ fontSize: 12, color: '#aaa' }}>Sem dados</p>}
+        <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 24 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Top rotas</p>
+          {topRoutes.length === 0 && <p style={{ fontSize: 12, color: TEXT3 }}>Sem dados</p>}
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: `1px solid ${BORDER}` }}>
                 {['Origem', 'Destino', 'Leads', 'Preço médio'].map(h => (
-                  <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: '#aaa', fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>{h}</th>
+                  <th key={h} style={{ textAlign: 'left', padding: '4px 8px', color: TEXT3, fontWeight: 600, fontSize: 10, textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {topRoutes.map((r, i) => (
-                <tr key={i} style={{ borderBottom: `1px solid #f5f5f5` }}>
+                <tr key={i} style={{ borderBottom: `1px solid ${BORDER}` }}>
                   <td style={{ padding: '7px 8px', color: NAVY }}>{r.origem ?? '—'}</td>
                   <td style={{ padding: '7px 8px', color: NAVY }}>{r.destino ?? '—'}</td>
                   <td style={{ padding: '7px 8px', fontWeight: 700, color: CYAN }}>{r.count}</td>

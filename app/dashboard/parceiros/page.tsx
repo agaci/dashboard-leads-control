@@ -57,9 +57,9 @@ export default function ParceirosPage() {
       {/* Lista — visível em desktop sempre; em mobile só quando !showEditor */}
       <div
         className={`flex flex-col neu-bg ${showEditor ? 'hidden md:flex' : 'flex'} w-full md:w-80`}
-        style={{ borderRight: '1px solid hsl(240 10% 88%)' }}
+        style={{ borderRight: '1px solid rgba(255,255,255,0.07)' }}
       >
-        <div className="px-4 py-3" style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}>
+        <div className="px-4 py-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <h2 className="font-semibold text-sm" style={{ color: 'var(--neu-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>Tarifas de Parceiros</h2>
           <p className="text-xs text-[--neu-muted] mt-0.5">{tariffs.length} tarifas · {partners.join(', ')}</p>
         </div>
@@ -67,7 +67,7 @@ export default function ParceirosPage() {
           {loading && <p className="p-4 text-sm text-[--neu-muted]">A carregar...</p>}
           {partners.map((partner) => (
             <div key={partner}>
-              <div className="px-4 py-2" style={{ background: 'hsl(240 10% 93%)', borderBottom: '1px solid hsl(240 10% 88%)' }}>
+              <div className="px-4 py-2" style={{ background: 'rgba(255,255,255,0.04)', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
                 <span className="text-xs font-semibold text-[--neu-muted] uppercase tracking-wide">{partner}</span>
               </div>
               {tariffs.filter((t) => t.partner === partner).map((t) => (
@@ -77,11 +77,11 @@ export default function ParceirosPage() {
                   className={`w-full text-left px-4 py-3 transition-all ${
                     selected?._id === t._id ? 'neu-pressed border-l-3 border-l-orange-500' : 'hover:neu-raised-sm'
                   }`}
-                  style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}
+                  style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-sm font-medium truncate" style={{ color: 'var(--neu-fg)' }}>{t.serviceLabelShort}</span>
-                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${t.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                    <span className={`text-xs px-1.5 py-0.5 rounded-full ${t.active ? 'bg-success-soft text-success' : 'bg-secondary text-muted-foreground'}`}>
                       {t.active ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
@@ -100,7 +100,7 @@ export default function ParceirosPage() {
           <button
             onClick={() => setShowEditor(false)}
             className="md:hidden flex items-center gap-2 px-4 py-3 text-sm font-medium text-[--neu-muted] neu-raised-sm"
-            style={{ borderBottom: '1px solid hsl(240 10% 88%)' }}
+            style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}
           >
             ← Voltar às tarifas
           </button>
@@ -160,7 +160,7 @@ function TariffEditor({
         <div className="min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
             <span className="text-xs neu-pressed px-2 py-0.5 rounded-lg font-mono text-[--neu-muted]">{tariff.partner}</span>
-            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tariff.active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${tariff.active ? 'bg-success-soft text-success' : 'bg-secondary text-muted-foreground'}`}>
               {tariff.active ? 'Activo' : 'Inactivo'}
             </span>
           </div>
@@ -170,7 +170,7 @@ function TariffEditor({
           <button
             onClick={onToggleActive}
             className={`px-3 py-1.5 text-sm rounded-xl neu-raised-sm transition-all ${
-              tariff.active ? 'text-red-500' : 'text-green-600'
+              tariff.active ? 'text-red-400' : 'text-success'
             }`}
           >
             {tariff.active ? 'Desactivar' : 'Activar'}

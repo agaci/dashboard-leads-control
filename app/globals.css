@@ -4,63 +4,61 @@
 
 /* ── Design tokens ────────────────────────────────────────── */
 :root {
-  /* ── Base palette (Lovable design system) ── */
-  --background:              228 20% 97%;
-  --foreground:              218 30% 16%;
-  --card:                    0 0% 100%;
-  --card-foreground:         218 30% 16%;
-  --popover:                 0 0% 100%;
-  --popover-foreground:      218 30% 16%;
-  --primary:                 187 100% 42%;
+  /* ── Base palette — dark navy (YourBox Kanban) ── */
+  --background:              216 50% 12%;   /* #0F1B2D navy-900 */
+  --foreground:              224 100% 97%;  /* #F0F4FF */
+  --card:                    218 42% 15%;   /* #162236 navy-800 */
+  --card-foreground:         224 100% 97%;
+  --popover:                 218 42% 17%;
+  --popover-foreground:      224 100% 97%;
+  --primary:                 187 100% 42%;  /* #00bcd4 cyan */
   --primary-foreground:      0 0% 100%;
-  --secondary:               220 16% 96%;
-  --secondary-foreground:    218 30% 16%;
-  --muted:                   220 14% 94%;
-  --muted-foreground:        220 9% 46%;
-  --accent:                  187 100% 95%;
-  --accent-foreground:       187 100% 25%;
+  --secondary:               219 35% 22%;   /* #1E3050 navy-700 */
+  --secondary-foreground:    224 100% 97%;
+  --muted:                   219 35% 22%;
+  --muted-foreground:        222 37% 67%;   /* #8B9EC9 */
+  --accent:                  218 45% 26%;   /* #243a60 navy-600 */
+  --accent-foreground:       224 100% 97%;
   --destructive:             0 84% 60%;
   --destructive-foreground:  0 0% 100%;
-  --border:                  220 14% 91%;
-  --input:                   220 14% 91%;
+  --border:                  218 35% 20%;
+  --input:                   218 42% 17%;
   --ring:                    187 100% 42%;
   --radius:                  0.75rem;
 
   /* ── Semantic colours ── */
-  --navy:              218 36% 15%;
-  --navy-foreground:   220 14% 88%;
-  --navy-muted:        218 25% 28%;
+  --navy:              216 50% 12%;
+  --navy-foreground:   224 100% 97%;
+  --navy-muted:        218 35% 20%;
   --cyan:              187 100% 42%;
-  --cyan-soft:         187 100% 95%;
+  --cyan-soft:         187 35% 17%;   /* dark cyan tint */
   --success:           142 71% 45%;
-  --success-soft:      142 71% 92%;
+  --success-soft:      142 30% 17%;   /* dark green tint */
   --warning:           38 92% 50%;
-  --warning-soft:      38 92% 92%;
+  --warning-soft:      38 30% 18%;    /* dark orange tint */
   --purple:            262 83% 58%;
-  --purple-soft:       262 83% 95%;
+  --purple-soft:       262 30% 18%;   /* dark purple tint */
 
   /* ── Orange ── */
   --orange:      24 95% 53%;
-  --orange-soft: 24 100% 96%;
-  --orange-warm: 28 100% 98%;
+  --orange-soft: 24 30% 18%;   /* dark orange tint */
+  --orange-warm: 24 20% 16%;   /* dark warm tint */
 
-  /* ── Shadows ── */
-  --shadow-card:     0 1px 3px 0 hsl(218 30% 16% / 0.04),
-                     0 1px 2px -1px hsl(218 30% 16% / 0.04);
-  --shadow-elevated: 0 4px 12px -2px hsl(218 30% 16% / 0.08),
-                     0 2px 4px -2px hsl(218 30% 16% / 0.04);
+  /* ── Shadows (dark mode) ── */
+  --shadow-card:     0 1px 3px 0 rgba(0,0,0,0.3), 0 1px 2px -1px rgba(0,0,0,0.3);
+  --shadow-elevated: 0 4px 12px -2px rgba(0,0,0,0.4), 0 2px 4px -2px rgba(0,0,0,0.25);
 
   /* ── Sidebar ── */
-  --sidebar-background:         218 36% 15%;
-  --sidebar-foreground:         220 14% 88%;
+  --sidebar-background:         218 42% 13%;  /* slightly darker than card */
+  --sidebar-foreground:         224 100% 97%;
   --sidebar-primary:            187 100% 42%;
   --sidebar-primary-foreground: 0 0% 100%;
-  --sidebar-accent:             218 25% 22%;
-  --sidebar-accent-foreground:  0 0% 100%;
-  --sidebar-border:             218 25% 22%;
+  --sidebar-accent:             219 35% 22%;
+  --sidebar-accent-foreground:  224 100% 97%;
+  --sidebar-border:             218 35% 20%;
   --sidebar-ring:               187 100% 42%;
 
-  /* ── Legacy aliases — mantidos para inline styles nos TSX ── */
+  /* ── Legacy aliases ── */
   --primary-fg:        hsl(var(--primary-foreground));
   --muted-fg:          hsl(var(--muted-foreground));
   --neu-bg:            hsl(var(--background));
@@ -70,11 +68,11 @@
   --neu-accent-fg:     hsl(var(--primary-foreground));
   --neu-border:        hsl(var(--border));
 
-  /* ── Legacy shadow compat ── */
+  /* ── Shadow compat ── */
   --shadow-light:    none;
   --shadow-dark:     none;
   --shadow-light-sm: none;
-  --shadow-dark-sm:  0 1px 3px rgba(0,0,0,0.12);
+  --shadow-dark-sm:  0 1px 3px rgba(0,0,0,0.3);
   --shadow-in-light: none;
   --shadow-in-dark:  none;
 }
@@ -93,13 +91,13 @@
   --color-input:      hsl(var(--input));
   --color-ring:       hsl(var(--ring));
 
-  /* ── YourBox legacy tokens ── */
-  --color-yb-navy:   #1a2332;
+  /* ── YourBox design tokens ── */
+  --color-yb-navy:   #0F1B2D;
   --color-yb-cyan:   #00bcd4;
   --color-yb-yellow: #ffc107;
-  --color-yb-bg:     #f5f6fa;
-  --color-yb-card:   #ffffff;
-  --color-yb-border: #dde1e8;
+  --color-yb-bg:     #0F1B2D;
+  --color-yb-card:   #162236;
+  --color-yb-border: rgba(255,255,255,0.07);
 
   /* ── Semantic colour tokens ── */
   --color-navy:              hsl(var(--navy));
