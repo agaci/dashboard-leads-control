@@ -1498,9 +1498,11 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
   const nome = d.nome ?? 'Sem nome';
   const [clientId, setClientId] = useState<string | null>(lead.clientId ?? null);
   const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState<string | null>(null);
 
   async function convertToClient() {
     setConverting(true);
+    setConvertError(null);
     try {
       const res = await fetch('/api/clients', {
         method: 'POST',
@@ -1511,7 +1513,11 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       if (data.success) {
         setClientId(data.clientId);
         onClientConverted?.(data.clientId);
+      } else {
+        setConvertError(data.error ?? 'Erro ao converter');
       }
+    } catch {
+      setConvertError('Erro de ligação');
     } finally {
       setConverting(false);
     }
@@ -1660,26 +1666,33 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
 
       {/* Converter para Cliente */}
       {lead.messageType === 'newLead' && (
-        <div className="flex items-center justify-between rounded-xl bg-card p-5 shadow-card">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">CRM</div>
-            {clientId
-              ? <p className="mt-1 text-sm text-success font-semibold">✓ Lead convertida para cliente</p>
-              : <p className="mt-1 text-sm text-muted-foreground">Guarda este contacto na lista de Clientes</p>
-            }
+        <div className="rounded-xl bg-card p-5 shadow-card">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">CRM</div>
+              {clientId
+                ? <p className="mt-1 text-sm text-success font-semibold">✓ Lead convertida para cliente</p>
+                : !d.telefone
+                  ? <p className="mt-1 text-sm text-muted-foreground">Lead sem telefone — não é possível criar cliente</p>
+                  : <p className="mt-1 text-sm text-muted-foreground">Guarda este contacto na lista de Clientes</p>
+              }
+            </div>
+            {!clientId ? (
+              <button
+                onClick={convertToClient}
+                disabled={converting || !d.telefone}
+                className="rounded-lg bg-orange px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-transform hover:-translate-y-px disabled:opacity-60 disabled:cursor-not-allowed shrink-0 cursor-pointer"
+              >
+                {converting ? 'A converter...' : 'Converter para Cliente'}
+              </button>
+            ) : (
+              <span className="rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success shrink-0">
+                Cliente criado ✓
+              </span>
+            )}
           </div>
-          {!clientId ? (
-            <button
-              onClick={convertToClient}
-              disabled={converting}
-              className="rounded-lg bg-orange px-5 py-2.5 text-sm font-semibold text-white shadow-card transition-transform hover:-translate-y-px disabled:opacity-60 shrink-0 cursor-pointer"
-            >
-              {converting ? 'A converter...' : 'Converter para Cliente'}
-            </button>
-          ) : (
-            <span className="rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success shrink-0">
-              Cliente criado ✓
-            </span>
+          {convertError && (
+            <p className="mt-2 text-xs text-destructive">{convertError}</p>
           )}
         </div>
       )}
