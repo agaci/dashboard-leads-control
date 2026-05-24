@@ -17,13 +17,15 @@ type Situacao = {
 const CATEGORIAS = ['preco', 'agregacao', 'urgencia', 'viatura', 'faq', 'objecao', 'parceiro', 'outro'];
 const FREQUENCIAS = ['constante', 'muito_alta', 'alta', 'media', 'baixa'];
 
-const FREQ_COLORS: Record<string, string> = {
-  constante: 'bg-red-950/50 text-red-400',
-  muito_alta: 'bg-orange-950/50 text-orange-400',
-  alta: 'bg-amber-950/50 text-amber-400',
-  media: 'bg-blue-950/50 text-blue-400',
-  baixa: 'bg-secondary text-muted-foreground',
+type BadgeStyle = { background: string; color: string };
+const FREQ_STYLE: Record<string, BadgeStyle> = {
+  constante:  { background: 'hsl(var(--destructive) / 0.12)', color: 'hsl(var(--destructive))' },
+  muito_alta: { background: 'hsl(var(--orange-soft))',        color: 'hsl(var(--orange))' },
+  alta:       { background: 'hsl(var(--warning-soft))',       color: 'hsl(var(--warning))' },
+  media:      { background: 'hsl(var(--cyan-soft))',          color: 'hsl(var(--cyan))' },
+  baixa:      { background: 'hsl(var(--secondary))',          color: 'hsl(var(--muted-foreground))' },
 };
+const DEFAULT_FREQ_STYLE: BadgeStyle = { background: 'hsl(var(--secondary))', color: 'hsl(var(--muted-foreground))' };
 
 const empty: Omit<Situacao, '_id'> = {
   id: '',
@@ -157,7 +159,7 @@ export default function ConhecimentoPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <span className="text-xs font-mono text-[--neu-muted]">{s.id}</span>
                       <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-secondary text-muted-foreground capitalize">{s.categoria}</span>
-                      <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${FREQ_COLORS[s.frequencia] ?? 'bg-gray-100 text-gray-500'}`}>
+                      <span className="text-xs font-medium px-2 py-0.5 rounded-full capitalize" style={FREQ_STYLE[s.frequencia] ?? DEFAULT_FREQ_STYLE}>
                         {s.frequencia?.replace('_', ' ')}
                       </span>
                     </div>

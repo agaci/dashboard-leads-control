@@ -82,16 +82,20 @@ const STEP_LABEL: Record<ConvStep, string> = {
   CLOSED: 'Fechada',
 };
 
-const STEP_COLOR: Partial<Record<ConvStep, string>> = {
-  AWAITING_PAYMENT: 'bg-amber-950/50 text-amber-400',
-  LIVE_CHAT: 'bg-purple-950/50 text-purple-400',
-  ESCALATED_TO_HUMAN: 'bg-red-950/50 text-red-400',
-  LEAD_REGISTERED: 'bg-success-soft text-success',
-  CLOSED: 'bg-secondary text-muted-foreground',
+type BadgeStyle = { background: string; color: string };
+
+const STEP_STYLE: Partial<Record<ConvStep, BadgeStyle>> = {
+  AWAITING_PAYMENT:   { background: 'hsl(var(--warning-soft))',        color: 'hsl(var(--warning))' },
+  LIVE_CHAT:          { background: 'hsl(var(--purple-soft))',          color: 'hsl(var(--purple))' },
+  ESCALATED_TO_HUMAN: { background: 'hsl(var(--destructive) / 0.12)',   color: 'hsl(var(--destructive))' },
+  LEAD_REGISTERED:    { background: 'hsl(var(--success-soft))',         color: 'hsl(var(--success))' },
+  CLOSED:             { background: 'hsl(var(--secondary))',            color: 'hsl(var(--muted-foreground))' },
 };
 
-function stepColor(step: ConvStep) {
-  return STEP_COLOR[step] ?? 'bg-cyan-soft text-cyan';
+const DEFAULT_STEP_STYLE: BadgeStyle = { background: 'hsl(var(--cyan-soft))', color: 'hsl(var(--cyan))' };
+
+function stepStyle(step: ConvStep): BadgeStyle {
+  return STEP_STYLE[step] ?? DEFAULT_STEP_STYLE;
 }
 
 function isRealPhone(tel?: string) {
@@ -426,7 +430,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                     <span className="text-xs text-muted-foreground shrink-0">{formatTime(conv.updatedAt)}</span>
                   </div>
                   <div className="flex items-center gap-1.5 mb-1.5">
-                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${stepColor(conv.step)}`}>
+                    <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={stepStyle(conv.step)}>
                       {STEP_LABEL[conv.step]}
                     </span>
                     <span className="text-[11px] text-muted-foreground">{conv.canal}</span>
@@ -492,7 +496,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       {selected.data?.nome && (
                         <span className="text-xs text-muted-foreground font-mono">{refCode(selected._id)}</span>
                       )}
-                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${stepColor(selected.step)}`}>
+                      <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={stepStyle(selected.step)}>
                         {STEP_LABEL[selected.step]}
                       </span>
                     </div>
