@@ -26,15 +26,21 @@ export function setVoiceSetting(key: VoiceKey, value: boolean) {
 
 // ── Motor de síntese ──────────────────────────────────────────────────────────
 
+// Deduplicação: impede que a mesma frase seja dita mais de uma vez em 12 s,
+// mesmo que múltiplos polls ou remounts a tentem disparar simultaneamente.
+const lastSpokenAt = new Map<string, number>();
+const DEDUP_MS = 12_000;
+
 function speak(text: string) {
   if (typeof window === 'undefined') return;
   if (!('speechSynthesis' in window)) return;
-  // Não cancelar — deixar a fila correr para que vozes sequenciais não se sobreponham
+  const now = Date.now();
+  if ((lastSpokenAt.get(text) ?? 0) + DEDUP_MS > now) return;
+  lastSpokenAt.set(text, now);
   const u = new SpeechSynthesisUtterance(text);
   u.lang = 'pt-PT';
   u.rate = 0.9;
   u.pitch = 1.05;
-  // Prefer a Portuguese voice if available
   const voices = window.speechSynthesis.getVoices();
   const ptVoice = voices.find((v) => v.lang.startsWith('pt'));
   if (ptVoice) u.voice = ptVoice;

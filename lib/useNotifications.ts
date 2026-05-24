@@ -40,8 +40,9 @@ export function useNotifications(
   intervalMs = 8000,
 ) {
   // Inicializar um intervalo atrás para capturar eventos que chegaram logo antes do primeiro poll
-  const sinceRef = useRef<Date>(new Date(Date.now() - intervalMs));
-  const onAlertRef = useRef(onAlert);
+  const sinceRef    = useRef<Date>(new Date(Date.now() - intervalMs));
+  const onAlertRef  = useRef(onAlert);
+  const pendingRef  = useRef<ReturnType<typeof setTimeout>[]>([]);
   onAlertRef.current = onAlert;
 
   const poll = useCallback(async () => {
@@ -106,7 +107,9 @@ export function useNotifications(
       }
 
       // Atrasar todos os sons: 1 s base (AudioContext precisa de estar activo) + 2.2 s entre cada
-      queue.forEach((fn, i) => setTimeout(fn, 1000 + i * 2200));
+      // Guardar IDs para cancelar se o componente desmontar antes de dispararem
+      const ids = queue.map((fn, i) => setTimeout(fn, 1000 + i * 2200));
+      pendingRef.current.push(...ids);
 
       sinceRef.current = now;
     } catch {
@@ -116,6 +119,11 @@ export function useNotifications(
 
   useEffect(() => {
     const id = setInterval(poll, intervalMs);
-    return () => clearInterval(id);
+    return () => {
+      clearInterval(id);
+      // Cancelar timeouts pendentes para evitar disparos após desmontagem (Strict Mode / navegação)
+      pendingRef.current.forEach(clearTimeout);
+      pendingRef.current = [];
+    };
   }, [poll, intervalMs]);
 }
