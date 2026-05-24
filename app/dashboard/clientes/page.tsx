@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 const NAVY  = 'var(--yb-fg)';
 const CYAN  = 'var(--yb-cyan)';
@@ -54,6 +55,7 @@ function fmt(ts?: string) {
 }
 
 export default function ClientesPage() {
+  const isMobile = useIsMobile();
   const [clients, setClients]         = useState<Client[]>([]);
   const [loading, setLoading]         = useState(true);
   const [search, setSearch]           = useState('');
@@ -163,10 +165,11 @@ export default function ClientesPage() {
 
       {/* ── Lista de clientes ────────────────────────────────────────────────── */}
       <div style={{
-        width: selected ? 280 : '100%',
-        borderRight: `1px solid ${BORDER}`,
+        width: isMobile ? '100%' : (selected ? 280 : '100%'),
+        borderRight: isMobile ? 'none' : `1px solid ${BORDER}`,
         background: 'var(--yb-card)',
-        display: 'flex', flexDirection: 'column', flexShrink: 0,
+        display: isMobile && selected ? 'none' : 'flex',
+        flexDirection: 'column', flexShrink: 0,
         transition: 'width 0.2s',
       }}>
         {/* Header */}
@@ -223,8 +226,23 @@ export default function ClientesPage() {
       </div>
 
       {/* ── Detalhe do cliente ───────────────────────────────────────────────── */}
-      {selected ? (
-        <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
+      {(!isMobile || selected) && (
+        <div style={{ flex: 1, overflowY: 'auto', padding: isMobile ? '12px 16px' : '20px 24px' }}>
+
+          {/* Botão voltar — só em mobile */}
+          {isMobile && selected && (
+            <button
+              onClick={() => setSelected(null)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 6,
+                background: 'none', border: 'none', fontSize: 13,
+                color: 'var(--yb-muted)', cursor: 'pointer', padding: '0 0 14px', fontFamily: 'inherit',
+              }}
+            >
+              ← Voltar
+            </button>
+          )}
+
           {detailLoading && <p style={{ color: 'var(--yb-subtle)', fontSize: 13 }}>A carregar...</p>}
 
           {!detailLoading && detail && (
@@ -239,12 +257,14 @@ export default function ClientesPage() {
                   </h2>
                   {detail.empresa && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--yb-muted)' }}>{detail.empresa}</p>}
                 </div>
-                <button
-                  onClick={() => setSelected(null)}
-                  style={{ border: `1px solid ${BORDER}`, borderRadius: 6, background: 'var(--yb-input)', padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--yb-muted)' }}
-                >
-                  Fechar
-                </button>
+                {!isMobile && (
+                  <button
+                    onClick={() => setSelected(null)}
+                    style={{ border: `1px solid ${BORDER}`, borderRadius: 6, background: 'var(--yb-input)', padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--yb-muted)' }}
+                  >
+                    Fechar
+                  </button>
+                )}
               </div>
 
               {/* Contacto */}
@@ -415,21 +435,23 @@ export default function ClientesPage() {
 
             </div>
           )}
-        </div>
-      ) : (
-        /* Estado vazio */
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          alignItems: 'center', justifyContent: 'center',
-          color: 'var(--yb-subtle)', gap: 10,
-        }}>
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-          </svg>
-          <p style={{ fontSize: 13, margin: 0 }}>Seleccione um cliente para ver o detalhe</p>
+
+          {/* Estado vazio — só desktop, sem selecção */}
+          {!selected && !isMobile && (
+            <div style={{
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center',
+              color: 'var(--yb-subtle)', gap: 10, paddingTop: 80,
+            }}>
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                <circle cx="9" cy="7" r="4"/>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+              </svg>
+              <p style={{ fontSize: 13, margin: 0 }}>Seleccione um cliente para ver o detalhe</p>
+            </div>
+          )}
         </div>
       )}
     </div>
