@@ -254,6 +254,7 @@
     <a href="#widgets">Widgets</a>
     <a href="#config">Configuração</a>
     <a href="#bot-config">Configuração do Bot</a>
+    <a href="#aparencia">Aparência (Tema)</a>
     <a href="#notificacoes">Notificações de Alerta</a>
   </div>
   <div class="sidebar-section">
@@ -276,7 +277,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.2</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.3</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -367,6 +368,27 @@
         <li>É detectada uma sugestão de agregação automática <span class="badge badge-green">Agregação</span></li>
       </ul>
       <p style="margin-top:0.5rem;font-size:0.88rem;color:var(--muted)"><strong>Comportamento do som e voz:</strong> a voz TTS e o som de alerta disparam apenas no <em>momento da escalação</em> (nova entrada). Mensagens subsequentes enviadas pela lead numa conversa já escalada ou em Chat ao Vivo geram apenas um <em>pling</em> suave — sem repetição de voz.</p>
+
+      <h3>Badges dos separadores</h3>
+      <p>Os contadores numéricos nos separadores do sidebar têm comportamentos distintos e independentes:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Separador</th><th>Badge dispara quando</th><th>Limpa quando</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Inbox</strong></td>
+              <td>Chega uma nova conversa iniciada pelo bot (cliente enviou a primeira mensagem). A lead ainda <em>não</em> tem contacto registado.</td>
+              <td>Ao abrir o separador Inbox.</td>
+            </tr>
+            <tr>
+              <td><strong>Leads</strong> <span class="badge badge-orange">amarelo</span></td>
+              <td>Uma conversa completa o fluxo do bot e a lead fica registada com contacto (nome + telefone).</td>
+              <td>Ao abrir o separador Leads.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout info"><div class="callout-icon">i</div><div>Uma nova conversa do bot nunca gera badge nas Leads — o badge das Leads só aparece quando a lead é efectivamente registada com dados de contacto. As duas notificações são sempre independentes.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -769,6 +791,41 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="aparencia"></span>
+    <div class="section">
+      <h2>Aparência — Tema Claro / Escuro</h2>
+      <p>O Dashboard suporta dois temas visuais que podem ser alterados em qualquer momento, sem necessidade de reiniciar a sessão.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tema</th><th>Descrição</th><th>Padrão</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><strong>Claro</strong></td>
+              <td>Fundo branco/cinza claro com texto escuro. Ideal para ambientes bem iluminados.</td>
+              <td>Sim — activado por omissão para novos utilizadores</td>
+            </tr>
+            <tr>
+              <td><strong>Escuro</strong></td>
+              <td>Fundo azul-escuro com texto claro. Reduz o cansaço visual em ambientes com pouca luz.</td>
+              <td>—</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Como alterar o tema</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Aceder a Perfil → Configurações</div><div class="step-desc">Clicar no ícone de utilizador na barra lateral e seleccionar Configurações.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Secção Aparência</div><div class="step-desc">No fundo da página de configurações, localizar a secção <strong>Aparência</strong>.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Seleccionar o tema</div><div class="step-desc">Clicar em <strong>Claro</strong> ou <strong>Escuro</strong>. A alteração é imediata — não é necessário guardar.</div></div></div>
+      </div>
+
+      <div class="callout info"><div class="callout-icon">i</div><div>A preferência de tema é guardada localmente no browser (<code>localStorage</code>). Cada utilizador pode ter o seu próprio tema independentemente dos outros. Ao abrir o dashboard noutro browser ou dispositivo, o tema volta ao padrão (Claro).</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div>O tema aplica-se a todas as páginas da app — incluindo Login, Signup e as páginas de módulos — sem qualquer <em>flash</em> visual ao carregar.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <span class="section-anchor" id="notificacoes"></span>
     <div class="section">
       <h2>Notificações de Alerta</h2>
@@ -1078,7 +1135,7 @@
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.2 — Maio 2026</span>
+      <span>YourBox Dashboard — Manual v1.3 — Maio 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>

@@ -227,7 +227,7 @@ function SoundButton() {
           width: 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: vol === 0 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.55)',
+          color: vol === 0 ? 'var(--yb-subtle)' : 'var(--yb-cyan)',
           transition: 'color 0.2s',
         }}
       >
@@ -259,11 +259,11 @@ function SoundButton() {
       {showSlider && (
         <div style={{
           position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-          background: '#1a2332', border: '1px solid rgba(255,255,255,0.12)',
+          background: 'var(--yb-card)', border: '1px solid var(--yb-border)',
           borderRadius: 10, padding: '10px 12px', width: 140, zIndex: 200,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}>
-          <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: '0 0 6px', textAlign: 'center' }}>
+          <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '0 0 6px', textAlign: 'center' }}>
             Volume — {volPct}%
           </p>
           <input
@@ -282,8 +282,8 @@ function SoundButton() {
               <button key={label} onClick={fn}
                 style={{
                   flex: 1, fontSize: 9, padding: '4px 2px', borderRadius: 5,
-                  border: '1px solid rgba(255,255,255,0.12)',
-                  background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)',
+                  border: '1px solid var(--yb-border)',
+                  background: 'var(--yb-input)', color: 'var(--yb-muted)',
                   cursor: 'pointer',
                 }}>
                 {label}
@@ -294,8 +294,8 @@ function SoundButton() {
             onClick={() => setShowSlider(false)}
             style={{
               marginTop: 8, width: '100%', fontSize: 10, padding: '4px',
-              borderRadius: 5, border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)',
+              borderRadius: 5, border: '1px solid var(--yb-border)',
+              background: 'var(--yb-input)', color: 'var(--yb-subtle)',
               cursor: 'pointer',
             }}>fechar</button>
         </div>
@@ -362,7 +362,7 @@ function VoiceButton() {
           width: 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          color: enabled ? '#00bcd4' : 'rgba(255,255,255,0.2)',
+          color: enabled ? 'var(--yb-cyan)' : 'var(--yb-subtle)',
           transition: 'color 0.2s',
         }}
       >
@@ -377,19 +377,19 @@ function VoiceButton() {
       {showPanel && (
         <div style={{
           position: 'absolute', bottom: 40, left: '50%', transform: 'translateX(-50%)',
-          background: '#1a2332', border: '1px solid rgba(255,255,255,0.12)',
+          background: 'var(--yb-card)', border: '1px solid var(--yb-border)',
           borderRadius: 10, padding: '10px 12px', width: 150, zIndex: 200,
-          boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
         }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-            <p style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', margin: 0 }}>Voz — {enabled ? 'ON' : 'OFF'}</p>
+            <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: 0 }}>Voz — {enabled ? 'ON' : 'OFF'}</p>
             <button
               onClick={toggleEnabled}
               style={{
                 fontSize: 9, padding: '3px 8px', borderRadius: 5, cursor: 'pointer',
-                border: `1px solid ${enabled ? '#00bcd4' : 'rgba(255,255,255,0.15)'}`,
-                background: enabled ? 'rgba(0,188,212,0.15)' : 'rgba(255,255,255,0.05)',
-                color: enabled ? '#00bcd4' : 'rgba(255,255,255,0.4)',
+                border: `1px solid ${enabled ? 'var(--yb-cyan)' : 'var(--yb-border)'}`,
+                background: enabled ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)',
+                color: enabled ? 'var(--yb-cyan)' : 'var(--yb-subtle)',
                 fontWeight: 700,
               }}
             >{enabled ? 'Desligar' : 'Ligar'}</button>
@@ -404,7 +404,7 @@ function VoiceButton() {
                   onChange={() => toggleType(key)}
                   style={{ accentColor: '#00bcd4', width: 13, height: 13 }}
                 />
-                <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{label}</span>
+                <span style={{ fontSize: 10, color: 'var(--yb-muted)' }}>{label}</span>
               </label>
             ))}
           </div>
@@ -413,8 +413,8 @@ function VoiceButton() {
             disabled={!enabled}
             style={{
               width: '100%', fontSize: 9, padding: '4px', borderRadius: 5,
-              border: '1px solid rgba(255,255,255,0.12)',
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.5)',
+              border: '1px solid var(--yb-border)',
+              background: 'var(--yb-input)', color: 'var(--yb-muted)',
               cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.3,
               marginBottom: 6,
             }}>▶ Testar voz</button>
@@ -422,8 +422,8 @@ function VoiceButton() {
             onClick={() => setShowPanel(false)}
             style={{
               width: '100%', fontSize: 10, padding: '4px', borderRadius: 5,
-              border: '1px solid rgba(255,255,255,0.1)',
-              background: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.4)',
+              border: '1px solid var(--yb-border)',
+              background: 'var(--yb-input)', color: 'var(--yb-subtle)',
               cursor: 'pointer',
             }}>fechar</button>
         </div>
@@ -436,7 +436,7 @@ function VoiceButton() {
 
 function Divider() {
   return (
-    <div style={{ width: 38, height: 1, background: 'rgba(255,255,255,0.08)', margin: '6px auto' }} />
+    <div style={{ width: 38, height: 1, background: 'var(--yb-border)', margin: '6px auto' }} />
   );
 }
 
@@ -481,9 +481,9 @@ export default function NavSidebar({
     return (
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0,
-        height: 56, background: '#1a2332',
+        height: 56, background: 'var(--yb-card)',
         display: 'flex', alignItems: 'stretch',
-        borderTop: '1px solid rgba(255,255,255,0.08)',
+        borderTop: '1px solid var(--yb-border)',
         zIndex: 100, userSelect: 'none',
         paddingBottom: 'env(safe-area-inset-bottom)',
         overflowX: 'auto',
@@ -502,7 +502,7 @@ export default function NavSidebar({
                 display: 'flex', flexDirection: 'column',
                 alignItems: 'center', justifyContent: 'center', gap: 3,
                 background: 'none', border: 'none', cursor: 'pointer',
-                color: active ? '#00bcd4' : 'rgba(255,255,255,0.4)',
+                color: active ? 'var(--yb-cyan)' : 'var(--yb-subtle)',
                 position: 'relative',
                 transition: 'color 0.15s',
                 padding: '0 4px',
@@ -623,11 +623,11 @@ export default function NavSidebar({
           style={{
             width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
             borderRadius: 7, textDecoration: 'none',
-            color: 'rgba(255,255,255,0.25)',
+            color: 'var(--yb-subtle)',
             transition: 'color 0.15s',
           }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.65)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'rgba(255,255,255,0.25)'; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-muted)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-subtle)'; }}
         >
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
