@@ -155,20 +155,20 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
         borderRadius: 10, border: 'none', cursor: 'pointer',
         position: 'relative',
         background: active ? 'rgba(0,188,212,0.18)' : 'transparent',
-        color: active ? '#00bcd4' : 'rgba(255,255,255,0.38)',
+        color: active ? 'var(--yb-cyan)' : 'var(--yb-subtle)',
         transition: 'background 0.15s, color 0.15s',
         boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.3)' : 'none',
       }}
       onMouseEnter={(e) => {
         if (!active) {
-          (e.currentTarget as HTMLButtonElement).style.background = 'rgba(255,255,255,0.06)';
-          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.72)';
+          (e.currentTarget as HTMLButtonElement).style.background = 'var(--yb-input)';
+          (e.currentTarget as HTMLButtonElement).style.color = 'var(--yb-muted)';
         }
       }}
       onMouseLeave={(e) => {
         if (!active) {
           (e.currentTarget as HTMLButtonElement).style.background = 'transparent';
-          (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.38)';
+          (e.currentTarget as HTMLButtonElement).style.color = 'var(--yb-subtle)';
         }
       }}
     >
@@ -177,7 +177,7 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
         <span style={{
           position: 'absolute', top: 6, right: 6,
           width: 14, height: 14, borderRadius: '50%',
-          background: '#ffc107', color: '#0F1B2D',
+          background: '#ffc107', color: '#1a2b4a',
           fontSize: 8, fontWeight: 800,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           lineHeight: 1,
@@ -547,8 +547,8 @@ export default function NavSidebar({
     <nav
       style={{
         width: 60, flexShrink: 0,
-        background: '#0F1B2D',
-        borderRight: '1px solid rgba(255,255,255,0.05)',
+        background: 'var(--yb-bg)',
+        borderRight: '1px solid var(--yb-border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '10px 0 10px',
         height: '100vh', overflowY: 'auto', overflowX: 'hidden',

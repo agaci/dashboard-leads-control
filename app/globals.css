@@ -75,6 +75,84 @@
   --shadow-dark-sm:  0 1px 3px rgba(0,0,0,0.3);
   --shadow-in-light: none;
   --shadow-in-dark:  none;
+
+  /* ── Inline-style theme tokens (dark default) ── */
+  --yb-bg:        #0F1B2D;
+  --yb-card:      #162236;
+  --yb-card-2:    #1E3050;
+  --yb-fg:        #F0F4FF;
+  --yb-muted:     #8B9EC9;
+  --yb-subtle:    #4a6080;
+  --yb-border:    rgba(255,255,255,0.08);
+  --yb-input:     rgba(255,255,255,0.05);
+  --yb-cyan:      #00bcd4;
+  --yb-success:   #22c55e;
+  --yb-error:     #f87171;
+  color-scheme:   dark;
+}
+
+/* ── Light theme overrides ────────────────────────────────── */
+[data-theme="light"] {
+  --background:              210 20% 97%;   /* #F1F5F9 */
+  --foreground:              222 50% 19%;   /* #1a2b4a */
+  --card:                    0 0% 100%;     /* #FFFFFF */
+  --card-foreground:         222 50% 19%;
+  --popover:                 0 0% 100%;
+  --popover-foreground:      222 50% 19%;
+  --secondary:               210 35% 92%;   /* #E4EBF3 */
+  --secondary-foreground:    222 50% 19%;
+  --muted:                   210 35% 92%;
+  --muted-foreground:        215 28% 44%;   /* #5a7394 */
+  --accent:                  210 30% 87%;   /* #D4DFEC */
+  --accent-foreground:       222 50% 19%;
+  --destructive:             0 72% 51%;
+  --destructive-foreground:  0 0% 100%;
+  --border:                  215 22% 82%;   /* #C8D4E0 */
+  --input:                   215 22% 82%;
+  --ring:                    187 80% 38%;
+
+  --cyan:              187 80% 38%;   /* #0fa8bf — darker for contrast */
+  --cyan-soft:         187 55% 90%;
+  --success:           142 60% 35%;   /* #1d9c52 */
+  --success-soft:      142 55% 90%;
+  --warning:           38 85% 45%;
+  --warning-soft:      38 80% 90%;
+  --purple:            262 70% 52%;
+  --purple-soft:       262 55% 91%;
+  --orange:            24 90% 48%;
+  --orange-soft:       24 75% 90%;
+  --orange-warm:       24 30% 92%;
+
+  --shadow-card:     0 1px 3px 0 rgba(0,0,0,0.07), 0 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow-elevated: 0 4px 12px -2px rgba(0,0,0,0.10), 0 2px 4px -2px rgba(0,0,0,0.06);
+
+  --sidebar-background:         210 25% 93%;
+  --sidebar-foreground:         222 50% 19%;
+  --sidebar-primary:            187 80% 38%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent:             210 30% 87%;
+  --sidebar-accent-foreground:  222 50% 19%;
+  --sidebar-border:             215 22% 80%;
+  --sidebar-ring:               187 80% 38%;
+
+  --neu-bg:     hsl(var(--background));
+  --neu-fg:     hsl(var(--foreground));
+  --neu-muted:  hsl(var(--muted-foreground));
+  --neu-border: hsl(var(--border));
+
+  /* ── Inline-style theme tokens (light) ── */
+  --yb-bg:        #F1F5F9;
+  --yb-card:      #FFFFFF;
+  --yb-card-2:    #EBF0F7;
+  --yb-fg:        #1a2b4a;
+  --yb-muted:     #5a7394;
+  --yb-subtle:    #94a3b8;
+  --yb-border:    rgba(0,0,0,0.09);
+  --yb-input:     rgba(0,0,0,0.04);
+  --yb-cyan:      #0097a7;
+  --yb-success:   #16a34a;
+  --yb-error:     #dc2626;
+  color-scheme:   light;
 }
 
 @theme inline {

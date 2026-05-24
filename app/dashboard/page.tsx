@@ -11,15 +11,16 @@ import RelatoriosPage from './relatorios/page';
 import ClientesPage from './clientes/page';
 import WidgetsPage from './widgets/page';
 import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
+import { useTheme } from '@/lib/useTheme';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
-const CYAN   = '#00bcd4';
-const NAVY   = '#F0F4FF';
+const CYAN   = 'var(--yb-cyan)';
+const NAVY   = 'var(--yb-fg)';
 const YELLOW = '#ffc107';
-const YB_BG  = '#0F1B2D';
-const BORDER = 'rgba(255,255,255,0.08)';
+const YB_BG  = 'var(--yb-bg)';
+const BORDER = 'var(--yb-border)';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -335,17 +336,17 @@ export default function DashboardPage() {
               display: isMobile && selected ? 'none' : 'flex',
               flexDirection: 'column',
               borderRight: '1px solid rgba(255,255,255,0.06)',
-              background: '#162236',
+              background: 'var(--yb-card)',
               overflow: 'hidden',
             }}
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 10px' }}>
-              <h1 style={{ fontSize: 16, fontWeight: 600, color: '#F0F4FF', margin: 0, letterSpacing: '-0.01em' }}>Leads</h1>
+              <h1 style={{ fontSize: 16, fontWeight: 600, color: 'var(--yb-fg)', margin: 0, letterSpacing: '-0.01em' }}>Leads</h1>
               <button
                 onClick={fetchLeads}
                 title="Actualizar"
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#4a6080', padding: 4, borderRadius: 6, display: 'flex' }}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--yb-subtle)', padding: 4, borderRadius: 6, display: 'flex' }}
                 onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#8B9EC9'; }}
                 onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = '#4a6080'; }}
               >
@@ -358,7 +359,7 @@ export default function DashboardPage() {
             {/* Search */}
             <div style={{ padding: '0 12px 10px' }}>
               <div style={{ position: 'relative' }}>
-                <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#4a6080' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--yb-subtle)' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
                 <input
@@ -371,11 +372,11 @@ export default function DashboardPage() {
                     border: '1px solid rgba(255,255,255,0.08)',
                     background: 'rgba(255,255,255,0.04)',
                     paddingLeft: 30, paddingRight: 10,
-                    fontSize: 12, color: '#F0F4FF', outline: 'none',
+                    fontSize: 12, color: 'var(--yb-fg)', outline: 'none',
                     boxSizing: 'border-box',
                   }}
                   onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,188,212,0.4)'; }}
-                  onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(255,255,255,0.08)'; }}
+                  onBlur={(e) => { (e.target as HTMLInputElement).style.borderColor = 'var(--yb-border)'; }}
                 />
               </div>
             </div>
@@ -406,7 +407,7 @@ export default function DashboardPage() {
                         fontSize: 9, fontWeight: 700,
                         minWidth: 16, height: 16, borderRadius: 8,
                         display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px',
-                        background: f === 'urgente' ? 'rgba(239,68,68,0.2)' : active ? 'rgba(0,188,212,0.2)' : 'rgba(255,255,255,0.08)',
+                        background: f === 'urgente' ? 'rgba(239,68,68,0.2)' : active ? 'rgba(0,188,212,0.2)' : 'var(--yb-border)',
                         color: f === 'urgente' ? '#f87171' : active ? '#00bcd4' : '#8B9EC9',
                       }}>
                         {count > 99 ? '99+' : count}
@@ -463,12 +464,12 @@ export default function DashboardPage() {
                       position: 'absolute', left: 0, top: 'calc(100% + 6px)', zIndex: 50,
                       width: 220, borderRadius: 10,
                       border: '1px solid rgba(255,255,255,0.1)',
-                      background: '#1E3050',
+                      background: 'var(--yb-card-2)',
                       boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                       padding: 14,
                     }}
                   >
-                    <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#4a6080' }}>Escolher data</p>
+                    <p style={{ margin: '0 0 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'var(--yb-subtle)' }}>Escolher data</p>
                     <input
                       type="date"
                       value={customDate}
@@ -482,15 +483,15 @@ export default function DashboardPage() {
                       style={{
                         width: '100%', borderRadius: 7,
                         border: '1px solid rgba(255,255,255,0.12)',
-                        background: 'rgba(255,255,255,0.05)',
+                        background: 'var(--yb-input)',
                         padding: '6px 10px', fontSize: 12,
-                        color: '#F0F4FF', outline: 'none',
+                        color: 'var(--yb-fg)', outline: 'none',
                         boxSizing: 'border-box',
-                        colorScheme: 'dark',
+                        colorScheme: 'inherit' as const,
                       }}
                     />
                     {customDate && (
-                      <p style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: '#8B9EC9' }}>
+                      <p style={{ marginTop: 8, textAlign: 'center', fontSize: 11, color: 'var(--yb-muted)' }}>
                         {new Date(customDate + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
                       </p>
                     )}
@@ -502,7 +503,7 @@ export default function DashboardPage() {
             {/* Lead items */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 8px 12px' }}>
               {loading && (
-                <div style={{ padding: '32px 0', textAlign: 'center', fontSize: 12, color: '#4a6080' }}>
+                <div style={{ padding: '32px 0', textAlign: 'center', fontSize: 12, color: 'var(--yb-subtle)' }}>
                   A carregar...
                 </div>
               )}
@@ -510,7 +511,7 @@ export default function DashboardPage() {
                 <div style={{ padding: 10, fontSize: 12, color: '#f87171' }}>{error}</div>
               )}
               {!loading && leads.length === 0 && (
-                <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#4a6080' }}>Sem resultados</div>
+                <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: 'var(--yb-subtle)' }}>Sem resultados</div>
               )}
               {(() => {
                 const q = search.trim().toLowerCase();
@@ -525,7 +526,7 @@ export default function DashboardPage() {
                   : leads;
                 if (!loading && q && visibleLeads.length === 0)
                   return (
-                    <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: '#4a6080' }}>
+                    <div style={{ padding: '40px 0', textAlign: 'center', fontSize: 12, color: 'var(--yb-subtle)' }}>
                       Sem resultados para &ldquo;{search}&rdquo;
                     </div>
                   );
@@ -580,16 +581,16 @@ export default function DashboardPage() {
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#f87171', letterSpacing: '0.04em' }}>URGENTE</span>
                           )}
                         </div>
-                        <span style={{ fontSize: 11, color: '#4a6080' }}>{relTime(lead.timeStamp)}</span>
+                        <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>{relTime(lead.timeStamp)}</span>
                       </div>
 
                       {/* Row 2: nome */}
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF', marginBottom: 3, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', marginBottom: 3, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {nome}
                       </div>
 
                       {/* Row 3: rota */}
-                      <div style={{ fontSize: 11, color: '#8B9EC9', marginBottom: 8, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 11, color: 'var(--yb-muted)', marginBottom: 8, overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>
                         {rota}{lead.leadData.weightKg ? ` · ${lead.leadData.weightKg} kg` : ''}
                       </div>
 
@@ -600,7 +601,7 @@ export default function DashboardPage() {
                             {price.toFixed(2)}€
                           </span>
                         ) : (
-                          <span style={{ fontSize: 11, color: '#4a6080' }}>—</span>
+                          <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>—</span>
                         )}
                         {urgencia && urgencia !== '1 Hora' && (
                           <span style={{
@@ -651,13 +652,13 @@ export default function DashboardPage() {
                 <button
                   onClick={() => setPage((p) => Math.max(0, p - 1))}
                   disabled={page === 0}
-                  style={{ fontSize: 11, color: '#8B9EC9', background: 'none', border: 'none', cursor: 'pointer', opacity: page === 0 ? 0.3 : 1 }}
+                  style={{ fontSize: 11, color: 'var(--yb-muted)', background: 'none', border: 'none', cursor: 'pointer', opacity: page === 0 ? 0.3 : 1 }}
                 >← Anterior</button>
-                <span style={{ fontSize: 11, color: '#4a6080' }}>{page + 1}/{totalPages}</span>
+                <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>{page + 1}/{totalPages}</span>
                 <button
                   onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
-                  style={{ fontSize: 11, color: '#8B9EC9', background: 'none', border: 'none', cursor: 'pointer', opacity: page >= totalPages - 1 ? 0.3 : 1 }}
+                  style={{ fontSize: 11, color: 'var(--yb-muted)', background: 'none', border: 'none', cursor: 'pointer', opacity: page >= totalPages - 1 ? 0.3 : 1 }}
                 >Próximo →</button>
               </div>
             )}
@@ -665,21 +666,21 @@ export default function DashboardPage() {
 
           {/* Detail */}
           {(!isMobile || selected) && (
-            <div style={{ flex: 1, overflowY: 'auto', background: '#0F1B2D', padding: isMobile ? 16 : 24 }}>
+            <div style={{ flex: 1, overflowY: 'auto', background: 'var(--yb-bg)', padding: isMobile ? 16 : 24 }}>
               {isMobile && selected && (
                 <button
                   onClick={() => setSelected(null)}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 6, marginBottom: 16,
                     background: 'none', border: 'none', fontSize: 13, fontWeight: 600,
-                    color: '#8B9EC9', cursor: 'pointer', padding: 0,
+                    color: 'var(--yb-muted)', cursor: 'pointer', padding: 0,
                   }}
                 >
                   ← Voltar
                 </button>
               )}
               {!selected ? (
-                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#4a6080' }}>
+                <div style={{ height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 10, color: 'var(--yb-subtle)' }}>
                   <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
                     <polyline points="22 12 16 12 14 15 10 15 8 12 2 12"/>
                     <path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/>
@@ -821,7 +822,7 @@ function AggToastStack({
             <div
               key={t.id}
               style={{
-                width: 360, background: '#1a2332',
+                width: 360, background: 'var(--yb-card)',
                 border: '1.5px solid #ffc107',
                 borderRadius: 12, overflow: 'hidden',
                 animation: 'slideInRight 0.35s cubic-bezier(0.34,1.56,0.64,1), toastPulse 2s ease-in-out infinite',
@@ -962,8 +963,8 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         <div>
-          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: '#F0F4FF' }}>Hipóteses de Agregação</h2>
-          <p style={{ margin: '2px 0 0', fontSize: 12, color: '#4a6080' }}>
+          <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--yb-fg)' }}>Hipóteses de Agregação</h2>
+          <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--yb-subtle)' }}>
             Avisos gerados pelo sistema — por dia
           </p>
         </div>
@@ -974,20 +975,20 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
           onChange={(e) => setDate(e.target.value)}
           style={{
             marginLeft: 'auto', padding: '6px 10px', borderRadius: 7,
-            border: `1.5px solid ${BORDER}`, fontSize: 13, color: '#F0F4FF',
+            border: `1.5px solid ${BORDER}`, fontSize: 13, color: 'var(--yb-fg)',
             fontFamily: 'inherit', cursor: 'pointer',
-            background: 'rgba(255,255,255,0.05)', colorScheme: 'dark',
+            background: 'var(--yb-input)', colorScheme: 'inherit' as const,
           }}
         />
       </div>
 
       {loading && (
-        <p style={{ color: '#4a6080', fontSize: 13 }}>A carregar...</p>
+        <p style={{ color: 'var(--yb-subtle)', fontSize: 13 }}>A carregar...</p>
       )}
 
       {!loading && items.length === 0 && (
         <div style={{
-          textAlign: 'center', padding: '60px 0', color: '#4a6080',
+          textAlign: 'center', padding: '60px 0', color: 'var(--yb-subtle)',
         }}>
           <div style={{ fontSize: 36, marginBottom: 12 }}>◈</div>
           <p style={{ fontSize: 14 }}>Sem hipóteses de agregação para {date}</p>
@@ -999,7 +1000,7 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
           key={item.convId}
           ref={item.convId === highlightConvId ? highlightRef : undefined}
           style={{
-            background: '#162236', borderRadius: 12,
+            background: 'var(--yb-card)', borderRadius: 12,
             border: `1.5px solid ${item.convId === highlightConvId ? '#00bcd4' : item.aggHintsSeen ? BORDER : '#ffc107'}`,
             marginBottom: 16, overflow: 'hidden',
             boxShadow: item.convId === highlightConvId ? '0 0 0 3px rgba(0,188,212,0.2)' : item.aggHintsSeen ? 'none' : '0 2px 12px rgba(255,193,7,0.15)',
@@ -1016,11 +1017,11 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
               textTransform: 'uppercase', background: '#ffc107',
               color: '#0F1B2D', padding: '3px 7px', borderRadius: 4,
             }}>AGREGAÇÃO</span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF' }}>{item.refCode}</span>
-            <span style={{ fontSize: 12, color: '#8B9EC9' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)' }}>{item.refCode}</span>
+            <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>
               {item.origem.split(',')[0]} → {item.destino.split(',')[0]}
             </span>
-            <span style={{ fontSize: 11, color: '#4a6080', marginLeft: 'auto' }}>
+            <span style={{ fontSize: 11, color: 'var(--yb-subtle)', marginLeft: 'auto' }}>
               {new Date(item.aggHintsAt).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
             </span>
             <button
@@ -1055,10 +1056,10 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
                 {h.isReturnTrip && (
                   <span style={{ fontSize: 10, color: '#00bcd4', fontWeight: 700 }}>↩ VOLTA</span>
                 )}
-                <span style={{ fontSize: 11, color: '#8B9EC9', flex: 1, minWidth: 160 }}>
+                <span style={{ fontSize: 11, color: 'var(--yb-muted)', flex: 1, minWidth: 160 }}>
                   {h.pickup?.split(',')[0] ?? '—'} → {h.delivery?.split(',')[0] ?? '—'}
                 </span>
-                <span style={{ fontSize: 11, color: '#4a6080' }}>
+                <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>
                   +{h.detourPickupKm}km / +{h.detourDeliveryKm}km
                 </span>
                 {h.serviceTime && (
@@ -1114,6 +1115,7 @@ function ConfigPage() {
   const selfRole = (session?.user as any)?.role ?? '';
   const selfId   = (session?.user as any)?.id   ?? '';
   const isAdmin  = selfRole === 'administrator';
+  const { theme, setTheme } = useTheme();
 
   const [users, setUsers]         = useState<DashUser[]>([]);
   const [loading, setLoading]     = useState(true);
@@ -1189,8 +1191,8 @@ function ConfigPage() {
   const inputStyle: React.CSSProperties = {
     padding: '7px 10px', borderRadius: 7, border: `1.5px solid ${BORDER}`,
     fontSize: 13, fontFamily: 'inherit', width: '100%', boxSizing: 'border-box',
-    color: '#F0F4FF', outline: 'none', background: 'rgba(255,255,255,0.05)',
-    colorScheme: 'dark',
+    color: 'var(--yb-fg)', outline: 'none', background: 'var(--yb-input)',
+    colorScheme: 'inherit' as const,
   };
   const btnStyle = (bg: string, fg: string): React.CSSProperties => ({
     padding: '7px 14px', borderRadius: 7, border: 'none',
@@ -1201,10 +1203,51 @@ function ConfigPage() {
   return (
     <div style={{ padding: '28px 32px', maxWidth: 780, fontFamily: 'system-ui, sans-serif' }}>
 
+      {/* Aparência */}
+      <div style={{ background: 'var(--yb-card)', borderRadius: 12, border: `1.5px solid var(--yb-border)`, padding: '20px 24px', marginBottom: 20 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>Aparência</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--yb-muted)' }}>Escolhe entre o tema claro e escuro. A preferência é guardada no browser.</p>
+        <div style={{ display: 'flex', gap: 10 }}>
+          {(['light', 'dark'] as const).map((t) => {
+            const active = theme === t;
+            const label = t === 'light' ? 'Claro' : 'Escuro';
+            const preview = t === 'light'
+              ? { bg: '#F1F5F9', card: '#FFFFFF', dot: '#0097a7' }
+              : { bg: '#0F1B2D', card: '#162236', dot: '#00bcd4' };
+            return (
+              <button
+                key={t}
+                onClick={() => setTheme(t)}
+                style={{
+                  flex: 1, padding: '12px 16px', borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+                  border: `2px solid ${active ? 'var(--yb-cyan)' : 'var(--yb-border)'}`,
+                  background: active ? `color-mix(in srgb, var(--yb-cyan) 8%, var(--yb-card))` : 'var(--yb-card)',
+                  transition: 'border-color .15s',
+                }}
+              >
+                {/* mini preview */}
+                <div style={{ width: '100%', height: 44, borderRadius: 6, background: preview.bg, marginBottom: 8, padding: 6, boxSizing: 'border-box', display: 'flex', gap: 4 }}>
+                  <div style={{ width: 12, height: '100%', borderRadius: 3, background: preview.card, opacity: 0.9 }} />
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 3 }}>
+                    <div style={{ height: 5, borderRadius: 2, background: preview.dot, width: '60%' }} />
+                    <div style={{ height: 4, borderRadius: 2, background: preview.card, width: '80%' }} />
+                    <div style={{ height: 4, borderRadius: 2, background: preview.card, width: '50%' }} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ fontSize: 13, fontWeight: 700, color: active ? 'var(--yb-cyan)' : 'var(--yb-fg)' }}>{label}</span>
+                  {active && <span style={{ fontSize: 10, fontWeight: 800, color: 'var(--yb-cyan)' }}>ACTIVO</span>}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Perfil próprio */}
-      <div style={{ background: '#162236', borderRadius: 12, border: `1.5px solid ${BORDER}`, padding: '20px 24px', marginBottom: 28 }}>
-        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: '#F0F4FF' }}>O meu perfil</h3>
-        <p style={{ margin: '0 0 16px', fontSize: 12, color: '#8B9EC9' }}>
+      <div style={{ background: 'var(--yb-card)', borderRadius: 12, border: `1.5px solid var(--yb-border)`, padding: '20px 24px', marginBottom: 28 }}>
+        <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>O meu perfil</h3>
+        <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--yb-muted)' }}>
           {session?.user?.email} —{' '}
           <span style={{
             fontSize: 11, fontWeight: 700, padding: '2px 7px', borderRadius: 4,
@@ -1238,7 +1281,7 @@ function ConfigPage() {
       {isAdmin && (
         <>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#F0F4FF' }}>Utilizadores</h3>
+            <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>Utilizadores</h3>
             <button
               onClick={() => setShowCreate((s) => !s)}
               style={btnStyle(showCreate ? 'rgba(255,255,255,0.07)' : CYAN, showCreate ? '#8B9EC9' : '#0F1B2D')}
@@ -1270,12 +1313,12 @@ function ConfigPage() {
 
           {/* Lista */}
           {loading ? (
-            <p style={{ color: '#4a6080', fontSize: 13 }}>A carregar...</p>
+            <p style={{ color: 'var(--yb-subtle)', fontSize: 13 }}>A carregar...</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {users.map((u) => (
                 <div key={u._id} style={{
-                  background: '#162236', border: `1.5px solid ${u.active ? BORDER : 'rgba(239,68,68,0.25)'}`,
+                  background: 'var(--yb-card)', border: `1.5px solid ${u.active ? BORDER : 'rgba(239,68,68,0.25)'}`,
                   borderRadius: 10, padding: '12px 16px',
                   display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
                   opacity: u.active ? 1 : 0.6,
@@ -1292,11 +1335,11 @@ function ConfigPage() {
 
                   {/* Info */}
                   <div style={{ flex: 1, minWidth: 160 }}>
-                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: '#F0F4FF' }}>
+                    <p style={{ margin: 0, fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)' }}>
                       {u.name || u.email}
                       {u._id === selfId && <span style={{ fontSize: 10, color: CYAN, marginLeft: 6 }}>(eu)</span>}
                     </p>
-                    <p style={{ margin: 0, fontSize: 11, color: '#4a6080' }}>{u.email}</p>
+                    <p style={{ margin: 0, fontSize: 11, color: 'var(--yb-subtle)' }}>{u.email}</p>
                   </div>
 
                   {/* Role */}
@@ -1347,7 +1390,7 @@ function ConfigPage() {
       {isAdmin && (
         <>
           <div style={{ height: 1, background: BORDER, margin: '28px 0' }} />
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: '#F0F4FF' }}>Configuração do Bot</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>Configuração do Bot</h3>
           <RoutingPanel />
           <div style={{ height: 1, background: BORDER, margin: '32px 0' }} />
           <VariantPanel />
@@ -1409,7 +1452,7 @@ function ComingSoon({ tab }: { tab: NavTab }) {
           Para Breve
         </h2>
 
-        <p style={{ fontSize: 14, color: '#8B9EC9', lineHeight: 1.65, margin: '0 0 28px' }}>
+        <p style={{ fontSize: 14, color: 'var(--yb-muted)', lineHeight: 1.65, margin: '0 0 28px' }}>
           {meta.desc}
         </p>
 
@@ -1710,11 +1753,11 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
 
   const sectionTitle: React.CSSProperties = {
     fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.07em', color: '#4a6080', marginBottom: 10,
+    letterSpacing: '0.07em', color: 'var(--yb-subtle)', marginBottom: 10,
   };
 
   const cardS: React.CSSProperties = {
-    background: '#162236', borderRadius: 10, border: `1px solid ${BORDER}`,
+    background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`,
     padding: '14px 18px', marginBottom: 10,
   };
 
@@ -1728,7 +1771,7 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
           {hints !== null && (
             <span style={{
               fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 10,
-              background: hasHints ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
+              background: hasHints ? 'rgba(251,191,36,0.12)' : 'var(--yb-input)',
               color: hasHints ? '#fbbf24' : '#4a6080',
               border: `1px solid ${hasHints ? 'rgba(251,191,36,0.3)' : BORDER}`,
             }}>
@@ -1749,9 +1792,9 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
 
       {open && (
         <>
-          {loading && <p style={{ fontSize: 12, color: '#4a6080' }}>A procurar serviços em rota compatível...</p>}
+          {loading && <p style={{ fontSize: 12, color: 'var(--yb-subtle)' }}>A procurar serviços em rota compatível...</p>}
           {!loading && hints?.length === 0 && (
-            <p style={{ fontSize: 12, color: '#4a6080' }}>Sem serviços activos com rota compatível nas próximas 4 horas.</p>
+            <p style={{ fontSize: 12, color: 'var(--yb-subtle)' }}>Sem serviços activos com rota compatível nas próximas 4 horas.</p>
           )}
           {!loading && hints && hints.length > 0 && hints.map((h) => (
             <div key={h.serviceId} style={{
@@ -1769,7 +1812,7 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
                   Compatibilidade {h.score}%
                 </span>
                 {h.nr != null && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: '#8B9EC9', background: 'rgba(255,255,255,0.06)', border: `1px solid ${BORDER}`, padding: '1px 6px', borderRadius: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--yb-muted)', background: 'rgba(255,255,255,0.06)', border: `1px solid ${BORDER}`, padding: '1px 6px', borderRadius: 4 }}>
                     #{h.nr}
                   </span>
                 )}
@@ -1805,19 +1848,19 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 11, color: '#8B9EC9', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 16px' }}>
+              <div style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '3px 16px' }}>
                 {h.pickup && <span>Recolha: <b>{h.pickup.split(',')[0]}</b></span>}
                 {h.delivery && <span>Entrega: <b>{h.delivery.split(',')[0]}</b></span>}
                 <span>Desvio recolha: <b>{h.detourPickupKm} km</b></span>
                 <span>Desvio entrega: <b>{h.detourDeliveryKm} km</b></span>
               </div>
               {h.driver ? (
-                <div style={{ marginTop: 6, fontSize: 11, color: '#8B9EC9' }}>
-                  Motorista: <b style={{ color: '#F0F4FF' }}>{h.driver.name}</b>
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--yb-muted)' }}>
+                  Motorista: <b style={{ color: 'var(--yb-fg)' }}>{h.driver.name}</b>
                   {h.driver.phone && <span style={{ color: CYAN, marginLeft: 8 }}>{h.driver.phone}</span>}
                 </div>
               ) : (
-                <div style={{ marginTop: 6, fontSize: 11, color: '#4a6080', fontStyle: 'italic' }}>
+                <div style={{ marginTop: 6, fontSize: 11, color: 'var(--yb-subtle)', fontStyle: 'italic' }}>
                   Motorista ainda não atribuído
                 </div>
               )}
@@ -1846,7 +1889,7 @@ function AggregationHints({ origem, destino }: { origem: string; destino: string
 function F({ label, value, cyan, green }: { label: string; value?: string; cyan?: boolean; green?: boolean }) {
   return (
     <div>
-      <dt style={{ fontSize: 10, color: '#4a6080', marginBottom: 2 }}>{label}</dt>
+      <dt style={{ fontSize: 10, color: 'var(--yb-subtle)', marginBottom: 2 }}>{label}</dt>
       <dd style={{ fontSize: 13, fontWeight: 600, margin: 0, color: cyan ? CYAN : green ? '#22c55e' : '#F0F4FF' }}>
         {value ?? '—'}
       </dd>
@@ -1857,7 +1900,7 @@ function F({ label, value, cyan, green }: { label: string; value?: string; cyan?
 function PB({ label, value, strike, color, large }: { label: string; value?: string; strike?: boolean; color?: string; large?: boolean }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <p style={{ fontSize: 10, color: '#4a6080', margin: '0 0 2px' }}>{label}</p>
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '0 0 2px' }}>{label}</p>
       <p style={{ fontSize: large ? 22 : 14, fontWeight: large ? 800 : 600, color: color ?? '#F0F4FF', margin: 0, textDecoration: strike ? 'line-through' : 'none', fontFamily: 'Space Grotesk, sans-serif' }}>
         {value}
       </p>
@@ -1907,19 +1950,19 @@ function RoutingPanel() {
     }
   }
 
-  if (loading) return <p style={{ fontSize: 13, color: '#4a6080' }}>A carregar...</p>;
+  if (loading) return <p style={{ fontSize: 13, color: 'var(--yb-subtle)' }}>A carregar...</p>;
 
   function toggle(key: keyof RoutingConfig) { setConfig((c) => ({ ...c, [key]: !c[key] })); }
   function num(key: keyof RoutingConfig, val: string) { setConfig((c) => ({ ...c, [key]: parseInt(val) || 0 })); }
 
-  const cardS: React.CSSProperties = { background: '#162236', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
-  const inputS: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', colorScheme: 'dark' as const };
-  const labelS: React.CSSProperties = { fontSize: 11, color: '#4a6080', display: 'block', marginBottom: 4 };
+  const cardS: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const inputS: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const };
+  const labelS: React.CSSProperties = { fontSize: 11, color: 'var(--yb-subtle)', display: 'block', marginBottom: 4 };
 
   return (
     <div>
       <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Configuração do Bot</h2>
-      <p style={{ fontSize: 13, color: '#8B9EC9', marginBottom: 20 }}>Controle quando o bot responde automaticamente às leads.</p>
+      <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 20 }}>Controle quando o bot responde automaticamente às leads.</p>
 
       <ToggleRow cardS={cardS} label="Sistema activo" description="Activa ou desactiva todo o bot de atendimento automático" checked={config.systemActive} onChange={() => toggle('systemActive')} />
       <ToggleRow cardS={cardS} label="Sempre bot (ignorar horários)" description="O bot responde 24/7 independentemente do horário configurado" checked={config.alwaysBot} onChange={() => toggle('alwaysBot')} />
@@ -1943,7 +1986,7 @@ function RoutingPanel() {
               </button>
             ))}
           </div>
-          <p style={{ fontSize: 11, color: '#4a6080', margin: '8px 0 0' }}>
+          <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '8px 0 0' }}>
             {config.pagamentoProvider === 'paybylink' && 'Requer PBL_GATEWAY_KEY e PBL_ANTI_PHISHING_KEY no .env'}
             {config.pagamentoProvider === 'mbway'     && 'Requer MBWAY_KEY e MBWAY_ANTI_PHISHING_KEY no .env'}
             {config.pagamentoProvider === 'stripe'    && 'Requer STRIPE_SECRET_KEY e STRIPE_WEBHOOK_SECRET no .env'}
@@ -1965,25 +2008,25 @@ function RoutingPanel() {
       </div>
 
       <div style={cardS}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: 4 }}>Delay antes do bot (minutos)</label>
-        <p style={{ fontSize: 11, color: '#4a6080', marginBottom: 8 }}>Quantos minutos esperar antes do bot responder (0 = imediato)</p>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', display: 'block', marginBottom: 4 }}>Delay antes do bot (minutos)</label>
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginBottom: 8 }}>Quantos minutos esperar antes do bot responder (0 = imediato)</p>
         <input type="number" min={0} max={60} value={config.delayMinutesBeforeBot} onChange={(e) => num('delayMinutesBeforeBot', e.target.value)}
           style={{ ...inputS, width: 100, padding: '7px 10px' }} />
       </div>
 
       {/* ── Oferta de agregação ── */}
       <div style={cardS}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: 4 }}>Limiar de oferta de agregação (€)</label>
-        <p style={{ fontSize: 11, color: '#4a6080', marginBottom: 8 }}>Valor mínimo do orçamento (1h/4h) para apresentar oferta de análise de agregação. Coloque 0 para desactivar.</p>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', display: 'block', marginBottom: 4 }}>Limiar de oferta de agregação (€)</label>
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginBottom: 8 }}>Valor mínimo do orçamento (1h/4h) para apresentar oferta de análise de agregação. Coloque 0 para desactivar.</p>
         <input type="number" min={0} step={10} value={config.aggEscalationThreshold} onChange={(e) => num('aggEscalationThreshold', e.target.value)}
           style={{ ...inputS, width: 120, padding: '7px 10px' }} />
-        <span style={{ fontSize: 12, color: '#4a6080', marginLeft: 8 }}>{config.aggEscalationThreshold === 0 ? 'desactivado' : `activo para orçamentos > €${config.aggEscalationThreshold}`}</span>
+        <span style={{ fontSize: 12, color: 'var(--yb-subtle)', marginLeft: 8 }}>{config.aggEscalationThreshold === 0 ? 'desactivado' : `activo para orçamentos > €${config.aggEscalationThreshold}`}</span>
       </div>
 
       {/* ── Contacto de urgência ── */}
       <div style={cardS}>
-        <label style={{ fontSize: 13, fontWeight: 600, color: '#F0F4FF', display: 'block', marginBottom: 4 }}>Contacto de urgência</label>
-        <p style={{ fontSize: 11, color: '#4a6080', marginBottom: 10 }}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', display: 'block', marginBottom: 4 }}>Contacto de urgência</label>
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginBottom: 10 }}>
           Apresentado em negrito nas mensagens de escalamento. Deixe em branco para usar mensagem genérica.
         </p>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
@@ -2009,7 +2052,7 @@ function RoutingPanel() {
           </div>
         </div>
         {config.urgencyPhone && (
-          <p style={{ fontSize: 11, color: '#4a6080', marginTop: 8 }}>
+          <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 8 }}>
             Preview: <em>Em caso de urgência, ligue <strong>{config.urgencyPhone}</strong>{config.assistantName ? ` — ${config.assistantName}` : ''}.</em>
           </p>
         )}
@@ -2017,8 +2060,8 @@ function RoutingPanel() {
 
       {/* ── Assistente de voz ── */}
       <div style={{ ...cardS, borderTop: `3px solid #5b8dee`, marginTop: 16 }}>
-        <h3 style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF', margin: '0 0 4px' }}>Assistente de Voz</h3>
-        <p style={{ fontSize: 11, color: '#4a6080', margin: '0 0 12px' }}>Configuração do motor de voz nas versões _voz das landing pages</p>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)', margin: '0 0 4px' }}>Assistente de Voz</h3>
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '0 0 12px' }}>Configuração do motor de voz nas versões _voz das landing pages</p>
         <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
           <div>
             <label style={labelS}>Nome do assistente de voz</label>
@@ -2048,8 +2091,8 @@ function RoutingPanel() {
       <div style={{ ...cardS, borderTop: `3px solid #25d366`, marginTop: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF', margin: 0 }}>WhatsApp Bot (Evolution API)</h3>
-            <p style={{ fontSize: 11, color: '#4a6080', margin: '3px 0 0' }}>Liga o bot automático ao WhatsApp via Evolution API</p>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)', margin: 0 }}>WhatsApp Bot (Evolution API)</h3>
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>Liga o bot automático ao WhatsApp via Evolution API</p>
           </div>
           <ToggleSwitch checked={config.whatsappBotAtivo} onChange={() => toggle('whatsappBotAtivo')} />
         </div>
@@ -2076,8 +2119,8 @@ function RoutingPanel() {
       <div style={{ ...cardS, borderTop: `3px solid #f59e0b`, marginTop: 16 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div>
-            <h3 style={{ fontSize: 13, fontWeight: 700, color: '#F0F4FF', margin: 0 }}>Notificações de Alerta</h3>
-            <p style={{ fontSize: 11, color: '#4a6080', margin: '3px 0 0' }}>Aviso por WhatsApp e/ou email quando há escalamento ou nova lead</p>
+            <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)', margin: 0 }}>Notificações de Alerta</h3>
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>Aviso por WhatsApp e/ou email quando há escalamento ou nova lead</p>
           </div>
           <button onClick={() => setConfig((c) => ({ ...c, notificationTargets: [...(c.notificationTargets ?? []), { name: '', phone: '', email: '', events: ['escalation', 'lead'] }] }))}
             style={{ fontSize: 12, fontWeight: 700, background: CYAN, color: '#fff', border: 'none', borderRadius: 6, padding: '5px 12px', cursor: 'pointer' }}>
@@ -2086,7 +2129,7 @@ function RoutingPanel() {
         </div>
 
         {(config.notificationTargets ?? []).length === 0 && (
-          <p style={{ fontSize: 12, color: '#4a6080', margin: 0 }}>Nenhum destinatário configurado. Adicione pelo menos um para receber alertas.</p>
+          <p style={{ fontSize: 12, color: 'var(--yb-subtle)', margin: 0 }}>Nenhum destinatário configurado. Adicione pelo menos um para receber alertas.</p>
         )}
 
         {(config.notificationTargets ?? []).map((t, i) => (
@@ -2108,7 +2151,7 @@ function RoutingPanel() {
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
               {(['escalation', 'lead'] as const).map((ev) => (
-                <label key={ev} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: '#8B9EC9' }}>
+                <label key={ev} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: 'var(--yb-muted)' }}>
                   <input type="checkbox" checked={t.events.includes(ev)}
                     onChange={(e) => setConfig((c) => {
                       const tgts = [...(c.notificationTargets ?? [])];
@@ -2152,15 +2195,15 @@ function WaField({ label, hint, value, onChange, password }: {
 }) {
   return (
     <div>
-      <label style={{ fontSize: 12, fontWeight: 600, color: '#8B9EC9', display: 'block', marginBottom: 3 }}>{label}</label>
+      <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--yb-muted)', display: 'block', marginBottom: 3 }}>{label}</label>
       <input
         type={password ? 'password' : 'text'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={hint}
-        style={{ width: '100%', padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: password ? 'monospace' : 'inherit', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', colorScheme: 'dark' }}
+        style={{ width: '100%', padding: '7px 10px', border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: password ? 'monospace' : 'inherit', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const }}
       />
-      <p style={{ fontSize: 10, color: '#4a6080', margin: '3px 0 0' }}>{hint}</p>
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>{hint}</p>
     </div>
   );
 }
@@ -2225,10 +2268,10 @@ function VariantPanel() {
     finally { setSaving(false); }
   }
 
-  if (loading) return <p style={{ fontSize: 13, color: '#4a6080' }}>A carregar...</p>;
+  if (loading) return <p style={{ fontSize: 13, color: 'var(--yb-subtle)' }}>A carregar...</p>;
 
-  const cardS: React.CSSProperties = { background: '#162236', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
-  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', colorScheme: 'dark' as const, width: '100%' };
+  const cardS: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const, width: '100%' };
 
   return (
     <div>
@@ -2236,7 +2279,7 @@ function VariantPanel() {
         <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>Distribuição de Variantes A/B</h2>
         <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#22c55e' : '#f87171' }}>Total: {total}%</span>
       </div>
-      <p style={{ fontSize: 13, color: '#8B9EC9', marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 16 }}>
         Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.
       </p>
 
@@ -2244,35 +2287,35 @@ function VariantPanel() {
         <div key={v.key} style={cardS}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 60 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave</span>
               <span style={{ fontFamily: 'monospace', fontSize: 13, fontWeight: 700, color: CYAN, background: 'rgba(0,188,212,0.12)', padding: '5px 8px', borderRadius: 7, textAlign: 'center' }}>{v.key}</span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
               <input value={v.label} onChange={(e) => updateVariant(idx, 'label', e.target.value)} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 120 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
               <input value={v.desc} placeholder="opcional" onChange={(e) => updateVariant(idx, 'desc', e.target.value)} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 120 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
               <input value={v.file} onChange={(e) => updateVariant(idx, 'file', e.target.value)} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <input type="number" min={0} max={100} value={v.weight}
                   onChange={(e) => updateVariant(idx, 'weight', parseInt(e.target.value) || 0)}
                   style={{ ...inpS, width: 52, textAlign: 'right' }} />
-                <span style={{ fontSize: 12, color: '#8B9EC9' }}>%</span>
+                <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>%</span>
               </div>
             </div>
             <button onClick={() => deleteVariant(idx)}
               style={{ flexShrink: 0, background: 'none', border: `1.5px solid rgba(239,68,68,0.3)`, borderRadius: 7, padding: '5px 11px', cursor: 'pointer', fontSize: 18, color: '#f87171', lineHeight: 1 }}
               title="Remover variante">×</button>
           </div>
-          <div style={{ marginTop: 8, height: 5, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{ marginTop: 8, height: 5, background: 'var(--yb-border)', borderRadius: 3, overflow: 'hidden' }}>
             <div style={{ width: `${Math.min(v.weight, 100)}%`, height: '100%', background: v.weight > 0 ? CYAN : 'transparent', transition: 'width 0.2s' }} />
           </div>
         </div>
@@ -2283,7 +2326,7 @@ function VariantPanel() {
           <p style={{ fontSize: 12, fontWeight: 700, color: NAVY, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nova variante</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave *</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Chave *</span>
               <input value={newItem.key} placeholder="ex: e"
                 onChange={(e) => {
                   const k = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
@@ -2292,26 +2335,26 @@ function VariantPanel() {
                 style={{ ...inpS, width: 72 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Etiqueta</span>
               <input value={newItem.label} placeholder="Variante E" onChange={(e) => setNewItem((n) => ({ ...n, label: e.target.value }))} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Descrição</span>
               <input value={newItem.desc} placeholder="opcional" onChange={(e) => setNewItem((n) => ({ ...n, desc: e.target.value }))} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 120 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Ficheiro</span>
               <input value={newItem.file} placeholder="index-e.html"
                 onChange={(e) => setNewItem((n) => ({ ...n, file: e.target.value }))}
                 style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 72 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Peso %</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <input type="number" min={0} max={100} value={newItem.weight}
                   onChange={(e) => setNewItem((n) => ({ ...n, weight: parseInt(e.target.value) || 0 }))}
                   style={{ ...inpS, width: 52, textAlign: 'right' }} />
-                <span style={{ fontSize: 12, color: '#8B9EC9' }}>%</span>
+                <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>%</span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
@@ -2320,7 +2363,7 @@ function VariantPanel() {
                 Adicionar
               </button>
               <button onClick={() => { setShowAdd(false); setError(''); setNewItem(EMPTY_VARIANT); }}
-                style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13, color: '#8B9EC9' }}>
+                style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13, color: 'var(--yb-muted)' }}>
                 Cancelar
               </button>
             </div>
@@ -2328,7 +2371,7 @@ function VariantPanel() {
         </div>
       ) : (
         <button onClick={() => setShowAdd(true)}
-          style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: '#8B9EC9', marginBottom: 10 }}>
+          style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--yb-muted)', marginBottom: 10 }}>
           + Adicionar variante
         </button>
       )}
@@ -2339,7 +2382,7 @@ function VariantPanel() {
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: (saving || total !== 100) ? 'default' : 'pointer', background: saved ? '#166534' : total !== 100 ? 'rgba(255,255,255,0.1)' : CYAN, color: total !== 100 ? '#4a6080' : '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
         {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar distribuição'}
       </button>
-      <p style={{ fontSize: 11, color: '#4a6080', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
+      <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
     </div>
   );
 }
@@ -2396,15 +2439,15 @@ function DepotPanel() {
     finally { setSaving(false); }
   }
 
-  if (loading) return <p style={{ fontSize: 13, color: '#4a6080' }}>A carregar...</p>;
+  if (loading) return <p style={{ fontSize: 13, color: 'var(--yb-subtle)' }}>A carregar...</p>;
 
-  const cardS: React.CSSProperties = { background: '#162236', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
-  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: 'rgba(255,255,255,0.05)', color: '#F0F4FF', colorScheme: 'dark' as const, width: '100%' };
+  const cardS: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const, width: '100%' };
 
   return (
     <div>
       <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Depósitos Parceiro 24h</h2>
-      <p style={{ fontSize: 13, color: '#8B9EC9', marginBottom: 16 }}>
+      <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 16 }}>
         Localizações de entrega ao parceiro. O bot calcula o preço da recolha até ao depósito mais próximo dentro do limite de km. Se nenhum depósito estiver dentro do limite, escala para operador.
       </p>
 
@@ -2412,20 +2455,20 @@ function DepotPanel() {
         <div key={idx} style={cardS}>
           <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 100 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome</span>
               <input value={d.name} onChange={(e) => updateDepot(idx, 'name', e.target.value)} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 160 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada (para geocoding)</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada (para geocoding)</span>
               <input value={d.address} placeholder="ex: Alfragide, Amadora, Portugal" onChange={(e) => updateDepot(idx, 'address', e.target.value)} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 90 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <input type="number" min={1} max={500} value={d.maxKm}
                   onChange={(e) => updateDepot(idx, 'maxKm', parseInt(e.target.value) || 50)}
                   style={{ ...inpS, width: 60, textAlign: 'right' }} />
-                <span style={{ fontSize: 12, color: '#8B9EC9' }}>km</span>
+                <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>km</span>
               </div>
             </div>
             <button onClick={() => deleteDepot(idx)}
@@ -2436,7 +2479,7 @@ function DepotPanel() {
       ))}
 
       {depots.length === 0 && !showAdd && (
-        <div style={{ ...cardS, textAlign: 'center', color: '#4a6080', fontSize: 13 }}>
+        <div style={{ ...cardS, textAlign: 'center', color: 'var(--yb-subtle)', fontSize: 13 }}>
           Nenhum depósito configurado — o suplemento fixo "acima 25km" das tarifas será usado.
         </div>
       )}
@@ -2446,30 +2489,30 @@ function DepotPanel() {
           <p style={{ fontSize: 12, fontWeight: 700, color: NAVY, margin: '0 0 10px', textTransform: 'uppercase', letterSpacing: 0.5 }}>Novo depósito</p>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, minWidth: 100 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome *</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Nome *</span>
               <input value={newDepot.name} placeholder="ex: Alfragide" onChange={(e) => setNewDepot((n) => ({ ...n, name: e.target.value }))} style={inpS} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 3, minWidth: 160 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada *</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Morada *</span>
               <input value={newDepot.address} placeholder="Alfragide, Amadora, Portugal" onChange={(e) => setNewDepot((n) => ({ ...n, address: e.target.value }))} style={{ ...inpS, fontFamily: 'monospace', fontSize: 12 }} />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 2, width: 90 }}>
-              <span style={{ fontSize: 10, color: '#4a6080', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
+              <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: 0.5 }}>Máx. km</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <input type="number" min={1} max={500} value={newDepot.maxKm}
                   onChange={(e) => setNewDepot((n) => ({ ...n, maxKm: parseInt(e.target.value) || 50 }))}
                   style={{ ...inpS, width: 60, textAlign: 'right' }} />
-                <span style={{ fontSize: 12, color: '#8B9EC9' }}>km</span>
+                <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>km</span>
               </div>
             </div>
             <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
               <button onClick={addDepot} style={{ padding: '7px 14px', background: CYAN, color: '#fff', border: 'none', borderRadius: 7, cursor: 'pointer', fontWeight: 700, fontSize: 13 }}>Adicionar</button>
-              <button onClick={() => { setShowAdd(false); setError(''); setNewDepot(EMPTY_DEPOT); }} style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13, color: '#8B9EC9' }}>Cancelar</button>
+              <button onClick={() => { setShowAdd(false); setError(''); setNewDepot(EMPTY_DEPOT); }} style={{ padding: '7px 12px', background: 'none', border: `1.5px solid ${BORDER}`, borderRadius: 7, cursor: 'pointer', fontSize: 13, color: 'var(--yb-muted)' }}>Cancelar</button>
             </div>
           </div>
         </div>
       ) : (
-        <button onClick={() => setShowAdd(true)} style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: '#8B9EC9', marginBottom: 10 }}>
+        <button onClick={() => setShowAdd(true)} style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--yb-muted)', marginBottom: 10 }}>
           + Adicionar depósito
         </button>
       )}
@@ -2480,7 +2523,7 @@ function DepotPanel() {
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
         {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar depósitos'}
       </button>
-      <p style={{ fontSize: 11, color: '#4a6080', marginTop: 6 }}>
+      <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6 }}>
         Se a recolha estiver fora do limite de todos os depósitos, o bot escala automaticamente para operador com mensagem de cotação personalizada.
       </p>
     </div>
@@ -2494,7 +2537,7 @@ function ToggleRow({ cardS, label, description, checked, onChange }: {
     <div style={{ ...cardS, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
       <div>
         <p style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: '0 0 2px' }}>{label}</p>
-        <p style={{ fontSize: 11, color: '#8B9EC9', margin: 0 }}>{description}</p>
+        <p style={{ fontSize: 11, color: 'var(--yb-muted)', margin: 0 }}>{description}</p>
       </div>
       <button onClick={onChange} style={{ position: 'relative', width: 44, height: 24, background: 'none', border: 'none', cursor: 'pointer', padding: 0, flexShrink: 0 }} role="switch" aria-checked={checked}>
         <span style={{ position: 'absolute', inset: 0, borderRadius: 12, background: checked ? CYAN : 'rgba(255,255,255,0.15)', transition: 'background 0.2s' }} />

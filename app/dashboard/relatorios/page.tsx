@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 
-const CYAN   = '#00bcd4';
-const NAVY   = '#F0F4FF';
-const BORDER = 'rgba(255,255,255,0.08)';
-const CARD_BG   = '#162236';
-const CARD_INNER = '#1E3050';
-const TEXT2  = '#8B9EC9';
-const TEXT3  = '#4a6080';
+const CYAN   = 'var(--yb-cyan)';
+const NAVY   = 'var(--yb-fg)';
+const BORDER = 'var(--yb-border)';
+const CARD_BG   = 'var(--yb-card)';
+const CARD_INNER = 'var(--yb-card-2)';
+const TEXT2  = 'var(--yb-muted)';
+const TEXT3  = 'var(--yb-subtle)';
 
 type ReportData = {
   kpis: { leadsMonth: number; leadsAllTime: number; conversionRate: number; totalRevMonth: number; avgLeadValue: number; growthRate: number | null };
@@ -124,13 +124,13 @@ export default function RelatoriosPage() {
     : 'primeiro mês';
 
   return (
-    <div style={{ overflowY: 'auto', height: '100%', background: '#0F1B2D', padding: 24 }}>
+    <div style={{ overflowY: 'auto', height: '100%', background: 'var(--yb-bg)', padding: 24 }}>
       <div style={{ maxWidth: 900, margin: '0 auto' }}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
-            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: '#F0F4FF' }}>Relatórios</h1>
+            <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--yb-fg)' }}>Relatórios</h1>
             <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {PERIOD_LABEL[period]}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>

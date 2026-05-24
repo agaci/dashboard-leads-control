@@ -22,18 +22,18 @@ type Calculator = {
   percentPlusMinForcalcPriceMachineForAPIFromSiteYourbox: number;
 };
 
-const CARD: React.CSSProperties = { background: '#162236', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: '18px 20px', marginBottom: 14 };
-const TITLE: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: '#4a6080', marginBottom: 14 };
+const CARD: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.08)', padding: '18px 20px', marginBottom: 14 };
+const TITLE: React.CSSProperties = { fontSize: 10, fontWeight: 700, textTransform: 'uppercase' as const, letterSpacing: '0.07em', color: 'var(--yb-subtle)', marginBottom: 14 };
 const INPUT = 'w-full rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:border-cyan-400';
 
 function Num({ label, value, onChange, step = 0.001 }: { label: string; value: number; onChange: (v: number) => void; step?: number }) {
   return (
     <div>
-      <label style={{ fontSize: 11, color: '#8B9EC9', display: 'block', marginBottom: 3 }}>{label}</label>
+      <label style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'block', marginBottom: 3 }}>{label}</label>
       <input type="number" step={step} value={value}
         onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
         className={INPUT}
-        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', color: '#F0F4FF', colorScheme: 'dark' }}
+        style={{ background: 'var(--yb-input)', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const }}
       />
     </div>
   );
@@ -41,8 +41,8 @@ function Num({ label, value, onChange, step = 0.001 }: { label: string; value: n
 
 function PrecedenceEditor({ label, data, onChange }: { label: string; data: Precedence; onChange: (d: Precedence) => void }) {
   return (
-    <div style={{ background: '#1E3050', borderRadius: 10, padding: 12 }}>
-      <p style={{ fontSize: 11, fontWeight: 600, color: '#8B9EC9', marginBottom: 8 }}>{label}</p>
+    <div style={{ background: 'var(--yb-card-2)', borderRadius: 10, padding: 12 }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yb-muted)', marginBottom: 8 }}>{label}</p>
       <div className="grid grid-cols-3 gap-2">
         <Num label="Preço/km (€)" value={data.priceKm} onChange={(v) => onChange({ ...data, priceKm: v })} />
         <Num label="Preço mín (€)" value={data.priceMin} onChange={(v) => onChange({ ...data, priceMin: v })} />
@@ -106,14 +106,14 @@ export default function PrecosPage() {
   const discountPct = Math.round((calc.discountPercent ?? 0.1) * 100);
 
   return (
-    <div className="overflow-y-auto h-full p-6" style={{ background: '#0F1B2D' }}>
+    <div className="overflow-y-auto h-full p-6" style={{ background: 'var(--yb-bg)' }}>
       <div className="max-w-3xl mx-auto">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-xl font-bold" style={{ color: '#F0F4FF', fontFamily: 'Space Grotesk, sans-serif' }}>Preços & Calculadora</h1>
-            <p style={{ fontSize: 11, color: '#4a6080', marginTop: 2 }}>calculator_1_FixCityPriceAPI</p>
+            <h1 className="text-xl font-bold" style={{ color: 'var(--yb-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>Preços & Calculadora</h1>
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 2 }}>calculator_1_FixCityPriceAPI</p>
           </div>
           <button onClick={save} disabled={saving}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
@@ -131,14 +131,14 @@ export default function PrecosPage() {
                 value={discountPct}
                 onChange={(e) => setCalc({ ...calc, discountPercent: parseInt(e.target.value) / 100 })}
                 className="w-full accent-cyan-400" />
-              <div className="flex justify-between mt-1" style={{ fontSize: 11, color: '#4a6080' }}><span>0%</span><span>50%</span></div>
+              <div className="flex justify-between mt-1" style={{ fontSize: 11, color: 'var(--yb-subtle)' }}><span>0%</span><span>50%</span></div>
             </div>
             <div className="text-center min-w-[70px]">
               <span className="text-3xl font-bold" style={{ color: '#00bcd4' }}>{discountPct}%</span>
-              <p style={{ fontSize: 11, color: '#4a6080' }}>desconto</p>
+              <p style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>desconto</p>
             </div>
-            <div style={{ fontSize: 11, color: '#8B9EC9', background: '#1E3050', borderRadius: 8, padding: 12, minWidth: 140 }}>
-              <p style={{ fontWeight: 600, color: '#8B9EC9', marginBottom: 4 }}>Exemplo</p>
+            <div style={{ fontSize: 11, color: 'var(--yb-muted)', background: 'var(--yb-card-2)', borderRadius: 8, padding: 12, minWidth: 140 }}>
+              <p style={{ fontWeight: 600, color: 'var(--yb-muted)', marginBottom: 4 }}>Exemplo</p>
               <p>Base: <b>€100.00</b></p>
               <p>Desconto: <b style={{ color: '#e53e3e' }}>-€{discountPct}.00</b></p>
               <p>Final: <b style={{ color: '#22c55e' }}>€{100 - discountPct}.00</b></p>
@@ -178,13 +178,13 @@ export default function PrecosPage() {
         <div style={CARD}>
           <p style={TITLE}>Suplementos Fora de Horas (%)</p>
           <div className="grid grid-cols-2 gap-x-6 gap-y-1 mb-4">
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#8B9EC9', gridColumn: 'span 2', marginBottom: 4 }}>Janelas horárias</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yb-muted)', gridColumn: 'span 2', marginBottom: 4 }}>Janelas horárias</p>
             <Num label="Início horário principal (h)" step={1} value={calc.outOfHoursFees.timeWindow1} onChange={(v) => setOoh('timeWindow1', v)} />
             <Num label="Início noite (h)" step={1} value={calc.outOfHoursFees.timeWindow2} onChange={(v) => setOoh('timeWindow2', v)} />
             <Num label="Noite tarde (h)" step={1} value={calc.outOfHoursFees.timeWindow3} onChange={(v) => setOoh('timeWindow3', v)} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#8B9EC9', gridColumn: 'span 2' }}>Suplemento fixo (%)</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yb-muted)', gridColumn: 'span 2' }}>Suplemento fixo (%)</p>
             <Num label="Horário principal" step={1} value={calc.outOfHoursFees.flatRate1} onChange={(v) => setOoh('flatRate1', v)} />
             <Num label="Início noite" step={1} value={calc.outOfHoursFees.flatRate2} onChange={(v) => setOoh('flatRate2', v)} />
             <Num label="Noite tarde" step={1} value={calc.outOfHoursFees.flatRate3} onChange={(v) => setOoh('flatRate3', v)} />
@@ -194,7 +194,7 @@ export default function PrecosPage() {
             <Num label="Feriado" step={1} value={calc.outOfHoursFees.flatRateHolidays} onChange={(v) => setOoh('flatRateHolidays', v)} />
           </div>
           <div className="grid grid-cols-2 gap-3 mt-4">
-            <p style={{ fontSize: 11, fontWeight: 600, color: '#8B9EC9', gridColumn: 'span 2' }}>Suplemento km (%)</p>
+            <p style={{ fontSize: 11, fontWeight: 600, color: 'var(--yb-muted)', gridColumn: 'span 2' }}>Suplemento km (%)</p>
             <Num label="Horário principal" step={1} value={calc.outOfHoursFees.additionalKmsFee1} onChange={(v) => setOoh('additionalKmsFee1', v)} />
             <Num label="Início noite" step={1} value={calc.outOfHoursFees.additionalKmsFee2} onChange={(v) => setOoh('additionalKmsFee2', v)} />
             <Num label="Noite tarde" step={1} value={calc.outOfHoursFees.additionalKmsFee3} onChange={(v) => setOoh('additionalKmsFee3', v)} />

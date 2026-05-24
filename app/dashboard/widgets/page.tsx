@@ -2,10 +2,10 @@
 
 import { useEffect, useState, useCallback } from 'react';
 
-const CYAN   = '#00bcd4';
-const NAVY   = '#F0F4FF';
-const BORDER = 'rgba(255,255,255,0.08)';
-const YB_BG  = '#0F1B2D';
+const CYAN   = 'var(--yb-cyan)';
+const NAVY   = 'var(--yb-fg)';
+const BORDER = 'var(--yb-border)';
+const YB_BG  = 'var(--yb-bg)';
 
 const BASE_URL = 'https://leads.comgo.pt';
 
@@ -169,10 +169,10 @@ export default function WidgetsPage() {
   const inputStyle: React.CSSProperties = {
     width: '100%', padding: '8px 10px',
     border: `1.5px solid ${BORDER}`, borderRadius: 8,
-    fontFamily: 'inherit', fontSize: 13, color: '#F0F4FF',
-    background: 'rgba(255,255,255,0.05)', outline: 'none', colorScheme: 'dark',
+    fontFamily: 'inherit', fontSize: 13, color: 'var(--yb-fg)',
+    background: 'var(--yb-input)', outline: 'none', colorScheme: 'inherit' as const,
   };
-  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: '#8B9EC9', marginBottom: 4, display: 'block' };
+  const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--yb-muted)', marginBottom: 4, display: 'block' };
 
   return (
     <div style={{ padding: '24px 28px', background: YB_BG, minHeight: '100vh' }}>
@@ -180,7 +180,7 @@ export default function WidgetsPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
         <div>
           <h1 style={{ fontSize: 18, fontWeight: 700, color: NAVY, margin: 0 }}>Widgets White-label</h1>
-          <p style={{ fontSize: 12, color: '#8B9EC9', margin: '3px 0 0' }}>Gerir clientes que embebem o widget no seu site</p>
+          <p style={{ fontSize: 12, color: 'var(--yb-muted)', margin: '3px 0 0' }}>Gerir clientes que embebem o widget no seu site</p>
         </div>
         <button
           onClick={openCreate}
@@ -197,16 +197,16 @@ export default function WidgetsPage() {
 
       {/* List */}
       {loading ? (
-        <div style={{ textAlign: 'center', padding: '3rem', color: '#4a6080', fontSize: 13 }}>A carregar...</div>
+        <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--yb-subtle)', fontSize: 13 }}>A carregar...</div>
       ) : clients.length === 0 ? (
-        <div style={{ background: '#162236', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '3rem', textAlign: 'center', color: '#4a6080' }}>
-          <p style={{ fontSize: 14, fontWeight: 600, color: '#8B9EC9', margin: '0 0 6px' }}>Nenhum cliente configurado</p>
+        <div style={{ background: 'var(--yb-card)', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '3rem', textAlign: 'center', color: 'var(--yb-subtle)' }}>
+          <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--yb-muted)', margin: '0 0 6px' }}>Nenhum cliente configurado</p>
           <p style={{ fontSize: 12, margin: 0 }}>Clique em "Novo Cliente" para começar.</p>
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {clients.map((c) => (
-            <div key={c._id} style={{ background: '#162236', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
+            <div key={c._id} style={{ background: 'var(--yb-card)', borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 200 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -214,10 +214,10 @@ export default function WidgetsPage() {
                     <span style={{ fontSize: 15, fontWeight: 700, color: NAVY }}>{c.name}</span>
                     <Pill active={c.active} />
                   </div>
-                  <p style={{ fontSize: 11, color: '#4a6080', margin: '0 0 2px', fontFamily: 'monospace' }}>
-                    ID: <strong style={{ color: '#8B9EC9' }}>{c.clientId}</strong>
+                  <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '0 0 2px', fontFamily: 'monospace' }}>
+                    ID: <strong style={{ color: 'var(--yb-muted)' }}>{c.clientId}</strong>
                   </p>
-                  <p style={{ fontSize: 11, color: '#4a6080', margin: 0 }}>
+                  <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0 }}>
                     Bot: {c.botName} &bull; Origens: {(c.allowedOrigins ?? ['*']).join(', ')}
                   </p>
                 </div>
@@ -228,7 +228,7 @@ export default function WidgetsPage() {
                     onClick={() => handleCopy(c.clientId)}
                     style={{
                       fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 7,
-                      border: `1.5px solid ${BORDER}`, background: copiedId === c.clientId ? 'rgba(34,197,94,0.12)' : 'rgba(255,255,255,0.05)',
+                      border: `1.5px solid ${BORDER}`, background: copiedId === c.clientId ? 'rgba(34,197,94,0.12)' : 'var(--yb-input)',
                       color: copiedId === c.clientId ? '#22c55e' : '#8B9EC9', cursor: 'pointer',
                       display: 'flex', alignItems: 'center', gap: 5,
                     }}
@@ -243,7 +243,7 @@ export default function WidgetsPage() {
                     onClick={() => openEdit(c)}
                     style={{
                       fontSize: 12, fontWeight: 600, padding: '6px 12px', borderRadius: 7,
-                      border: `1.5px solid ${BORDER}`, background: 'rgba(255,255,255,0.05)', color: '#8B9EC9', cursor: 'pointer',
+                      border: `1.5px solid ${BORDER}`, background: 'var(--yb-input)', color: 'var(--yb-muted)', cursor: 'pointer',
                     }}
                   >
                     Editar
@@ -265,8 +265,8 @@ export default function WidgetsPage() {
 
               {/* Embed snippet */}
               <div style={{ marginTop: 12, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 12px' }}>
-                <p style={{ fontSize: 10, fontWeight: 700, color: '#4a6080', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Código de embed</p>
-                <code style={{ fontSize: 11, color: '#8B9EC9', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: 'var(--yb-subtle)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: '0 0 4px' }}>Código de embed</p>
+                <code style={{ fontSize: 11, color: 'var(--yb-muted)', fontFamily: 'monospace', wordBreak: 'break-all' }}>
                   {`<script src="${BASE_URL}/embed.js" data-ybw-client="${c.clientId}"><\/script>`}
                 </code>
               </div>
@@ -278,7 +278,7 @@ export default function WidgetsPage() {
                     <span style={{ fontSize: 10, fontWeight: 700, color: '#a78bfa', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                       Token API de Estatísticas
                     </span>
-                    <span style={{ fontSize: 10, color: '#4a6080', marginLeft: 8 }}>
+                    <span style={{ fontSize: 10, color: 'var(--yb-subtle)', marginLeft: 8 }}>
                       GET {BASE_URL}/api/v1/stats?month=MM&year=YYYY
                     </span>
                   </div>
@@ -290,7 +290,7 @@ export default function WidgetsPage() {
                         style={{
                           fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
                           border: '1px solid rgba(167,139,250,0.3)',
-                          background: copiedToken === c._id ? 'rgba(139,92,246,0.15)' : 'rgba(255,255,255,0.05)',
+                          background: copiedToken === c._id ? 'rgba(139,92,246,0.15)' : 'var(--yb-input)',
                           color: '#a78bfa',
                           fontWeight: 600,
                         }}
@@ -303,7 +303,7 @@ export default function WidgetsPage() {
                       title={revealedToken === c._id ? 'Ocultar' : 'Revelar token'}
                       style={{
                         fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
-                        border: '1px solid rgba(167,139,250,0.3)', background: 'rgba(255,255,255,0.05)', color: '#a78bfa', fontWeight: 600,
+                        border: '1px solid rgba(167,139,250,0.3)', background: 'var(--yb-input)', color: '#a78bfa', fontWeight: 600,
                       }}
                     >
                       {revealedToken === c._id ? 'Ocultar' : 'Revelar'}
@@ -334,13 +334,13 @@ export default function WidgetsPage() {
                     {c.secretToken}
                   </code>
                 ) : (
-                  <p style={{ fontSize: 11, color: '#4a6080', margin: 0, fontStyle: 'italic' }}>
+                  <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0, fontStyle: 'italic' }}>
                     Sem token — clique em "Regenerar" para criar um.
                   </p>
                 )}
 
                 {revealedToken === c._id && c.secretToken && (
-                  <p style={{ fontSize: 10, color: '#4a6080', margin: '6px 0 0' }}>
+                  <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '6px 0 0' }}>
                     Exemplo: <code style={{ fontFamily: 'monospace' }}>Authorization: Bearer {c.secretToken.slice(0, 8)}…</code>
                   </p>
                 )}
@@ -356,10 +356,10 @@ export default function WidgetsPage() {
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 16 }}
           onClick={(e) => { if (e.target === e.currentTarget) setShowForm(false); }}
         >
-          <div style={{ background: '#162236', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 24, border: `1px solid ${BORDER}` }}>
+          <div style={{ background: 'var(--yb-card)', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 24, border: `1px solid ${BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: NAVY, margin: 0 }}>{editId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#4a6080' }}>✕</button>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--yb-subtle)' }}>✕</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -412,7 +412,7 @@ export default function WidgetsPage() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
-              <button onClick={() => setShowForm(false)} style={{ padding: '8px 16px', borderRadius: 8, border: `1.5px solid ${BORDER}`, background: 'rgba(255,255,255,0.05)', color: '#8B9EC9', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => setShowForm(false)} style={{ padding: '8px 16px', borderRadius: 8, border: `1.5px solid ${BORDER}`, background: 'var(--yb-input)', color: 'var(--yb-muted)', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>
                 Cancelar
               </button>
               <button

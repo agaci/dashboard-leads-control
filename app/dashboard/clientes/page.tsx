@@ -2,9 +2,9 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 
-const NAVY  = '#F0F4FF';
-const CYAN  = '#00bcd4';
-const BORDER = 'rgba(255,255,255,0.08)';
+const NAVY  = 'var(--yb-fg)';
+const CYAN  = 'var(--yb-cyan)';
+const BORDER = 'var(--yb-border)';
 
 type Client = {
   id: string;
@@ -142,11 +142,11 @@ export default function ClientesPage() {
 
   const sectionTitle: React.CSSProperties = {
     fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
-    letterSpacing: '0.07em', color: '#4a6080', margin: '0 0 10px',
+    letterSpacing: '0.07em', color: 'var(--yb-subtle)', margin: '0 0 10px',
   };
 
   const cardS: React.CSSProperties = {
-    background: '#162236', borderRadius: 10, border: `1px solid ${BORDER}`,
+    background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`,
     padding: '14px 18px', marginBottom: 12,
   };
 
@@ -154,18 +154,18 @@ export default function ClientesPage() {
     width: '100%', padding: '6px 9px',
     border: `1.5px solid ${BORDER}`, borderRadius: 7,
     fontSize: 13, outline: 'none', fontFamily: 'inherit',
-    boxSizing: 'border-box', background: 'rgba(255,255,255,0.05)',
-    color: '#F0F4FF', colorScheme: 'dark' as const,
+    boxSizing: 'border-box', background: 'var(--yb-input)',
+    color: 'var(--yb-fg)', colorScheme: 'inherit' as const,
   };
 
   return (
-    <div style={{ display: 'flex', height: '100%', background: '#0F1B2D', overflow: 'hidden' }}>
+    <div style={{ display: 'flex', height: '100%', background: 'var(--yb-bg)', overflow: 'hidden' }}>
 
       {/* ── Lista de clientes ────────────────────────────────────────────────── */}
       <div style={{
         width: selected ? 280 : '100%',
         borderRight: `1px solid ${BORDER}`,
-        background: '#162236',
+        background: 'var(--yb-card)',
         display: 'flex', flexDirection: 'column', flexShrink: 0,
         transition: 'width 0.2s',
       }}>
@@ -186,9 +186,9 @@ export default function ClientesPage() {
 
         {/* List */}
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {loading && <p style={{ padding: 16, fontSize: 12, color: '#4a6080' }}>A carregar...</p>}
+          {loading && <p style={{ padding: 16, fontSize: 12, color: 'var(--yb-subtle)' }}>A carregar...</p>}
           {!loading && clients.length === 0 && (
-            <p style={{ padding: 16, fontSize: 12, color: '#4a6080', lineHeight: 1.5 }}>
+            <p style={{ padding: 16, fontSize: 12, color: 'var(--yb-subtle)', lineHeight: 1.5 }}>
               {search
                 ? 'Sem resultados para essa pesquisa.'
                 : 'Ainda sem clientes. Converta uma lead na página de Leads.'}
@@ -211,7 +211,7 @@ export default function ClientesPage() {
                 <span style={{ fontSize: 10, color: '#aaa' }}>{fmt(c.updatedAt)}</span>
               </div>
               <div style={{ fontSize: 11, color: CYAN }}>{c.telefone}</div>
-              <div style={{ fontSize: 11, color: '#8B9EC9', marginTop: 2, display: 'flex', gap: 8 }}>
+              <div style={{ fontSize: 11, color: 'var(--yb-muted)', marginTop: 2, display: 'flex', gap: 8 }}>
                 <span>{c.totalServicos} serviço{c.totalServicos !== 1 ? 's' : ''}</span>
                 {c.emailConsent && (
                   <span style={{ color: '#2e7d32', fontWeight: 600 }}>● email</span>
@@ -225,7 +225,7 @@ export default function ClientesPage() {
       {/* ── Detalhe do cliente ───────────────────────────────────────────────── */}
       {selected ? (
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px 24px' }}>
-          {detailLoading && <p style={{ color: '#4a6080', fontSize: 13 }}>A carregar...</p>}
+          {detailLoading && <p style={{ color: 'var(--yb-subtle)', fontSize: 13 }}>A carregar...</p>}
 
           {!detailLoading && detail && (
             <div style={{ maxWidth: 600 }}>
@@ -237,11 +237,11 @@ export default function ClientesPage() {
                   <h2 style={{ margin: 0, fontSize: 19, fontWeight: 700, color: NAVY, fontFamily: 'Space Grotesk, sans-serif' }}>
                     {detail.nome}
                   </h2>
-                  {detail.empresa && <p style={{ margin: '2px 0 0', fontSize: 12, color: '#8B9EC9' }}>{detail.empresa}</p>}
+                  {detail.empresa && <p style={{ margin: '2px 0 0', fontSize: 12, color: 'var(--yb-muted)' }}>{detail.empresa}</p>}
                 </div>
                 <button
                   onClick={() => setSelected(null)}
-                  style={{ border: `1px solid ${BORDER}`, borderRadius: 6, background: 'rgba(255,255,255,0.05)', padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: '#8B9EC9' }}
+                  style={{ border: `1px solid ${BORDER}`, borderRadius: 6, background: 'var(--yb-input)', padding: '4px 10px', fontSize: 12, cursor: 'pointer', color: 'var(--yb-muted)' }}
                 >
                   Fechar
                 </button>
@@ -253,13 +253,13 @@ export default function ClientesPage() {
                 <dl style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px 20px', margin: 0 }}>
                   {/* Telefone */}
                   <div>
-                    <dt style={{ fontSize: 10, color: '#4a6080', marginBottom: 3 }}>Telefone</dt>
+                    <dt style={{ fontSize: 10, color: 'var(--yb-subtle)', marginBottom: 3 }}>Telefone</dt>
                     <dd style={{ fontSize: 13, fontWeight: 600, color: CYAN, margin: 0 }}>{detail.telefone}</dd>
                   </div>
 
                   {/* Email */}
                   <div>
-                    <dt style={{ fontSize: 10, color: '#4a6080', marginBottom: 3 }}>Email</dt>
+                    <dt style={{ fontSize: 10, color: 'var(--yb-subtle)', marginBottom: 3 }}>Email</dt>
                     {editing.email !== undefined ? (
                       <div style={{ display: 'flex', gap: 4 }}>
                         <input
@@ -284,7 +284,7 @@ export default function ClientesPage() {
 
                   {/* Empresa */}
                   <div>
-                    <dt style={{ fontSize: 10, color: '#4a6080', marginBottom: 3 }}>Empresa</dt>
+                    <dt style={{ fontSize: 10, color: 'var(--yb-subtle)', marginBottom: 3 }}>Empresa</dt>
                     {editing.empresa !== undefined ? (
                       <div style={{ display: 'flex', gap: 4 }}>
                         <input
@@ -309,7 +309,7 @@ export default function ClientesPage() {
 
                   {/* Cliente desde */}
                   <div>
-                    <dt style={{ fontSize: 10, color: '#4a6080', marginBottom: 3 }}>Cliente desde</dt>
+                    <dt style={{ fontSize: 10, color: 'var(--yb-subtle)', marginBottom: 3 }}>Cliente desde</dt>
                     <dd style={{ fontSize: 13, fontWeight: 600, color: NAVY, margin: 0 }}>{fmt(detail.createdAt)}</dd>
                   </div>
                 </dl>
@@ -331,7 +331,7 @@ export default function ClientesPage() {
                     style={{
                       marginLeft: 'auto', fontSize: 11, padding: '5px 14px',
                       borderRadius: 6, border: `1px solid ${BORDER}`,
-                      background: 'rgba(255,255,255,0.03)', color: '#4a6080', cursor: 'not-allowed', fontWeight: 600,
+                      background: 'rgba(255,255,255,0.03)', color: 'var(--yb-subtle)', cursor: 'not-allowed', fontWeight: 600,
                     }}
                   >
                     Enviar Email
@@ -351,8 +351,8 @@ export default function ClientesPage() {
                     width: '100%', padding: '8px 10px',
                     border: `1.5px solid ${BORDER}`, borderRadius: 8,
                     fontSize: 13, resize: 'vertical', outline: 'none',
-                    fontFamily: 'inherit', boxSizing: 'border-box', color: '#F0F4FF',
-                    background: 'rgba(255,255,255,0.05)', colorScheme: 'dark',
+                    fontFamily: 'inherit', boxSizing: 'border-box', color: 'var(--yb-fg)',
+                    background: 'var(--yb-input)', colorScheme: 'inherit' as const,
                   }}
                 />
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
@@ -375,7 +375,7 @@ export default function ClientesPage() {
               <div style={cardS}>
                 <p style={sectionTitle}>Histórico de Serviços ({detail.leads.length})</p>
                 {detail.leads.length === 0 && (
-                  <p style={{ fontSize: 12, color: '#4a6080', margin: 0 }}>Sem serviços registados.</p>
+                  <p style={{ fontSize: 12, color: 'var(--yb-subtle)', margin: 0 }}>Sem serviços registados.</p>
                 )}
                 {detail.leads.map(l => {
                   const isArrasto = l.serviceType === 'arrasto';
@@ -391,7 +391,7 @@ export default function ClientesPage() {
                         <div style={{ fontWeight: 600, fontSize: 13, color: NAVY, marginBottom: 2 }}>
                           {l.origem?.split(',')[0] ?? '—'} → {l.destino?.split(',')[0] ?? '—'}
                         </div>
-                        <div style={{ fontSize: 11, color: '#8B9EC9' }}>
+                        <div style={{ fontSize: 11, color: 'var(--yb-muted)' }}>
                           {isArrasto ? '24h Amanhã' : (l.urgencia ?? '—')}
                           {' · '}
                           {new Date(l.timeStamp).toLocaleDateString('pt-PT')}
@@ -421,7 +421,7 @@ export default function ClientesPage() {
         <div style={{
           flex: 1, display: 'flex', flexDirection: 'column',
           alignItems: 'center', justifyContent: 'center',
-          color: '#4a6080', gap: 10,
+          color: 'var(--yb-subtle)', gap: 10,
         }}>
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
