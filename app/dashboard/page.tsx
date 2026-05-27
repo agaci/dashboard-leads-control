@@ -1495,12 +1495,24 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
   onClose: () => void;
   onClientConverted?: (clientId: string) => void;
 }) {
-  const d = lead.leadData;
+  const [currentLead, setCurrentLead] = useState<Lead>(lead);
+  const d = currentLead.leadData;
   const nome = d.nome ?? 'Sem nome';
-  const [clientId, setClientId] = useState<string | null>(lead.clientId ?? null);
+  const [clientId, setClientId] = useState<string | null>(currentLead.clientId ?? null);
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
+
+  useEffect(() => {
+    fetch(`/api/leads/${lead.id}`)
+      .then(r => r.json())
+      .then(data => { if (data.lead) setCurrentLead(data.lead); })
+      .catch(() => {});
+  }, [lead.id]);
+
+  useEffect(() => {
+    setCurrentLead(lead);
+  }, [lead]);
 
   async function convertToClient() {
     setConverting(true);
@@ -1509,7 +1521,7 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       const res = await fetch('/api/clients', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: lead.id }),
+        body: JSON.stringify({ leadId: currentLead.id }),
       });
       const data = await res.json();
       if (data.success) {
@@ -1536,29 +1548,29 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       <div className="flex items-start justify-between">
         <div className="flex items-start gap-4">
           <div className="flex h-12 w-12 items-center justify-center rounded-full bg-orange-soft text-sm font-bold text-orange shrink-0">
-            {lead.variante === 'BOT' ? 'AI' : nome.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
+            {currentLead.variante === 'BOT' ? 'AI' : nome.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()}
           </div>
           <div>
             <div className="mb-2 flex flex-wrap gap-1.5">
-              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${lead.messageType === 'newLead' ? 'bg-success-soft text-success' : 'bg-cyan-soft text-cyan'}`}>
-                {lead.messageType === 'newLead' ? 'Lead Confirmada' : 'Simulação'}
+              <span className={`rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${currentLead.messageType === 'newLead' ? 'bg-success-soft text-success' : 'bg-cyan-soft text-cyan'}`}>
+                {currentLead.messageType === 'newLead' ? 'Lead Confirmada' : 'Simulação'}
               </span>
-              {lead.variante && (() => {
-                const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['#f0f0f0', '#555'];
+              {currentLead.variante && (() => {
+                const [bg, fg] = VARIANTE_TAG[currentLead.variante] ?? ['#f0f0f0', '#555'];
                 return (
                   <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 10px', borderRadius: 999, background: bg, color: fg }}>
-                    {VARIANTE_LABELS[lead.variante] ?? lead.variante}
+                    {VARIANTE_LABELS[currentLead.variante] ?? currentLead.variante}
                   </span>
                 );
               })()}
-              {lead.leadData.source && lead.leadData.source !== 'bot' && (
+              {d.source && d.source !== 'bot' && (
                 <span className="rounded-full bg-brand-purple-soft px-2.5 py-0.5 text-[11px] font-semibold text-brand-purple">
-                  {lead.leadData.source}
+                  {d.source}
                 </span>
               )}
             </div>
             <h2 className="text-2xl font-bold tracking-tight text-foreground">{nome}</h2>
-            <div className="mt-1 text-xs text-muted-foreground">{fmt(lead.timeStamp)}</div>
+            <div className="mt-1 text-xs text-muted-foreground">{fmt(currentLead.timeStamp)}</div>
           </div>
         </div>
         <button
@@ -1698,12 +1710,12 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       )}
 
       {/* Hipóteses de agregação */}
-      {lead.messageType === 'newLead' && d.origem && d.destino && (
+      {currentLead.messageType === 'newLead' && d.origem && d.destino && (
         <AggregationHints origem={d.origem} destino={d.destino} />
       )}
 
       {/* Converter para Cliente */}
-      {lead.messageType === 'newLead' && (
+      {currentLead.messageType === 'newLead' && (
         <div className="rounded-xl bg-card p-5 shadow-card">
           <div className="flex items-center justify-between">
             <div>
