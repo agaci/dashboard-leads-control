@@ -732,24 +732,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const recapTmr = cargoRecapLine(nVolTmr, totalCmKnown, kg);
             botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
 
-            let priceBreakdownTmr: any;
-            if (recTariffTmr) {
-              priceBreakdownTmr = buildPartnerServiceBreakdown(
-                recTariffTmr,
-                kg,
-                totalCmKnown,
-                recommended,
-                depotPriceTmr,
-                (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
-              );
-              latestBreakdown = priceBreakdownTmr;
-              console.log('[calculate_tomorrow] Breakdown 24H criado:', {
-                tariff: recTariffTmr.partner,
-                kg,
-                totalCm: totalCmKnown,
-                hasBreakdown: !!priceBreakdownTmr,
-              });
-            }
+            // Usar recommended directamente — já tem toda a info de preço calculada
+            const priceBreakdownTmr = buildPartnerServiceBreakdown(
+              { partner: recommended.serviceLabelShort, _id: recommended.tariffId } as any,
+              kg,
+              totalCmKnown,
+              recommended,
+              depotPriceTmr,
+              (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
+            );
+            latestBreakdown = priceBreakdownTmr;
+            console.log('[calculate_tomorrow] Breakdown 24H criado:', {
+              tariff: recommended.serviceLabelShort,
+              kg,
+              totalCm: totalCmKnown,
+              hasBreakdown: !!priceBreakdownTmr,
+            });
 
             const updateSetTmr: Record<string, unknown> = {
               step: 'PRESENTING_PARTNER_PRICE',
