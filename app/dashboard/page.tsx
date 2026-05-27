@@ -168,7 +168,10 @@ export default function DashboardPage() {
     if (alert.type === 'escalation') setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'live_chat')  setBadges((b) => ({ ...b, conversas: true }));
     if (alert.type === 'new_conv')   setBadges((b) => ({ ...b, conversas: true }));
-    if (alert.type === 'lead')       setBadges((b) => ({ ...b, leads: true }));
+    if (alert.type === 'lead') {
+      setBadges((b) => ({ ...b, leads: true }));
+      fetchLeads();
+    }
     if (alert.type === 'aggHint') {
       const id = ++toastCounter.current;
       setAggToasts((ts) => [...ts, { ...alert, id, expiresAt: Date.now() + 30000 }]);

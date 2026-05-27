@@ -39,6 +39,11 @@ export function buildDirectServiceBreakdown(
   };
 }
 
+export interface DepotInfo {
+  name: string;
+  distanceKm: number;
+}
+
 /** Constrói breakdown para serviço 24H (parceiro + depot) */
 export function buildPartnerServiceBreakdown(
   tariff: PartnerTariff,
@@ -47,6 +52,7 @@ export function buildPartnerServiceBreakdown(
   partnerPrice: PartnerPriceResult,
   depotPrice: number | undefined,
   calculatorName: string,
+  depotInfo?: DepotInfo,
 ): PriceBreakdown {
   const IVA = parseFloat(process.env.IVA || '1.23');
 
@@ -80,14 +86,14 @@ export function buildPartnerServiceBreakdown(
 
   if (depotPrice !== undefined) {
     breakdown.depot = {
-      name: 'Depot', // ← será preenchido no handler com o nome real
-      distanceKm: 0, // ← será preenchido no handler
-      type: '50', // ← será preenchido no handler
-      precedence: '4', // ← será preenchido no handler
-      priceKm: 0, // ← será preenchido no handler
-      priceMin: 0, // ← será preenchido no handler
-      LX_PT: 0, // ← será preenchido no handler
-      GLX_GPT: 0, // ← será preenchido no handler
+      name: depotInfo?.name ?? 'Depot',
+      distanceKm: depotInfo?.distanceKm ?? 0,
+      type: '50',
+      precedence: '4',
+      priceKm: 0,
+      priceMin: 0,
+      LX_PT: 0,
+      GLX_GPT: 0,
       basePrice: depotPrice,
     };
   }
