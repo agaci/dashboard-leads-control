@@ -5,6 +5,7 @@ import { findAggregationHints } from '@/lib/agent/aggregation';
 import { calcAllActiveTariffs, parseTotalCm, parseNVolumesFromText, parseWeightKgFromText } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
+import { buildDirectServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { decideMode, defaultRoutingConfig } from '@/lib/routing/decideMode';
 import type { ConversationData, ConversationMessage } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
@@ -165,8 +166,18 @@ export async function POST(request: NextRequest) {
           const discountRate = settings.discountPercent ?? 0.1;
           const discount = priceCalculated * discountRate;
           const priceWithDiscount = priceCalculated - discount;
+          const percentPlusMax = priceCalculated > 0 ? priceWithDiscount / priceCalculated : 1;
 
-          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal });
+          const breakdown = buildDirectServiceBreakdown(
+            fixResult,
+            priceResult,
+            priceCalculated,
+            percentPlusMax,
+            discountRate > 0,
+            calcNameStart,
+          );
+
+          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown });
         }
       } catch {
         // Se o calculo falhar, escalar para humano
