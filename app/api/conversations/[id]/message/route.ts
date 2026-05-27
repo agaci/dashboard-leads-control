@@ -104,6 +104,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return Response.json({ error: 'Conversa encerrada', step: convDoc.step }, { status: 409 });
     }
 
+    // Rastrear breakdown criado neste request (não usar convDoc que foi lido uma vez)
+    let latestBreakdown: any = null;
+
     // Chat em tempo real com operador: guardar mensagem, sem resposta automática
     if (convDoc.step === 'LIVE_CHAT') {
       const history = convDoc.history ?? [];
@@ -280,6 +283,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           depotPrice24,
           (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
         );
+        latestBreakdown = priceBreakdown;
       }
 
       history.push({ role: 'bot', text: botText, timestamp: now });
@@ -413,6 +417,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                   depotPriceFri,
                   (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
                 );
+                latestBreakdown = priceBreakdownFri;
               }
 
               const updateSetFri: Record<string, unknown> = {
@@ -546,13 +551,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         volumes: result.volumes,
         timeStamp: now, converted: true,
         source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
-        ...(convDoc.data.priceBreakdown && { priceBreakdown: convDoc.data.priceBreakdown }),
+        ...(latestBreakdown && { priceBreakdown: latestBreakdown }),
       };
 
       console.log('[MESSAGE] Registando lead com dados:', {
         leadId: nome,
         serviceType: convDoc.data.serviceType,
-        hasBreakdownInConv: !!convDoc.data.priceBreakdown,
+        hasBreakdownInLatest: !!latestBreakdown,
         hasBreakdownInLeadData: !!leadDataToInsert.priceBreakdown,
       });
 
@@ -710,6 +715,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 depotPriceTmr,
                 (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
               );
+              latestBreakdown = priceBreakdownTmr;
             }
 
             const updateSetTmr: Record<string, unknown> = {
