@@ -718,7 +718,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               priceBreakdownTmr = buildPartnerServiceBreakdown(
                 recTariffTmr,
                 kg,
-                totalCm,
+                totalCmKnown,
                 recommended,
                 depotPriceTmr,
                 (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
