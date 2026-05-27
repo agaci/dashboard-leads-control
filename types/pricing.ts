@@ -99,3 +99,56 @@ export interface LeadRoutingConfig {
   };
   calcPriceMachine?: string;
 }
+
+export interface PriceBreakdown {
+  serviceType: '24H' | 'direto' | 'parceiro';
+  timestamp: Date;
+
+  partner?: {
+    name: string;
+    tariffId: string;
+    weightKg: number;
+    dimensionsCm: number;
+    basePrice: number;
+    fuelPercent: number;
+    fuelCharge: number;
+    basePriceWithFuel: number;
+    markup: number;
+    priceBeforeIVA: number;
+  };
+
+  depot?: {
+    name: string;
+    distanceKm: number;
+    type: string;
+    precedence: string;
+    priceKm: number;
+    priceMin: number;
+    LX_PT: number;
+    GLX_GPT: number;
+    basePrice: number;
+  };
+
+  directService?: {
+    distanceKm: number;
+    type: string;
+    precedence: string;
+    priceKm: number;
+    priceMin: number;
+    LX_PT: number;
+    GLX_GPT: number;
+    basePrice: number;
+    percentPlusMax: number;
+    priceWithMarkup: number;
+  };
+
+  calculator: {
+    name: string;
+  };
+
+  final: {
+    subtotalBeforeIVA: number;
+    ivaRate: number;
+    finalPrice: number;
+  };
+}

@@ -1,0 +1,96 @@
+import type { PriceBreakdown } from '@/types/pricing';
+import type { PartnerTariff, PartnerPriceResult } from '@/types/partner';
+import type { FixCityPriceResult, PriceResult } from '@/types/pricing';
+
+/** Constrói breakdown para serviço direto (1H/4H YourBox) */
+export function buildDirectServiceBreakdown(
+  fixResult: FixCityPriceResult,
+  priceResult: PriceResult,
+  basePrice: number,
+  percentPlusMax: number,
+  discountApplied: boolean,
+  calculatorName: string,
+): PriceBreakdown {
+  const IVA = parseFloat(process.env.IVA || '1.23');
+  const priceWithMarkup = basePrice * percentPlusMax;
+  const finalPrice = Math.round(priceWithMarkup * IVA * 100) / 100;
+
+  return {
+    serviceType: 'direto',
+    timestamp: new Date(),
+    directService: {
+      distanceKm: fixResult.distanciaFinal,
+      type: priceResult.type,
+      precedence: priceResult.precedence,
+      priceKm: 0, // ← será preenchido do typeSettings no handler
+      priceMin: 0, // ← será preenchido do typeSettings no handler
+      LX_PT: priceResult.LX_PT,
+      GLX_GPT: priceResult.GLX_GPT,
+      basePrice,
+      percentPlusMax,
+      priceWithMarkup,
+    },
+    calculator: { name: calculatorName },
+    final: {
+      subtotalBeforeIVA: priceWithMarkup,
+      ivaRate: IVA,
+      finalPrice,
+    },
+  };
+}
+
+/** Constrói breakdown para serviço 24H (parceiro + depot) */
+export function buildPartnerServiceBreakdown(
+  tariff: PartnerTariff,
+  weightKg: number,
+  dimensionsCm: number,
+  partnerPrice: PartnerPriceResult,
+  depotPrice: number | undefined,
+  calculatorName: string,
+): PriceBreakdown {
+  const IVA = parseFloat(process.env.IVA || '1.23');
+
+  // partnerPrice.finalPrice já tem IVA; calcular backward
+  const priceBeforeIVA = partnerPrice.finalPrice / IVA;
+  const subtotalBeforeIVA = depotPrice ? priceBeforeIVA + depotPrice : priceBeforeIVA;
+  const finalPrice = Math.round(subtotalBeforeIVA * IVA * 100) / 100;
+
+  const breakdown: PriceBreakdown = {
+    serviceType: '24H',
+    timestamp: new Date(),
+    partner: {
+      name: tariff.partner,
+      tariffId: tariff._id ?? '',
+      weightKg,
+      dimensionsCm,
+      basePrice: partnerPrice.breakdown.weightPrice,
+      fuelPercent: tariff.fuelSurchargePercent ?? 0,
+      fuelCharge: partnerPrice.breakdown.fuelCharge,
+      basePriceWithFuel: partnerPrice.breakdown.weightPrice + partnerPrice.breakdown.fuelCharge,
+      markup: partnerPrice.markup,
+      priceBeforeIVA,
+    },
+    calculator: { name: calculatorName },
+    final: {
+      subtotalBeforeIVA,
+      ivaRate: IVA,
+      finalPrice,
+    },
+  };
+
+  if (depotPrice !== undefined) {
+    breakdown.depot = {
+      name: 'Depot', // ← será preenchido no handler com o nome real
+      distanceKm: 0, // ← será preenchido no handler
+      type: '50', // ← será preenchido no handler
+      precedence: '4', // ← será preenchido no handler
+      priceKm: 0, // ← será preenchido no handler
+      priceMin: 0, // ← será preenchido no handler
+      LX_PT: 0, // ← será preenchido no handler
+      GLX_GPT: 0, // ← será preenchido no handler
+      basePrice: depotPrice,
+    };
+  }
+
+  return breakdown;
+}

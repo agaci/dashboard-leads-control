@@ -1,3 +1,5 @@
+import type { PriceBreakdown } from './pricing';
+
 // Estados da conversa — máquina de estados do bot
 export type ConversationStep =
   | 'INIT'
@@ -101,6 +103,8 @@ export interface ConversationData {
   ifthenpayRequestId?: string;
   pblPaymentUrl?: string;
   pblOrderId?: string;
+  // breakdown de preço — para auditoria e transparência
+  priceBreakdown?: PriceBreakdown;
 }
 
 export interface Conversation {
