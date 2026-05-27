@@ -2,7 +2,6 @@ import type { Db } from 'mongodb';
 import { geocode } from '@/lib/pricing/geocode';
 import { classifyPoints } from '@/lib/pricing/cityPolygon';
 import { getDistanceMatrix } from '@/lib/pricing/distanceMatrix';
-import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import type { PartnerDepot, FixCityPriceResult } from '@/types/pricing';
 
 export type { PartnerDepot };
@@ -10,7 +9,7 @@ export type { PartnerDepot };
 export interface DepotPricingResult {
   depot: PartnerDepot;
   distanceKm: number;
-  pickupPrice: number; // preço máximo YourBox para recolha → depósito (IVA incl.)
+  pickupPrice: number; // preço base YourBox para recolha → depósito (SEM markup, SEM IVA)
 }
 
 /**
@@ -88,14 +87,21 @@ export async function calcDepotPickupPrice(
   if (bestDistance > (settings.globalParameters?.distance2To50 ?? 999) && type === '2') type = '50';
   if (bestDistance > (settings.globalParameters?.distance4To1 ?? 999) || new Date().getHours() > 13) precedence = '1';
 
-  const priceResult = calculatePrice(bestFixResult, { type, precedence }, settings);
-  // calculatePrice devolve maxPrice com IVA incluído — retiramos para que o IVA
-  // seja aplicado uma única vez no cálculo final do parceiro (com o total)
-  const IVA = parseFloat(process.env.IVA || '1.23');
+  // Calcular preço base do depot — SEM markup, SEM IVA
+  // Fórmula: distância × priceKm + priceMin × (LX_PT + GLX_GPT)
+  const typeSettings = settings[`type${type}`]?.[`precedence${precedence}`];
+  if (!typeSettings) return null;
+
+  const { priceKm, priceMin } = typeSettings;
+  const GLX_GPT_val = bestFixResult.GLX_GPT > 0 ? 1 : 0;
+  const LX_PT = Math.max(0, bestFixResult.LX + bestFixResult.PT - 1);
+
+  const basePriceDepot = bestDistance * priceKm + priceMin * (LX_PT + GLX_GPT_val);
+  const pickupPrice = Math.round(basePriceDepot * 100) / 100;
 
   return {
     depot: bestDepot,
     distanceKm: bestDistance,
-    pickupPrice: Math.round((priceResult.maxPrice / IVA) * 100) / 100, // markup incl., IVA excl.
+    pickupPrice,  // preço base apenas, SEM markup, SEM IVA
   };
 }

@@ -77,8 +77,9 @@ export function calcPartnerPrice(
   // ── Markup + IVA ─────────────────────────────────────────────────────────
   const appliedMarkup = markup ?? tariff.markup ?? 1.0;
   const IVA = parseFloat(process.env.IVA || '1.23');
-  // depotPickupPrice: markup já incluído, IVA não — soma antes de aplicar IVA ao total
+  // depotPickupPrice: preço base SEM markup, SEM IVA
   // fórmula: (baseParceiro × markup + depot) × IVA
+  // O markup 1.35 aplica-se APENAS ao parceiro, não ao depot
   const priceBeforeIVA = basePriceWithFuel * appliedMarkup + (depotPickupPrice ?? 0);
   const finalPrice = Math.round(priceBeforeIVA * IVA * 100) / 100;
 
