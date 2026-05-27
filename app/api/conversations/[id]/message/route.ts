@@ -515,6 +515,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     } else if (result.type === 'register_lead') {
+      console.log('[MESSAGE] Antes de registar lead:', {
+        currentStep: convDoc.step,
+        serviceType: convDoc.data.serviceType,
+        hasLatestBreakdown: !!latestBreakdown,
+        hasPartnerFinalPrice: !!convDoc.data.partnerFinalPrice,
+        weightKg: convDoc.data.weightKg,
+      });
+
       const isEscalatedCase = !!(convDoc.data as any).isEscalatedCase;
       nextStep = isEscalatedCase ? 'ESCALATED_TO_HUMAN' : 'LEAD_REGISTERED';
       leadRegistered = true;
