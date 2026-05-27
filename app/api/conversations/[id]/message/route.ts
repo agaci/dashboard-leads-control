@@ -552,6 +552,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           volumes: result.volumes,
           timeStamp: now, converted: true,
           source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
+          ...(convDoc.data.priceBreakdown && { priceBreakdown: convDoc.data.priceBreakdown }),
         },
       });
       leadInsertedId = _leadInsert.insertedId.toString();
