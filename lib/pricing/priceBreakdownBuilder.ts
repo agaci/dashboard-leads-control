@@ -56,10 +56,15 @@ export function buildPartnerServiceBreakdown(
 ): PriceBreakdown {
   const IVA = parseFloat(process.env.IVA || '1.23');
 
-  // partnerPrice.finalPrice já tem IVA; calcular backward
-  const priceBeforeIVA = partnerPrice.finalPrice / IVA;
-  const subtotalBeforeIVA = depotPrice ? priceBeforeIVA + depotPrice : priceBeforeIVA;
-  const finalPrice = Math.round(subtotalBeforeIVA * IVA * 100) / 100;
+  // A fórmula correcta (partnerPricing.ts linha 83-84):
+  // priceBeforeIVA = baseParceiro × markup + depot
+  // finalPrice = priceBeforeIVA × IVA
+  //
+  // partnerPrice.finalPrice JÁ inclui depot e IVA
+  // Para separar: partnerBeforeIVA = baseParceiro × markup
+  const partnerBeforeIVA = partnerPrice.breakdown.weightPrice * partnerPrice.markup;
+  const subtotalBeforeIVA = partnerBeforeIVA + (depotPrice ?? 0);
+  const finalPrice = partnerPrice.finalPrice; // usar o preço real que foi mostrado ao utilizador
 
   const breakdown: PriceBreakdown = {
     serviceType: '24H',
@@ -74,7 +79,7 @@ export function buildPartnerServiceBreakdown(
       fuelCharge: partnerPrice.breakdown.fuelCharge,
       basePriceWithFuel: partnerPrice.breakdown.weightPrice + partnerPrice.breakdown.fuelCharge,
       markup: partnerPrice.markup,
-      priceBeforeIVA,
+      priceBeforeIVA: partnerBeforeIVA,
     },
     calculator: { name: calculatorName },
     final: {

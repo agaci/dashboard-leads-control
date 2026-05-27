@@ -191,9 +191,9 @@ export function PriceBreakdownModal({ breakdown, isOpen = false, onClose }: Pric
                 </td>
               </tr>
               <tr>
-                <td style={{ padding: '8px 0', color: 'var(--yb-muted)' }}>IVA ({(breakdown.final.ivaRate * 100).toFixed(0)}%)</td>
+                <td style={{ padding: '8px 0', color: 'var(--yb-muted)' }}>IVA ({((breakdown.final.ivaRate - 1) * 100).toFixed(0)}%)</td>
                 <td style={{ padding: '8px 0', textAlign: 'right', fontWeight: 600 }}>
-                  {formatPrice(breakdown.final.subtotalBeforeIVA * (breakdown.final.ivaRate - 1))}
+                  {formatPrice(breakdown.final.finalPrice - breakdown.final.subtotalBeforeIVA)}
                 </td>
               </tr>
               <tr style={{ borderTop: '2px solid rgba(255,255,255,0.2)', marginTop: 8 }}>
