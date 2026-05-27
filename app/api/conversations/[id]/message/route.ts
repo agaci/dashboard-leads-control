@@ -556,10 +556,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
       leadInsertedId = _leadInsert.insertedId.toString();
 
-      // Atualizar conversa
+      // Atualizar conversa com leadId
       await db.collection('conversations').updateOne(
         { _id: oid },
-        { $set: { step: nextStep, 'data.nome': nome, 'data.telefone': telefone, 'data.email': email ?? null, updatedAt: now } }
+        { $set: { step: nextStep, leadId: leadInsertedId, 'data.nome': nome, 'data.telefone': telefone, 'data.email': email ?? null, updatedAt: now } }
       );
 
     } else if (result.type === 'signal_off_topic') {
