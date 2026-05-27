@@ -1506,8 +1506,19 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
   useEffect(() => {
     fetch(`/api/leads/${lead.id}`)
       .then(r => r.json())
-      .then(data => { if (data.lead) setCurrentLead(data.lead); })
-      .catch(() => {});
+      .then(data => {
+        if (data.lead) {
+          console.log('[DetailPanel] Lead recarregada:', {
+            leadId: data.lead.id,
+            hasBreakdownInLeadData: !!data.lead.leadData?.priceBreakdown,
+            breakdownType: data.lead.leadData?.priceBreakdown?.serviceType,
+          });
+          setCurrentLead(data.lead);
+        }
+      })
+      .catch((err) => {
+        console.error('[DetailPanel] Erro ao carregar lead:', err);
+      });
   }, [lead.id]);
 
   useEffect(() => {

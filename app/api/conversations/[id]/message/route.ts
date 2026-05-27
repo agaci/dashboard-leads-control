@@ -530,30 +530,39 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const volumesHtml = result.volumes ? `<p><b>Volumes:</b> ${result.volumes}</p>` : '';
       const canalLabel = isEscalatedCase ? 'WEB CHAT FORA DE HORÁRIO' : 'WEB CHAT BOT LLM';
 
+      const leadDataToInsert = {
+        origem: convDoc.data.origem, destino: convDoc.data.destino,
+        urgencia: convDoc.data.urgencia, serviceType: convDoc.data.serviceType,
+        viatura: convDoc.data.viatura, weightKg: convDoc.data.weightKg,
+        partnerWindow: convDoc.data.partnerWindow,
+        priceWithDiscount: convDoc.data.priceWithDiscount,
+        partnerFinalPrice: convDoc.data.partnerFinalPrice,
+        nome, email, telefone,
+        notas: result.notas,
+        origemCompleta: result.origemCompleta,
+        destinoCompleta: result.destinoCompleta,
+        contactoRecolha: result.contactoRecolha,
+        contactoEntrega: result.contactoEntrega,
+        volumes: result.volumes,
+        timeStamp: now, converted: true,
+        source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
+        ...(convDoc.data.priceBreakdown && { priceBreakdown: convDoc.data.priceBreakdown }),
+      };
+
+      console.log('[MESSAGE] Registando lead com dados:', {
+        leadId: nome,
+        serviceType: convDoc.data.serviceType,
+        hasBreakdownInConv: !!convDoc.data.priceBreakdown,
+        hasBreakdownInLeadData: !!leadDataToInsert.priceBreakdown,
+      });
+
       const _leadInsert = await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p>` : ''}<p style="color:${isEscalatedCase ? 'orange' : 'green'};"><b>CONTACTAR [canal: ${canalLabel}]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent Web', variante: 'BOT',
         timeStamp: now, closed: false, closedAt: null, reply: [],
-        leadData: {
-          origem: convDoc.data.origem, destino: convDoc.data.destino,
-          urgencia: convDoc.data.urgencia, serviceType: convDoc.data.serviceType,
-          viatura: convDoc.data.viatura, weightKg: convDoc.data.weightKg,
-          partnerWindow: convDoc.data.partnerWindow,
-          priceWithDiscount: convDoc.data.priceWithDiscount,
-          partnerFinalPrice: convDoc.data.partnerFinalPrice,
-          nome, email, telefone,
-          notas: result.notas,
-          origemCompleta: result.origemCompleta,
-          destinoCompleta: result.destinoCompleta,
-          contactoRecolha: result.contactoRecolha,
-          contactoEntrega: result.contactoEntrega,
-          volumes: result.volumes,
-          timeStamp: now, converted: true,
-          source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
-          ...(convDoc.data.priceBreakdown && { priceBreakdown: convDoc.data.priceBreakdown }),
-        },
+        leadData: leadDataToInsert,
       });
       leadInsertedId = _leadInsert.insertedId.toString();
 

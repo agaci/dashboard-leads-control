@@ -9,9 +9,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const doc = await db.collection('messages').findOne({ _id: new ObjectId(id) });
     if (!doc) return Response.json({ error: 'not found' }, { status: 404 });
 
-    // Procurar breakdown da conversa associada, se houver
-    let priceBreakdown = null;
-    if (doc.leadData?.telemovel) {
+    // Procurar breakdown — primeiro em leadData (novo), depois em conversa (fallback)
+    let priceBreakdown = doc.leadData?.priceBreakdown || null;
+
+    if (!priceBreakdown && doc.leadData?.telemovel) {
       const conv = await db.collection('conversations').findOne({
         $or: [
           { telemovel: doc.leadData.telemovel, leadId: doc._id.toString() },
@@ -22,6 +23,13 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         priceBreakdown = conv.data.priceBreakdown;
       }
     }
+
+    console.log('[GET /leads/[id]] Retornando lead:', {
+      leadId: doc._id.toString(),
+      hasBreakdownInDoc: !!doc.leadData?.priceBreakdown,
+      hasBreakdownFromConv: !!(priceBreakdown && doc.leadData?.priceBreakdown === undefined),
+      finalHasBreakdown: !!priceBreakdown,
+    });
 
     const leadData = {
       ...doc.leadData,

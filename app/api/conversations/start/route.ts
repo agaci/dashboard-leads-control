@@ -177,6 +177,14 @@ export async function POST(request: NextRequest) {
             calcNameStart,
           );
 
+          console.log('[START] Breakdown direto criado:', {
+            serviceType: 'direto',
+            priceCalculated,
+            percentPlusMax,
+            breakdownType: breakdown.serviceType,
+            hasBreakdown: !!breakdown
+          });
+
           Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown });
         }
       } catch {
