@@ -702,6 +702,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const isSaturday = new Date().getDay() === 6;
           const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPriceTmr);
 
+          console.log('[calculate_tomorrow] Preços calculados:', {
+            convId: oid.toString(),
+            weightKg: kg,
+            pricesCount: prices.length,
+            hasError: prices.length === 0,
+          });
+
           if (prices.length > 0) {
             const sorted = [...prices].reverse();
             const recommended = sorted[Math.floor(sorted.length / 2)];
@@ -751,7 +758,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               { $set: updateSetTmr }
             );
           }
-        } catch {
+        } catch (err) {
+          console.error('[calculate_tomorrow] ERRO ao calcular preço:', {
+            convId: oid.toString(),
+            error: err instanceof Error ? err.message : String(err),
+          });
           botText = botText || 'Não foi possível calcular o preço. A nossa equipa vai contactar brevemente.';
           nextStep = 'ESCALATED_TO_HUMAN';
           escalate = true;
