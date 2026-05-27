@@ -143,8 +143,9 @@ export async function POST(request: NextRequest) {
     } else if (serviceType === 'direto') {
       // Calcular preço direto (YourBox)
       try {
+        const calcNameStart = cfg?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI';
         const settings = await db.collection('calculators').findOne({
-          name: process.env.CALC_PRICE_MACHINE,
+          name: calcNameStart,
           companyProvider: 'Yourbox',
         });
 

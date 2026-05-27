@@ -69,12 +69,31 @@ export default function PrecosPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [activeCalcName, setActiveCalcName] = useState<string>('');
+  const [availableCalcs, setAvailableCalcs] = useState<{ name: string }[]>([]);
+  const [switching, setSwitching] = useState(false);
+  const [cloning, setCloning] = useState(false);
+  const [cloneMsg, setCloneMsg] = useState<string | null>(null);
 
-  useEffect(() => {
+  function loadCalc() {
     fetch('/api/settings/calculator').then((r) => r.json()).then((d) => {
-      if (d.success) setCalc({ discountPercent: 0.1, ...d.calculator });
+      if (d.success) {
+        setCalc({ discountPercent: 0.1, ...d.calculator });
+        setActiveCalcName(d.name ?? '');
+      }
       setLoading(false);
     });
+  }
+
+  function loadAvailable() {
+    fetch('/api/settings/calculators').then((r) => r.json()).then((d) => {
+      if (d.success) setAvailableCalcs(d.calculators ?? []);
+    });
+  }
+
+  useEffect(() => {
+    loadCalc();
+    loadAvailable();
   }, []);
 
   async function save() {
@@ -88,6 +107,38 @@ export default function PrecosPage() {
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
+  }
+
+  async function switchCalc(name: string) {
+    if (name === activeCalcName) return;
+    setSwitching(true);
+    await fetch('/api/routing-config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ calcPriceMachine: name }),
+    });
+    setSwitching(false);
+    setLoading(true);
+    loadCalc();
+  }
+
+  async function cloneToCalc1() {
+    if (!activeCalcName) return;
+    setCloning(true);
+    setCloneMsg(null);
+    const res = await fetch('/api/settings/calculators', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sourceName: activeCalcName, targetName: 'calculator_1' }),
+    });
+    const data = await res.json();
+    if (data.success) {
+      setCloneMsg('calculator_1 criada com sucesso.');
+      loadAvailable();
+    } else {
+      setCloneMsg(data.error ?? 'Erro ao clonar.');
+    }
+    setCloning(false);
   }
 
   function setOoh(field: keyof OutOfHours, val: number) {
@@ -113,13 +164,50 @@ export default function PrecosPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-xl font-bold" style={{ color: 'var(--yb-fg)', fontFamily: 'Space Grotesk, sans-serif' }}>Preços & Calculadora</h1>
-            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 2 }}>calculator_1_FixCityPriceAPI</p>
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 2 }}>{activeCalcName || '—'}</p>
           </div>
           <button onClick={save} disabled={saving}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
             style={{ background: saving ? '#aaa' : saved ? '#22c55e' : '#00bcd4' }}>
             {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar alterações'}
           </button>
+        </div>
+
+        {/* Selecção de calculadora */}
+        <div style={CARD}>
+          <p style={TITLE}>Calculadora activa</p>
+          <div className="flex flex-wrap items-center gap-3 mb-3">
+            {availableCalcs.map((c) => (
+              <button
+                key={c.name}
+                onClick={() => switchCalc(c.name)}
+                disabled={switching}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold border transition-all"
+                style={{
+                  background: c.name === activeCalcName ? 'hsl(var(--cyan-soft))' : 'var(--yb-card-2)',
+                  color: c.name === activeCalcName ? 'hsl(var(--cyan))' : 'var(--yb-muted)',
+                  borderColor: c.name === activeCalcName ? 'hsl(var(--cyan))' : 'transparent',
+                  opacity: switching ? 0.6 : 1,
+                }}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+          {!availableCalcs.some((c) => c.name === 'calculator_1') && (
+            <div className="flex items-center gap-3 mt-2">
+              <button
+                onClick={cloneToCalc1}
+                disabled={cloning}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold"
+                style={{ background: 'var(--yb-card-2)', color: 'var(--yb-subtle)', opacity: cloning ? 0.6 : 1 }}>
+                {cloning ? 'A criar...' : 'Criar calculator_1 (cópia da actual)'}
+              </button>
+              {cloneMsg && <span style={{ fontSize: 11, color: cloneMsg.includes('sucesso') ? 'hsl(var(--success))' : 'hsl(var(--destructive))' }}>{cloneMsg}</span>}
+            </div>
+          )}
+          {cloneMsg && availableCalcs.some((c) => c.name === 'calculator_1') && (
+            <p style={{ fontSize: 11, color: 'hsl(var(--success))', marginTop: 4 }}>{cloneMsg}</p>
+          )}
         </div>
 
         {/* Desconto */}

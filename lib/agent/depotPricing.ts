@@ -26,11 +26,13 @@ export async function calcDepotPickupPrice(
   urgencia: string,
   depots: PartnerDepot[],
   db: Db,
+  calcName?: string,
 ): Promise<DepotPricingResult | null> {
   if (!depots || depots.length === 0) return null;
 
+  const resolvedCalcName = calcName ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI';
   const settings = await db.collection('calculators').findOne({
-    name: process.env.CALC_PRICE_MACHINE,
+    name: resolvedCalcName,
     companyProvider: 'Yourbox',
   });
   if (!settings) return null;
@@ -87,10 +89,13 @@ export async function calcDepotPickupPrice(
   if (bestDistance > (settings.globalParameters?.distance4To1 ?? 999) || new Date().getHours() > 13) precedence = '1';
 
   const priceResult = calculatePrice(bestFixResult, { type, precedence }, settings);
+  // calculatePrice devolve maxPrice com IVA incluído — retiramos para que o IVA
+  // seja aplicado uma única vez no cálculo final do parceiro (com o total)
+  const IVA = parseFloat(process.env.IVA || '1.23');
 
   return {
     depot: bestDepot,
     distanceKm: bestDistance,
-    pickupPrice: priceResult.maxPrice,
+    pickupPrice: Math.round((priceResult.maxPrice / IVA) * 100) / 100, // markup incl., IVA excl.
   };
 }

@@ -61,8 +61,8 @@ export function calcPartnerPrice(
 
   // ── Suplementos base ──────────────────────────────────────────────────────
   let supplementsTotal = 0;
-  // depotPickupPrice substitui above25km quando fornecido (calculado dinamicamente)
-  const above25km = depotPickupPrice !== undefined ? depotPickupPrice : (tariff.supplements.above25km ?? 0);
+  // above25km da tarifa — usado só quando não há depotPickupPrice dinâmico
+  const above25km = depotPickupPrice === undefined ? (tariff.supplements.above25km ?? 0) : 0;
   if (above25km > 0) supplementsTotal += above25km;
   if (isSaturday && tariff.supplements.saturday) supplementsTotal += tariff.supplements.saturday;
 
@@ -77,7 +77,10 @@ export function calcPartnerPrice(
   // ── Markup + IVA ─────────────────────────────────────────────────────────
   const appliedMarkup = markup ?? tariff.markup ?? 1.0;
   const IVA = parseFloat(process.env.IVA || '1.23');
-  const finalPrice = Math.round(basePriceWithFuel * appliedMarkup * IVA * 100) / 100;
+  // depotPickupPrice: markup já incluído, IVA não — soma antes de aplicar IVA ao total
+  // fórmula: (baseParceiro × markup + depot) × IVA
+  const priceBeforeIVA = basePriceWithFuel * appliedMarkup + (depotPickupPrice ?? 0);
+  const finalPrice = Math.round(priceBeforeIVA * IVA * 100) / 100;
 
   return {
     tariffId: tariff._id ?? '',

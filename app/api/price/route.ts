@@ -290,10 +290,12 @@ export async function GET(request: NextRequest) {
   const isPhase2 = !!hasContact;
 
   const db = await getDb();
-  const [settings, serverSettings] = await Promise.all([
-    db.collection('calculators').findOne({ name: process.env.CALC_PRICE_MACHINE, companyProvider: 'Yourbox' }),
+  const [routingDocPrice, serverSettings] = await Promise.all([
+    db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any }),
     db.collection('serverSettings').findOne({ companyProvider: 'Yourbox' }),
   ]);
+  const calcNamePrice = (routingDocPrice as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI';
+  const settings = await db.collection('calculators').findOne({ name: calcNamePrice, companyProvider: 'Yourbox' });
 
   if (!settings) {
     return Response.json({ error: 'Calculadora não encontrada' }, { status: 500 });
@@ -365,7 +367,7 @@ export async function GET(request: NextRequest) {
   const priceWithDiscount = priceCalculated - discount;
 
   // Roteamento
-  const routingConfig = (await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any })) ?? defaultRoutingConfig;
+  const routingConfig = routingDocPrice ?? defaultRoutingConfig;
   const routing = decideMode(routingConfig as any, params.urgencia, new Date());
 
   // ============================================

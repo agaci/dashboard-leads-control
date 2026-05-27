@@ -202,7 +202,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const depots24 = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
       let depotPrice24: number | undefined;
       if (depots24.length > 0 && convDoc.data.origem) {
-        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db);
+        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine);
         if (!dr) {
           const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
@@ -340,7 +340,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const depotsFri = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
             let depotPriceFri: number | undefined;
             if (depotsFri.length > 0 && convDoc.data.origem) {
-              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db);
+              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine);
               if (!dr) {
                 fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
                 fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
@@ -603,7 +603,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const depotsTmr = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
           let depotPriceTmr: number | undefined;
           if (depotsTmr.length > 0 && convDoc.data.origem) {
-            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db);
+            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine);
             if (!dr) {
               const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               history.push({ role: 'bot', text: escMsg, timestamp: now });

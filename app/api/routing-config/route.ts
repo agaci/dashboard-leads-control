@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       'recolherMoradasCompletas', 'pagamentoAtivo', 'pagamentoProvider',
       'whatsappBotAtivo', 'whatsappNumero', 'evolutionApiUrl', 'evolutionApiKey', 'evolutionInstance',
       'aggEscalationThreshold', 'partnerDepots', 'urgencyPhone', 'assistantName',
-      'voiceAssistantName', 'voiceAssistantGender', 'notificationTargets',
+      'voiceAssistantName', 'voiceAssistantGender', 'notificationTargets', 'calcPriceMachine',
     ];
     for (const key of allowed) {
       if (key in body) (update as any)[key] = body[key];

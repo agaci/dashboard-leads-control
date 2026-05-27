@@ -426,8 +426,9 @@ export async function POST(request: NextRequest) {
     if (response.nextStep === 'CALCULATING_PRICE') {
       try {
         const db = await getDb();
+        const calcNameWA = (cfg as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI';
         const settings = await db.collection('calculators').findOne({
-          name: process.env.CALC_PRICE_MACHINE,
+          name: calcNameWA,
           companyProvider: 'Yourbox',
         });
 
@@ -532,7 +533,7 @@ export async function POST(request: NextRequest) {
         const depotsWA = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
         let depotPriceWA: number | undefined;
         if (depotsWA.length > 0 && conv.data.origem) {
-          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db);
+          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db, (cfg as any)?.calcPriceMachine);
           if (!dr) {
             const text = `O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
             await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });

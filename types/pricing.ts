@@ -97,4 +97,5 @@ export interface LeadRoutingConfig {
     startHour: number;
     endHour: number;
   };
+  calcPriceMachine?: string;
 }
