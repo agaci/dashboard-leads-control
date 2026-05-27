@@ -713,6 +713,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const sorted = [...prices].reverse();
             const recommended = sorted[Math.floor(sorted.length / 2)];
             const recTariffTmr = tariffDocs.find((t) => t._id?.toString() === recommended.tariffId);
+
+            console.log('[calculate_tomorrow] Procurando tarifa:', {
+              convId: oid.toString(),
+              recommendedTariffId: recommended.tariffId,
+              found: !!recTariffTmr,
+              tariffName: recTariffTmr?.partner,
+            });
             const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
             const nVolTmr = (convDoc.data as any).nVolumes ?? 1;
             const maxVolKgTmr = maxVolumeKg(tariffDocs);
