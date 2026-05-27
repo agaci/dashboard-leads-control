@@ -13,8 +13,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     let priceBreakdown = null;
     if (doc.leadData?.telemovel) {
       const conv = await db.collection('conversations').findOne({
-        telemovel: doc.leadData.telemovel,
-        leadId: doc._id.toString(),
+        $or: [
+          { telemovel: doc.leadData.telemovel, leadId: doc._id.toString() },
+          { leadId: doc._id.toString() },
+        ],
       });
       if (conv?.data?.priceBreakdown) {
         priceBreakdown = conv.data.priceBreakdown;
