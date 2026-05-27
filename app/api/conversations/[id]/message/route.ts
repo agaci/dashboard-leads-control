@@ -756,12 +756,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               depotInfoTmr,
             );
             latestBreakdown = priceBreakdownTmr;
-            console.log('[calculate_tomorrow] Breakdown 24H criado:', {
-              tariff: recommended.serviceLabelShort,
-              kg,
-              totalCm: totalCmKnown,
-              hasBreakdown: !!priceBreakdownTmr,
-            });
 
             const updateSetTmr: Record<string, unknown> = {
               step: 'PRESENTING_PARTNER_PRICE',

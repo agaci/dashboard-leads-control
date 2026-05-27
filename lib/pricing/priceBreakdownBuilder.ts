@@ -62,14 +62,10 @@ export function buildPartnerServiceBreakdown(
 ): PriceBreakdown {
   const IVA = parseFloat(process.env.IVA || '1.23');
 
-  // A fórmula correcta (partnerPricing.ts linha 83-84):
-  // priceBeforeIVA = baseParceiro × markup + depot
-  // finalPrice = priceBeforeIVA × IVA
-  //
-  // partnerPrice.finalPrice JÁ inclui depot e IVA
-  // Para separar: partnerBeforeIVA = baseParceiro × markup
-  const partnerBeforeIVA = partnerPrice.breakdown.weightPrice * partnerPrice.markup;
-  const subtotalBeforeIVA = partnerBeforeIVA + (depotPrice ?? 0);
+  // finalPrice = (basePriceWithFuel × markup + depot) × IVA
+  // Derivar subtotal a partir do preço final para garantir consistência nos totais
+  const subtotalBeforeIVA = partnerPrice.finalPrice / IVA;
+  const partnerBeforeIVA = subtotalBeforeIVA - (depotPrice ?? 0);
   const finalPrice = partnerPrice.finalPrice; // usar o preço real que foi mostrado ao utilizador
 
   const breakdown: PriceBreakdown = {
