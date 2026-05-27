@@ -14,6 +14,7 @@ import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import { useTheme } from '@/lib/useTheme';
 import AppShell from '@/components/layout/AppShell';
 import type { NavTab } from '@/components/layout/NavSidebar';
+import { PriceBreakdownModal } from '@/components/PriceBreakdownModal';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const CYAN   = 'var(--yb-cyan)';
@@ -1499,6 +1500,7 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
   const [clientId, setClientId] = useState<string | null>(lead.clientId ?? null);
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState<string | null>(null);
+  const [showBreakdown, setShowBreakdown] = useState(false);
 
   async function convertToClient() {
     setConverting(true);
@@ -1622,7 +1624,25 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       {/* Preço */}
       {d.priceCalculated != null && (
         <section className="rounded-xl bg-card p-5 shadow-card">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+            {(d as any).priceBreakdown && (
+              <button
+                onClick={() => setShowBreakdown(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--yb-cyan)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Ver Cálculo →
+              </button>
+            )}
+          </div>
           <div className="flex gap-6 items-end">
             <div>
               <div className="text-[11px] text-muted-foreground mb-1">Base</div>
@@ -1641,7 +1661,25 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
       )}
       {d.partnerFinalPrice != null && !d.priceCalculated && (
         <section className="rounded-xl bg-card p-5 shadow-card">
-          <div className="mb-4 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+          <div className="flex justify-between items-center mb-4">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Preço</div>
+            {(d as any).priceBreakdown && (
+              <button
+                onClick={() => setShowBreakdown(true)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--yb-cyan)',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                  padding: 0,
+                }}
+              >
+                Ver Cálculo →
+              </button>
+            )}
+          </div>
           <div className="flex gap-6 items-end">
             <div>
               <div className="text-[11px] text-muted-foreground mb-1">Serviço</div>
@@ -1705,6 +1743,13 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
           dangerouslySetInnerHTML={{ __html: lead.message.replace(/line-height\s*:\s*[\d.]+\s*;?/gi, 'line-height:1.8;').replace(/<p/gi, '<p style="margin:0 0 7px 0"') }}
         />
       </section>
+
+      {/* Modal Breakdown */}
+      <PriceBreakdownModal
+        breakdown={(d as any).priceBreakdown}
+        isOpen={showBreakdown}
+        onClose={() => setShowBreakdown(false)}
+      />
     </div>
   );
 }

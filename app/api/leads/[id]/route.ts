@@ -8,6 +8,24 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     const db  = await getDb();
     const doc = await db.collection('messages').findOne({ _id: new ObjectId(id) });
     if (!doc) return Response.json({ error: 'not found' }, { status: 404 });
+
+    // Procurar breakdown da conversa associada, se houver
+    let priceBreakdown = null;
+    if (doc.leadData?.telemovel) {
+      const conv = await db.collection('conversations').findOne({
+        telemovel: doc.leadData.telemovel,
+        leadId: doc._id.toString(),
+      });
+      if (conv?.data?.priceBreakdown) {
+        priceBreakdown = conv.data.priceBreakdown;
+      }
+    }
+
+    const leadData = {
+      ...doc.leadData,
+      ...(priceBreakdown && { priceBreakdown }),
+    };
+
     return Response.json({
       success: true,
       lead: {
@@ -19,7 +37,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         message:     doc.message,
         senderName:  doc.senderName,
         variante:    doc.variante ?? null,
-        leadData:    doc.leadData ?? {},
+        leadData,
         clientId:    doc.clientId ?? null,
       },
     });
