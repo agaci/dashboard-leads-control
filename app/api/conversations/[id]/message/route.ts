@@ -515,26 +515,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
 
     } else if (result.type === 'register_lead') {
+      // Refetch convDoc para ter breakdown que possa ter sido criado num request anterior
+      const freshConvDoc = await db.collection('conversations').findOne({ _id: oid });
+      const convDocToUse = freshConvDoc || convDoc;
+
       console.log('[MESSAGE] Antes de registar lead:', {
-        currentStep: convDoc.step,
-        serviceType: convDoc.data.serviceType,
+        currentStep: convDocToUse.step,
+        serviceType: convDocToUse.data.serviceType,
         hasLatestBreakdown: !!latestBreakdown,
-        hasPartnerFinalPrice: !!convDoc.data.partnerFinalPrice,
-        weightKg: convDoc.data.weightKg,
+        hasBreakdownInFreshConv: !!convDocToUse.data.priceBreakdown,
+        hasPartnerFinalPrice: !!convDocToUse.data.partnerFinalPrice,
+        weightKg: convDocToUse.data.weightKg,
       });
 
-      const isEscalatedCase = !!(convDoc.data as any).isEscalatedCase;
+      const isEscalatedCase = !!(convDocToUse.data as any).isEscalatedCase;
       nextStep = isEscalatedCase ? 'ESCALATED_TO_HUMAN' : 'LEAD_REGISTERED';
       leadRegistered = true;
       const nome = result.nome;
       const telefone = result.telefone;
       const email = result.email;
-      const isArrasto = convDoc.data.serviceType === 'arrasto';
-      const finalPrice = isArrasto ? convDoc.data.partnerFinalPrice : convDoc.data.priceWithDiscount;
+      const isArrasto = convDocToUse.data.serviceType === 'arrasto';
+      const finalPrice = isArrasto ? convDocToUse.data.partnerFinalPrice : convDocToUse.data.priceWithDiscount;
       const timeStamp = now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
       const serviceInfo = isArrasto
-        ? `<p><b>Serviço:</b> Entrega Amanhã ${convDoc.data.partnerWindow ?? ''} | <b>Peso:</b> ${convDoc.data.weightKg ?? '?'}kg</p>`
-        : `<p><b>Viatura:</b> ${convDoc.data.viatura} | <b>Urgência:</b> ${convDoc.data.urgencia}</p>`;
+        ? `<p><b>Serviço:</b> Entrega Amanhã ${convDocToUse.data.partnerWindow ?? ''} | <b>Peso:</b> ${convDocToUse.data.weightKg ?? '?'}kg</p>`
+        : `<p><b>Viatura:</b> ${convDocToUse.data.viatura} | <b>Urgência:</b> ${convDocToUse.data.urgencia}</p>`;
       const notasHtml = result.notas ? `<p><b>Notas:</b> ${result.notas}</p>` : '';
       const origemHtml = result.origemCompleta ? `<p><b>Recolha:</b> ${result.origemCompleta}</p>` : '';
       const destinoHtml = result.destinoCompleta ? `<p><b>Entrega:</b> ${result.destinoCompleta}</p>` : '';
@@ -544,12 +549,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const canalLabel = isEscalatedCase ? 'WEB CHAT FORA DE HORÁRIO' : 'WEB CHAT BOT LLM';
 
       const leadDataToInsert = {
-        origem: convDoc.data.origem, destino: convDoc.data.destino,
-        urgencia: convDoc.data.urgencia, serviceType: convDoc.data.serviceType,
-        viatura: convDoc.data.viatura, weightKg: convDoc.data.weightKg,
-        partnerWindow: convDoc.data.partnerWindow,
-        priceWithDiscount: convDoc.data.priceWithDiscount,
-        partnerFinalPrice: convDoc.data.partnerFinalPrice,
+        origem: convDocToUse.data.origem, destino: convDocToUse.data.destino,
+        urgencia: convDocToUse.data.urgencia, serviceType: convDocToUse.data.serviceType,
+        viatura: convDocToUse.data.viatura, weightKg: convDocToUse.data.weightKg,
+        partnerWindow: convDocToUse.data.partnerWindow,
+        priceWithDiscount: convDocToUse.data.priceWithDiscount,
+        partnerFinalPrice: convDocToUse.data.partnerFinalPrice,
         nome, email, telefone,
         notas: result.notas,
         origemCompleta: result.origemCompleta,
@@ -559,7 +564,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         volumes: result.volumes,
         timeStamp: now, converted: true,
         source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
-        ...(latestBreakdown && { priceBreakdown: latestBreakdown }),
+        ...(latestBreakdown || convDocToUse.data.priceBreakdown) && { priceBreakdown: latestBreakdown || convDocToUse.data.priceBreakdown },
       };
 
       console.log('[MESSAGE] Registando lead com dados:', {
