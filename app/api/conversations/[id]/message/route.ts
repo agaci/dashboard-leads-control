@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { getLlmResponse } from '@/lib/agent/llmResponder';
 import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
 import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
+import { buildPartnerServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { PartnerTariff } from '@/types/partner';
@@ -255,6 +256,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPrice24);
       const sorted = [...prices].reverse();
       const recommended = sorted[Math.floor(sorted.length / 2)];
+      const recommendedTariff = tariffDocs.find((t) => t._id?.toString() === recommended.tariffId);
       const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
       const dimNote = totalCm === 0
         ? '\n\n_Nota: preço sem suplemento dimensional. Se comprimento + largura + altura > 150cm, o valor final pode ser superior._'
@@ -267,16 +269,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const recap24 = cargoRecapLine(nVol24, totalCm === 0 ? 0 : totalCm, kg);
       const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}\n\nQual janela prefere?`;
 
+      // ── Construir breakdown para auditoria ──
+      let priceBreakdown: any;
+      if (recommendedTariff) {
+        priceBreakdown = buildPartnerServiceBreakdown(
+          recommendedTariff,
+          kg,
+          totalCm,
+          recommended,
+          depotPrice24,
+          (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
+        );
+      }
+
       history.push({ role: 'bot', text: botText, timestamp: now });
+      const updateSet: Record<string, unknown> = {
+        step: 'PRESENTING_PARTNER_PRICE',
+        'data.totalCm': totalCm || null,
+        'data.partnerFinalPrice': recommended.finalPrice,
+        'data.partnerWindow': recommended.deliveryWindow,
+        history,
+        updatedAt: now,
+      };
+      if (priceBreakdown) updateSet['data.priceBreakdown'] = priceBreakdown;
       await db2.collection('conversations').updateOne(
         { _id: oid },
-        { $set: {
-          step: 'PRESENTING_PARTNER_PRICE',
-          'data.totalCm': totalCm || null,
-          'data.partnerFinalPrice': recommended.finalPrice,
-          'data.partnerWindow': recommended.deliveryWindow,
-          history, updatedAt: now,
-        }}
+        { $set: updateSet }
       );
       return Response.json({
         success: true,
@@ -370,6 +388,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             if (prices.length > 0) {
               const sorted = [...prices].reverse();
               const rec = sorted[Math.floor(sorted.length / 2)];
+              const recTariff = tariffDocs.find((t) => t._id?.toString() === rec.tariffId);
               const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
               const nVolFri = (convDoc.data as any).nVolumes ?? 1;
               const maxVolKgFriVal = maxVolumeKg(tariffDocs);
@@ -383,9 +402,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const recapFri = cargoRecapLine(nVolFri, totalCmFri, kg);
               fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
+
+              let priceBreakdownFri: any;
+              if (recTariff) {
+                priceBreakdownFri = buildPartnerServiceBreakdown(
+                  recTariff,
+                  kg,
+                  totalCmFri,
+                  rec,
+                  depotPriceFri,
+                  (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
+                );
+              }
+
+              const updateSetFri: Record<string, unknown> = {
+                step: 'PRESENTING_PARTNER_PRICE',
+                'data.serviceType': 'arrasto',
+                'data.weightKg': kg,
+                'data.partnerFinalPrice': rec.finalPrice,
+                'data.partnerWindow': rec.deliveryWindow,
+                updatedAt: now,
+              };
+              if (priceBreakdownFri) updateSetFri['data.priceBreakdown'] = priceBreakdownFri;
               await db.collection('conversations').updateOne(
                 { _id: oid },
-                { $set: { step: 'PRESENTING_PARTNER_PRICE', 'data.serviceType': 'arrasto', 'data.weightKg': kg, 'data.partnerFinalPrice': rec.finalPrice, 'data.partnerWindow': rec.deliveryWindow, updatedAt: now } }
+                { $set: updateSetFri }
               );
             } else {
               fridayBotText = 'Não foi possível calcular o preço. A nossa equipa contactará brevemente.';
@@ -636,6 +677,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           if (prices.length > 0) {
             const sorted = [...prices].reverse();
             const recommended = sorted[Math.floor(sorted.length / 2)];
+            const recTariffTmr = tariffDocs.find((t) => t._id?.toString() === recommended.tariffId);
             const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
             const nVolTmr = (convDoc.data as any).nVolumes ?? 1;
             const maxVolKgTmr = maxVolumeKg(tariffDocs);
@@ -647,16 +689,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const { header: hdrTmr, cutoffNote: cnTmr } = build24hPriceHeader(kg);
             const recapTmr = cargoRecapLine(nVolTmr, totalCmKnown, kg);
             botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
+
+            let priceBreakdownTmr: any;
+            if (recTariffTmr) {
+              priceBreakdownTmr = buildPartnerServiceBreakdown(
+                recTariffTmr,
+                kg,
+                totalCm,
+                recommended,
+                depotPriceTmr,
+                (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
+              );
+            }
+
+            const updateSetTmr: Record<string, unknown> = {
+              step: 'PRESENTING_PARTNER_PRICE',
+              'data.serviceType': 'arrasto',
+              'data.weightKg': kg,
+              'data.partnerFinalPrice': recommended.finalPrice,
+              'data.partnerWindow': recommended.deliveryWindow,
+              updatedAt: now,
+            };
+            if (priceBreakdownTmr) updateSetTmr['data.priceBreakdown'] = priceBreakdownTmr;
             await db.collection('conversations').updateOne(
               { _id: oid },
-              { $set: {
-                step: 'PRESENTING_PARTNER_PRICE',
-                'data.serviceType': 'arrasto',
-                'data.weightKg': kg,
-                'data.partnerFinalPrice': recommended.finalPrice,
-                'data.partnerWindow': recommended.deliveryWindow,
-                updatedAt: now,
-              }}
+              { $set: updateSetTmr }
             );
           }
         } catch {
