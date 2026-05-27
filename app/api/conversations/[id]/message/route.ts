@@ -658,6 +658,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         );
       } else {
         // Dimensões já conhecidas — calcular directamente
+        console.log('[calculate_tomorrow] Entrando no bloco de cálculo directo:', {
+          weightKg: kg,
+          totalCmKnown,
+          nVolumesTmr: (convDoc.data as any).nVolumes,
+        });
         nextStep = 'PRESENTING_PARTNER_PRICE';
         try {
           const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
@@ -724,6 +729,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 (routingDoc as any)?.calcPriceMachine ?? process.env.CALC_PRICE_MACHINE ?? 'calculator_1_FixCityPriceAPI',
               );
               latestBreakdown = priceBreakdownTmr;
+              console.log('[calculate_tomorrow] Breakdown 24H criado:', {
+                tariff: recTariffTmr.partner,
+                kg,
+                totalCm: totalCmKnown,
+                hasBreakdown: !!priceBreakdownTmr,
+              });
             }
 
             const updateSetTmr: Record<string, unknown> = {
