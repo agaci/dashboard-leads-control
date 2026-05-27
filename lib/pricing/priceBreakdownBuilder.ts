@@ -42,6 +42,12 @@ export function buildDirectServiceBreakdown(
 export interface DepotInfo {
   name: string;
   distanceKm: number;
+  type?: string;
+  precedence?: string;
+  priceKm?: number;
+  priceMin?: number;
+  LX_PT?: number;
+  GLX_GPT?: number;
 }
 
 /** Constrói breakdown para serviço 24H (parceiro + depot) */
@@ -93,12 +99,12 @@ export function buildPartnerServiceBreakdown(
     breakdown.depot = {
       name: depotInfo?.name ?? 'Depot',
       distanceKm: depotInfo?.distanceKm ?? 0,
-      type: '50',
-      precedence: '4',
-      priceKm: 0,
-      priceMin: 0,
-      LX_PT: 0,
-      GLX_GPT: 0,
+      type: depotInfo?.type ?? '50',
+      precedence: depotInfo?.precedence ?? '4',
+      priceKm: depotInfo?.priceKm ?? 0,
+      priceMin: depotInfo?.priceMin ?? 0,
+      LX_PT: depotInfo?.LX_PT ?? 0,
+      GLX_GPT: depotInfo?.GLX_GPT ?? 0,
       basePrice: depotPrice,
     };
   }

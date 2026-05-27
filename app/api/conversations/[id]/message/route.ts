@@ -205,7 +205,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       // ── Depósito dinâmico ──────────────────────────────────────────────────
       const depots24 = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
       let depotPrice24: number | undefined;
-      let depotInfo24: { name: string; distanceKm: number } | undefined;
+      let depotInfo24: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
       if (depots24.length > 0 && convDoc.data.origem) {
         const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine);
         if (!dr) {
@@ -216,7 +216,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
         }
         depotPrice24 = dr.pickupPrice;
-        depotInfo24 = { name: dr.depot.name, distanceKm: dr.distanceKm };
+        depotInfo24 = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
       }
 
       const tariffDocs = await db2.collection('partnerTariffs')
@@ -364,7 +364,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             // ── Depósito dinâmico ────────────────────────────────────────────
             const depotsFri = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
             let depotPriceFri: number | undefined;
-            let depotInfoFri: { name: string; distanceKm: number } | undefined;
+            let depotInfoFri: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
             if (depotsFri.length > 0 && convDoc.data.origem) {
               const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine);
               if (!dr) {
@@ -376,7 +376,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
               }
               depotPriceFri = dr.pickupPrice;
-              depotInfoFri = { name: dr.depot.name, distanceKm: dr.distanceKm };
+              depotInfoFri = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
             }
 
             const tariffDocs = await db.collection('partnerTariffs')
@@ -682,7 +682,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           // ── Depósito dinâmico ──────────────────────────────────────────────
           const depotsTmr = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
           let depotPriceTmr: number | undefined;
-          let depotInfoTmr: { name: string; distanceKm: number } | undefined;
+          let depotInfoTmr: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
           if (depotsTmr.length > 0 && convDoc.data.origem) {
             const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine);
             if (!dr) {
@@ -693,7 +693,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
             }
             depotPriceTmr = dr.pickupPrice;
-            depotInfoTmr = { name: dr.depot.name, distanceKm: dr.distanceKm };
+            depotInfoTmr = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
           }
 
           const tariffDocs = await db.collection('partnerTariffs')

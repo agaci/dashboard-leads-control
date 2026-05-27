@@ -10,6 +10,12 @@ export interface DepotPricingResult {
   depot: PartnerDepot;
   distanceKm: number;
   pickupPrice: number; // preço base YourBox para recolha → depósito (SEM markup, SEM IVA)
+  type: string;
+  precedence: string;
+  priceKm: number;
+  priceMin: number;
+  LX_PT: number;
+  GLX_GPT: number;
 }
 
 /**
@@ -103,5 +109,11 @@ export async function calcDepotPickupPrice(
     depot: bestDepot,
     distanceKm: bestDistance,
     pickupPrice,  // preço base apenas, SEM markup, SEM IVA
+    type,
+    precedence,
+    priceKm,
+    priceMin,
+    LX_PT,
+    GLX_GPT: GLX_GPT_val,
   };
 }
