@@ -67,6 +67,7 @@ function VehicleEditor({ label, data, onChange }: { label: string; data: Vehicle
 export default function PrecosPage() {
   const [calc, setCalc] = useState<Calculator | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [activeCalcName, setActiveCalcName] = useState<string>('');
@@ -76,19 +77,31 @@ export default function PrecosPage() {
   const [cloneMsg, setCloneMsg] = useState<string | null>(null);
 
   function loadCalc() {
-    fetch('/api/settings/calculator').then((r) => r.json()).then((d) => {
-      if (d.success) {
-        setCalc({ discountPercent: 0.1, ...d.calculator });
-        setActiveCalcName(d.name ?? '');
-      }
-      setLoading(false);
-    });
+    fetch('/api/settings/calculator')
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        if (d.success) {
+          setCalc({ discountPercent: 0.1, ...d.calculator });
+          setActiveCalcName(d.name ?? '');
+        } else {
+          setLoadError(d.error ?? 'Calculadora não encontrada');
+        }
+        setLoading(false);
+      })
+      .catch((err) => {
+        setLoadError(err.message ?? 'Erro ao carregar calculadora');
+        setLoading(false);
+      });
   }
 
   function loadAvailable() {
-    fetch('/api/settings/calculators').then((r) => r.json()).then((d) => {
-      if (d.success) setAvailableCalcs(d.calculators ?? []);
-    });
+    fetch('/api/settings/calculators')
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setAvailableCalcs(d.calculators ?? []); })
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -152,6 +165,7 @@ export default function PrecosPage() {
   }
 
   if (loading) return <div className="p-8 text-sm text-gray-400">A carregar...</div>;
+  if (loadError) return <div className="p-8 text-sm text-red-400">Erro ao carregar: {loadError}</div>;
   if (!calc) return <div className="p-8 text-sm text-red-400">Calculadora não encontrada.</div>;
 
   const discountPct = Math.round((calc.discountPercent ?? 0.1) * 100);
