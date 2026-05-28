@@ -535,7 +535,7 @@ export async function POST(request: NextRequest) {
         let viaturaNoteWA = '';
         let newViaturaWA: string | null = null;
         if (depotsWA.length > 0 && conv.data.origem) {
-          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db, (cfg as any)?.calcPriceMachine, kg, (conv.data.totalCm ?? 0) || undefined);
+          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db, (cfg as any)?.calcPriceMachine, kg, (conv.data.totalCm ?? 0) || undefined, (routingDoc as any)?.depotDistanceMultiplier ?? 1);
           if (!dr) {
             const text = `O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
             await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });

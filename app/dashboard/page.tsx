@@ -41,6 +41,7 @@ type RoutingConfig = {
   evolutionApiKey: string;
   evolutionInstance: string;
   aggEscalationThreshold: number;
+  depotDistanceMultiplier: number;
   urgencyPhone: string;
   assistantName: string;
   voiceAssistantName: string;
@@ -1990,7 +1991,7 @@ function RoutingPanel() {
     autoStartHour: 9, autoEndHour: 20, autoWeekends: false,
     recolherMoradasCompletas: false, pagamentoAtivo: false, pagamentoProvider: 'paybylink',
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
-    aggEscalationThreshold: 0, urgencyPhone: '', assistantName: '',
+    aggEscalationThreshold: 0, depotDistanceMultiplier: 1, urgencyPhone: '', assistantName: '',
     voiceAssistantName: 'Yox', voiceAssistantGender: 'female', notificationTargets: [],
   };
 
@@ -2095,6 +2096,20 @@ function RoutingPanel() {
         <input type="number" min={0} step={10} value={config.aggEscalationThreshold} onChange={(e) => num('aggEscalationThreshold', e.target.value)}
           style={{ ...inputS, width: 120, padding: '7px 10px' }} />
         <span style={{ fontSize: 12, color: 'var(--yb-subtle)', marginLeft: 8 }}>{config.aggEscalationThreshold === 0 ? 'desactivado' : `activo para orçamentos > €${config.aggEscalationThreshold}`}</span>
+      </div>
+
+      {/* ── Multiplicador de distância depot ── */}
+      <div style={cardS}>
+        <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', display: 'block', marginBottom: 4 }}>Multiplicador de distância — Recolha até Depósito</label>
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginBottom: 8 }}>
+          Factor aplicado à distância medida origem→depósito no cálculo do preço de recolha 24h.<br />
+          <b>1</b> = apenas a distância directa · <b>2</b> = ida e volta · <b>3</b> = tripla, etc.
+        </p>
+        <input type="number" min={1} max={10} step={1} value={config.depotDistanceMultiplier ?? 1} onChange={(e) => num('depotDistanceMultiplier', e.target.value)}
+          style={{ ...inputS, width: 100, padding: '7px 10px' }} />
+        <span style={{ fontSize: 12, color: 'var(--yb-subtle)', marginLeft: 8 }}>
+          {(config.depotDistanceMultiplier ?? 1) === 1 ? 'distância simples (apenas ida)' : `distância × ${config.depotDistanceMultiplier}`}
+        </span>
       </div>
 
       {/* ── Contacto de urgência ── */}

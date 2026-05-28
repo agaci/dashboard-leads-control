@@ -98,6 +98,7 @@ export interface LeadRoutingConfig {
     endHour: number;
   };
   calcPriceMachine?: string;
+  depotDistanceMultiplier?: number; // multiplicador da distância origem→depósito (1 = simples, 2 = ida e volta, etc.)
 }
 
 export interface PriceBreakdown {
@@ -120,6 +121,7 @@ export interface PriceBreakdown {
   depot?: {
     name: string;
     distanceKm: number;
+    distanceMultiplier: number;
     type: string;
     precedence: string;
     priceKm: number;

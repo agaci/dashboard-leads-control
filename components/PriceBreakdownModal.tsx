@@ -166,7 +166,10 @@ export function PriceBreakdownModal({ breakdown, isOpen = false, onClose }: Pric
                   <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
                     <td style={{ padding: '8px 0', color: 'var(--yb-muted)' }}>Fórmula</td>
                     <td style={{ padding: '8px 0', textAlign: 'right', fontSize: 11, color: 'var(--yb-subtle)' }}>
-                      {breakdown.depot.distanceKm.toFixed(1)}km × €{breakdown.depot.priceKm.toFixed(2)} + €{breakdown.depot.priceMin.toFixed(2)} × {(breakdown.depot.LX_PT ?? 0) + (breakdown.depot.GLX_GPT ?? 0)}
+                      {breakdown.depot.distanceMultiplier > 1
+                        ? `${breakdown.depot.distanceKm.toFixed(1)}km × ${breakdown.depot.distanceMultiplier}× €${breakdown.depot.priceKm.toFixed(2)} + €${breakdown.depot.priceMin.toFixed(2)} × ${(breakdown.depot.LX_PT ?? 0) + (breakdown.depot.GLX_GPT ?? 0)}`
+                        : `${breakdown.depot.distanceKm.toFixed(1)}km × €${breakdown.depot.priceKm.toFixed(2)} + €${breakdown.depot.priceMin.toFixed(2)} × ${(breakdown.depot.LX_PT ?? 0) + (breakdown.depot.GLX_GPT ?? 0)}`
+                      }
                     </td>
                   </tr>
                 )}

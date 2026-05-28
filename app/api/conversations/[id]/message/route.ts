@@ -211,7 +211,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       let viaturaNote24 = '';
       let newViatura24: string | null = null;
       if (depots24.length > 0 && convDoc.data.origem) {
-        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine, kg, totalCm || undefined);
+        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine, kg, totalCm || undefined, (routingDoc as any)?.depotDistanceMultiplier ?? 1);
         if (!dr) {
           const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
@@ -220,7 +220,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
         }
         depotPrice24 = dr.pickupPrice;
-        depotInfo24 = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+        depotInfo24 = { name: dr.depot.name, distanceKm: dr.distanceKm, distanceMultiplier: dr.distanceMultiplier, effectiveDistanceKm: dr.effectiveDistanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
         if (dr.viaturaOverridden && dr.viaturaRequired) {
           newViatura24 = dr.viaturaRequired;
           viaturaNote24 = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;
@@ -375,7 +375,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             let viaturaNoteFri = '';
             let newViaturaFri: string | null = null;
             if (depotsFri.length > 0 && convDoc.data.origem) {
-              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined);
+              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined, (routingDoc as any)?.depotDistanceMultiplier ?? 1);
               if (!dr) {
                 fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
                 fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
@@ -385,7 +385,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
               }
               depotPriceFri = dr.pickupPrice;
-              depotInfoFri = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+              depotInfoFri = { name: dr.depot.name, distanceKm: dr.distanceKm, distanceMultiplier: dr.distanceMultiplier, effectiveDistanceKm: dr.effectiveDistanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
               if (dr.viaturaOverridden && dr.viaturaRequired) {
                 newViaturaFri = dr.viaturaRequired;
                 viaturaNoteFri = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;
@@ -539,15 +539,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const freshConvDoc = await db.collection('conversations').findOne({ _id: oid });
       const convDocToUse = freshConvDoc || convDoc;
 
-      console.log('[MESSAGE] Antes de registar lead:', {
-        currentStep: convDocToUse.step,
-        serviceType: convDocToUse.data.serviceType,
-        hasLatestBreakdown: !!latestBreakdown,
-        hasBreakdownInFreshConv: !!convDocToUse.data.priceBreakdown,
-        hasPartnerFinalPrice: !!convDocToUse.data.partnerFinalPrice,
-        weightKg: convDocToUse.data.weightKg,
-      });
-
       const isEscalatedCase = !!(convDocToUse.data as any).isEscalatedCase;
       nextStep = isEscalatedCase ? 'ESCALATED_TO_HUMAN' : 'LEAD_REGISTERED';
       leadRegistered = true;
@@ -586,13 +577,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
         ...(latestBreakdown || convDocToUse.data.priceBreakdown) && { priceBreakdown: latestBreakdown || convDocToUse.data.priceBreakdown },
       };
-
-      console.log('[MESSAGE] Registando lead com dados:', {
-        leadId: nome,
-        serviceType: convDoc.data.serviceType,
-        hasBreakdownInLatest: !!latestBreakdown,
-        hasBreakdownInLeadData: !!leadDataToInsert.priceBreakdown,
-      });
 
       const _leadInsert = await db.collection('messages').insertOne({
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
@@ -683,11 +667,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         );
       } else {
         // Dimensões já conhecidas — calcular directamente
-        console.log('[calculate_tomorrow] Entrando no bloco de cálculo directo:', {
-          weightKg: kg,
-          totalCmKnown,
-          nVolumesTmr: (convDoc.data as any).nVolumes,
-        });
         nextStep = 'PRESENTING_PARTNER_PRICE';
         try {
           const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
@@ -700,7 +679,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           let viaturaNoteTmr = '';
           let newViaturaТmr: string | null = null;
           if (depotsTmr.length > 0 && convDoc.data.origem) {
-            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined);
+            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined, (routingDoc as any)?.depotDistanceMultiplier ?? 1);
             if (!dr) {
               const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               history.push({ role: 'bot', text: escMsg, timestamp: now });
@@ -709,7 +688,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               return Response.json({ success: true, message: escMsg, step: 'ESCALATED_TO_HUMAN', quickReplies: [], escalate: true });
             }
             depotPriceTmr = dr.pickupPrice;
-            depotInfoTmr = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+            depotInfoTmr = { name: dr.depot.name, distanceKm: dr.distanceKm, distanceMultiplier: dr.distanceMultiplier, effectiveDistanceKm: dr.effectiveDistanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
             if (dr.viaturaOverridden && dr.viaturaRequired) {
               newViaturaТmr = dr.viaturaRequired;
               viaturaNoteTmr = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;

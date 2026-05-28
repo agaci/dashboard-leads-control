@@ -17,6 +17,7 @@ export const defaultRoutingConfig: LeadRoutingConfig = {
   evolutionApiKey: '',
   evolutionInstance: 'yourbox',
   aggEscalationThreshold: 0,
+  depotDistanceMultiplier: 1,
   urgencyPhone: '',
   assistantName: '',
   voiceAssistantName: 'Yox',

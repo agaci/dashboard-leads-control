@@ -8,7 +8,9 @@ export type { PartnerDepot };
 
 export interface DepotPricingResult {
   depot: PartnerDepot;
-  distanceKm: number;
+  distanceKm: number;        // distância real medida (km)
+  effectiveDistanceKm: number; // distância usada no cálculo (= distanceKm × multiplier)
+  distanceMultiplier: number;
   pickupPrice: number; // preço base YourBox para recolha → depósito (SEM markup, SEM IVA)
   type: string;
   precedence: string;
@@ -59,6 +61,7 @@ export async function calcDepotPickupPrice(
   calcName?: string,
   weightKg?: number,
   totalCm?: number,
+  distanceMultiplier: number = 1,
 ): Promise<DepotPricingResult | null> {
   if (!depots || depots.length === 0) return null;
 
@@ -152,12 +155,15 @@ export async function calcDepotPickupPrice(
   const GLX_GPT_val = bestFixResult.GLX_GPT > 0 ? 1 : 0;
   const LX_PT = Math.max(0, bestFixResult.LX + bestFixResult.PT - 1);
 
-  const basePriceDepot = bestDistance * priceKm + priceMin * (LX_PT + GLX_GPT_val);
+  const effectiveDistance = bestDistance * Math.max(1, distanceMultiplier);
+  const basePriceDepot = effectiveDistance * priceKm + priceMin * (LX_PT + GLX_GPT_val);
   const pickupPrice = Math.round(basePriceDepot * 100) / 100;
 
   return {
     depot: bestDepot,
     distanceKm: bestDistance,
+    effectiveDistanceKm: effectiveDistance,
+    distanceMultiplier: Math.max(1, distanceMultiplier),
     pickupPrice,  // preço base apenas, SEM markup, SEM IVA
     type,
     precedence,

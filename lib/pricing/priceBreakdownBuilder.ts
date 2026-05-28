@@ -42,6 +42,8 @@ export function buildDirectServiceBreakdown(
 export interface DepotInfo {
   name: string;
   distanceKm: number;
+  distanceMultiplier?: number;
+  effectiveDistanceKm?: number;
   type?: string;
   precedence?: string;
   priceKm?: number;
@@ -92,9 +94,12 @@ export function buildPartnerServiceBreakdown(
   };
 
   if (depotPrice !== undefined) {
+    const mult = depotInfo?.distanceMultiplier ?? 1;
+    const rawDist = depotInfo?.distanceKm ?? 0;
     breakdown.depot = {
       name: depotInfo?.name ?? 'Depot',
-      distanceKm: depotInfo?.distanceKm ?? 0,
+      distanceKm: rawDist,
+      distanceMultiplier: mult,
       type: depotInfo?.type ?? '50',
       precedence: depotInfo?.precedence ?? '4',
       priceKm: depotInfo?.priceKm ?? 0,

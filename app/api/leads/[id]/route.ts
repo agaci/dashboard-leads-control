@@ -24,13 +24,6 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       }
     }
 
-    console.log('[GET /leads/[id]] Retornando lead:', {
-      leadId: doc._id.toString(),
-      hasBreakdownInDoc: !!doc.leadData?.priceBreakdown,
-      hasBreakdownFromConv: !!(priceBreakdown && doc.leadData?.priceBreakdown === undefined),
-      finalHasBreakdown: !!priceBreakdown,
-    });
-
     const leadData = {
       ...doc.leadData,
       ...(priceBreakdown && { priceBreakdown }),
