@@ -287,6 +287,12 @@
     appendBubble('lead', msg);
     showTyping();
 
+    var intermediateTimer = setTimeout(function () {
+      removeTyping();
+      appendBubble('bot', '_Estamos a verificar disponibilidade, aguarde um momento..._');
+      showTyping();
+    }, 10000);
+
     try {
       const res = await fetch(API_BASE + '/api/conversations/' + chatState.conversationId + '/message', {
         method: 'POST',
@@ -294,6 +300,7 @@
         body: JSON.stringify({ text: msg }),
       });
       const data = await res.json();
+      clearTimeout(intermediateTimer);
       removeTyping();
 
       if (!data.success && data.step) { showFinalState(data.step); return; }
@@ -311,6 +318,7 @@
         handleNewStep(data.step, data.quickReplies || []);
       }
     } catch (e) {
+      clearTimeout(intermediateTimer);
       removeTyping();
       appendBubble('bot', 'Erro de ligação. Por favor tente novamente.');
     } finally {

@@ -152,6 +152,26 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       ? `_Em caso de urgência, ligue *${_urgencyPhone}*${_assistantName ? ` — ${_assistantName}` : ''}._`
       : '_Em caso de urgência, contacte-nos pelo número que já tem da YourBox._';
 
+    // ── Delay: janela de intervenção do operador antes do bot disparar ────────
+    const _delayMin: number = (routingCfgDoc as any)?.delayMinutesBeforeBot ?? 0;
+    if (_delayMin > 0) {
+      const _convCreatedAt = convDoc.createdAt instanceof Date
+        ? convDoc.createdAt
+        : new Date((convDoc as any).createdAt ?? 0);
+      const _remainingMs = _delayMin * 60000 - (Date.now() - _convCreatedAt.getTime());
+      if (_remainingMs > 0) {
+        await new Promise<void>((resolve) => setTimeout(resolve, _remainingMs));
+        // Re-verificar se o operador assumiu durante a espera
+        const _freshConv = await db.collection('conversations').findOne({ _id: oid });
+        if (_freshConv && ['LIVE_CHAT', 'ESCALATED_TO_HUMAN'].includes(_freshConv.step)) {
+          const _h = (_freshConv.history ?? []) as any[];
+          _h.push({ role: 'lead', text: mensagem, timestamp: new Date() });
+          await db.collection('conversations').updateOne({ _id: oid }, { $set: { history: _h, updatedAt: new Date() } });
+          return Response.json({ success: true, message: null, step: _freshConv.step, historyCount: _h.length, quickReplies: [] });
+        }
+      }
+    }
+
     // ── Step estruturado: recolha do nº de volumes (serviço 24h) ────────────
     if (convDoc.step === 'COLLECTING_NVOLUMES_24H') {
       const history = convDoc.history ?? [];
