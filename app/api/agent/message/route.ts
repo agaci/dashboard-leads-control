@@ -532,8 +532,10 @@ export async function POST(request: NextRequest) {
         // ── Depósito dinâmico ─────────────────────────────────────────────────
         const depotsWA = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
         let depotPriceWA: number | undefined;
+        let viaturaNoteWA = '';
+        let newViaturaWA: string | null = null;
         if (depotsWA.length > 0 && conv.data.origem) {
-          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db, (cfg as any)?.calcPriceMachine);
+          const dr = await calcDepotPickupPrice(conv.data.origem, conv.data.viatura ?? 'Furgão Classe 1', '4 Horas', depotsWA, db, (cfg as any)?.calcPriceMachine, kg, (conv.data.totalCm ?? 0) || undefined);
           if (!dr) {
             const text = `O serviço YourBox de entrega amanhã cobre directamente as zonas de Lisboa e Porto. A sua recolha fica fora dessa cobertura directa e requer uma cotação personalizada.\n\n${businessHoursContactWA()}\n\n${URGENCY_NOTE_WA}`;
             await appendMessage(telemovel, { role: 'bot', text, timestamp: new Date() });
@@ -542,6 +544,10 @@ export async function POST(request: NextRequest) {
             return Response.json({ success: true, response: text, nextStep: 'ESCALATED_TO_HUMAN', quickReplies: [], situacaoId: null, escalate: true });
           }
           depotPriceWA = dr.pickupPrice;
+          if (dr.viaturaOverridden && dr.viaturaRequired) {
+            newViaturaWA = dr.viaturaRequired;
+            viaturaNoteWA = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${conv.data.viatura ?? 'Moto'})._`;
+          }
         }
 
         const totalCm = conv.data.totalCm ?? 0;
@@ -573,6 +579,7 @@ export async function POST(request: NextRequest) {
           leadData: { origem: conv.data.origem, destino: conv.data.destino, urgencia: '24 Horas', serviceType: 'arrasto', weightKg: kg, partnerWindow: recommended.deliveryWindow, partnerFinalPrice: recommended.finalPrice, telemovel, converted: false, source: 'bot' },
         });
 
+        if (newViaturaWA) await updateConversationData(telemovel, { viatura: newViaturaWA });
         response = buildPartnerPriceMessage(sortedPrices, kg, totalCm > 0);
         const nVolWA2 = conv.data.nVolumes ?? 1;
         const { header: hdrWA, cutoffNote: cnWA } = build24hPriceHeader(kg);
@@ -584,7 +591,7 @@ export async function POST(request: NextRequest) {
           ...response,
           text: response.text
             .replace(/^\*Entrega YourBox.*?kg\*/, hdrWA)
-            .replace('Escolha a janela de entrega:', `${limitsNoteWA}${cnWA}\n\nEscolha a janela de entrega:`),
+            .replace('Escolha a janela de entrega:', `${limitsNoteWA}${cnWA}${viaturaNoteWA}\n\nEscolha a janela de entrega:`),
         };
       } catch (err) {
         response = { text: 'Não foi possível calcular o preço. Um agente vai entrar em contacto brevemente.', nextStep: 'ESCALATED_TO_HUMAN', escalate: true };

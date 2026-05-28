@@ -158,6 +158,29 @@ export async function POST(request: NextRequest) {
           let type = typeMap(pesoRaw);
           let precedence = urgencia === '1 Hora' ? '1' : '4';
 
+          // Se o peso/volume real (das observações) exige veículo maior, elevar o tipo
+          const viaturaMap: Record<string, string> = { '2': 'Moto', '50': 'Auto', '150': 'Furgão Classe 1', '300': 'Furgão Classe 2' };
+          const typeForKg = (kg: number) => kg <= 2 ? '2' : kg <= 50 ? '50' : kg <= 150 ? '150' : '300';
+          const MAX_CM_TYPE2 = 100; // 40×30×30 cm
+          let viaturaWarningStart = '';
+          const preFilledKg: number | undefined = (data as any).weightKg;
+          const preFilledCm: number | undefined = (data as any).totalCm;
+          if (preFilledKg && preFilledKg > 0) {
+            const requiredType = typeForKg(preFilledKg);
+            if (parseInt(requiredType) > parseInt(type)) {
+              const viaturaRequired = viaturaMap[requiredType];
+              viaturaWarningStart = `\n\n_Atenção: o peso/volume da carga requer *${viaturaRequired}* — a viatura foi ajustada automaticamente (em vez de ${viatura ?? 'Moto'})._`;
+              type = requiredType;
+              data.viatura = viaturaRequired;
+            }
+          }
+          if (preFilledCm && preFilledCm > 0 && type === '2' && preFilledCm > MAX_CM_TYPE2) {
+            const viaturaRequired = 'Auto';
+            viaturaWarningStart = `\n\n_Atenção: o peso/volume da carga requer *${viaturaRequired}* — a viatura foi ajustada automaticamente (em vez de ${viatura ?? 'Moto'})._`;
+            type = '50';
+            data.viatura = viaturaRequired;
+          }
+
           if (fixResult.distanciaFinal > settings.globalParameters?.distance2To50 && type === '2') type = '50';
           if (fixResult.distanciaFinal > settings.globalParameters?.distance4To1 || new Date().getHours() > 13) precedence = '1';
 
@@ -178,6 +201,7 @@ export async function POST(request: NextRequest) {
           );
 
           Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown });
+          if (viaturaWarningStart) (data as any)._viaturaWarning = viaturaWarningStart;
         }
       } catch {
         // Se o calculo falhar, escalar para humano
@@ -191,7 +215,8 @@ export async function POST(request: NextRequest) {
 
       const fakeConv = { data } as any;
       const resp = buildPriceMessage(fakeConv, showAggOffer);
-      firstBotMessage = resp.text;
+      firstBotMessage = resp.text + ((data as any)._viaturaWarning ?? '');
+      delete (data as any)._viaturaWarning;
       quickReplies = resp.quickReplies;
       step = 'PRESENTING_PRICE';
 

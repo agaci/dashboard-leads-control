@@ -16,6 +16,23 @@ export interface DepotPricingResult {
   priceMin: number;
   LX_PT: number;
   GLX_GPT: number;
+  viaturaOverridden: boolean;   // true se o tipo foi elevado pelo peso real
+  viaturaRequired: string | null; // nova viatura necessária (ex: 'Auto'), ou null
+}
+
+// Mapeia peso kg → nome de viatura
+const TYPE_TO_VIATURA: Record<string, string> = {
+  '2': 'Moto',
+  '50': 'Auto',
+  '150': 'Furgão Classe 1',
+  '300': 'Furgão Classe 2',
+};
+
+function typeForWeight(kg: number): string {
+  if (kg <= 2) return '2';
+  if (kg <= 50) return '50';
+  if (kg <= 150) return '150';
+  return '300';
 }
 
 /**
@@ -24,7 +41,15 @@ export interface DepotPricingResult {
  *
  * Usa distância DIRETA origem→depósito (getDistanceMatrix com 2 pontos), não a rota
  * circular do fixCityPrice (que calcula Lisboa→A→B→Lisboa e daria distâncias erradas).
+ *
+ * Se weightKg for fornecido e requerer um tipo maior que o da viatura escolhida,
+ * o tipo é elevado automaticamente e viaturaOverridden=true é devolvido.
  */
+// Limite de C+L+A por tipo de veículo (cm)
+const MAX_CM_PER_TYPE: Record<string, number> = {
+  '2': 100, // Moto: 40×30×30
+};
+
 export async function calcDepotPickupPrice(
   origem: string,
   viatura: string,
@@ -32,6 +57,8 @@ export async function calcDepotPickupPrice(
   depots: PartnerDepot[],
   db: Db,
   calcName?: string,
+  weightKg?: number,
+  totalCm?: number,
 ): Promise<DepotPricingResult | null> {
   if (!depots || depots.length === 0) return null;
 
@@ -93,6 +120,29 @@ export async function calcDepotPickupPrice(
   if (bestDistance > (settings.globalParameters?.distance2To50 ?? 999) && type === '2') type = '50';
   if (bestDistance > (settings.globalParameters?.distance4To1 ?? 999) || new Date().getHours() > 13) precedence = '1';
 
+  // Se o peso real requer um tipo maior, elevar automaticamente
+  let viaturaOverridden = false;
+  let viaturaRequired: string | null = null;
+  if (weightKg !== undefined && weightKg > 0) {
+    const requiredType = typeForWeight(weightKg);
+    if (parseInt(requiredType) > parseInt(type)) {
+      type = requiredType;
+      viaturaOverridden = true;
+      viaturaRequired = TYPE_TO_VIATURA[requiredType] ?? null;
+    }
+  }
+
+  // Se o volume total (C+L+A) exceder o limite do tipo actual, elevar para type50
+  // (MAX_CM_PER_TYPE só existe para type2 — para os restantes não há restrição de volume)
+  if (totalCm !== undefined && totalCm > 0) {
+    const maxCm = MAX_CM_PER_TYPE[type];
+    if (maxCm !== undefined && totalCm > maxCm) {
+      type = '50';
+      viaturaOverridden = true;
+      viaturaRequired = 'Auto';
+    }
+  }
+
   // Calcular preço base do depot — SEM markup, SEM IVA
   // Fórmula: distância × priceKm + priceMin × (LX_PT + GLX_GPT)
   const typeSettings = settings[`type${type}`]?.[`precedence${precedence}`];
@@ -115,5 +165,7 @@ export async function calcDepotPickupPrice(
     priceMin,
     LX_PT,
     GLX_GPT: GLX_GPT_val,
+    viaturaOverridden,
+    viaturaRequired,
   };
 }

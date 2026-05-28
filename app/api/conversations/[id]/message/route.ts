@@ -202,12 +202,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const routingDoc = await db2.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
       const defaultMarkup = (routingDoc as any)?.defaultMarkup ?? defaultRoutingConfig.defaultMarkup;
 
+      const kg = (convDoc.data as any).weightKg ?? 1;
+
       // ── Depósito dinâmico ──────────────────────────────────────────────────
       const depots24 = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
       let depotPrice24: number | undefined;
       let depotInfo24: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
+      let viaturaNote24 = '';
+      let newViatura24: string | null = null;
       if (depots24.length > 0 && convDoc.data.origem) {
-        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine);
+        const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depots24, db, (routingDoc as any)?.calcPriceMachine, kg, totalCm || undefined);
         if (!dr) {
           const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
           history.push({ role: 'bot', text: escMsg, timestamp: now });
@@ -217,14 +221,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         }
         depotPrice24 = dr.pickupPrice;
         depotInfo24 = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+        if (dr.viaturaOverridden && dr.viaturaRequired) {
+          newViatura24 = dr.viaturaRequired;
+          viaturaNote24 = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;
+        }
       }
 
       const tariffDocs = await db2.collection('partnerTariffs')
         .find({ active: true, zone: 'Nacional' })
         .sort({ sortOrder: 1 })
         .toArray() as unknown as PartnerTariff[];
-
-      const kg = (convDoc.data as any).weightKg ?? 1;
 
       // ── Verificar peso máximo da expedição ────────────────────────────────
       const maxExpKg24 = maxExpeditionKg(tariffDocs);
@@ -272,7 +278,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         : '';
       const { header: hdr24, cutoffNote: cn24 } = build24hPriceHeader(kg);
       const recap24 = cargoRecapLine(nVol24, totalCm === 0 ? 0 : totalCm, kg);
-      const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}\n\nQual janela prefere?`;
+      const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}${viaturaNote24}\n\nQual janela prefere?`;
 
       // ── Construir breakdown para auditoria ──
       let priceBreakdown: any;
@@ -299,6 +305,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         updatedAt: now,
       };
       if (priceBreakdown) updateSet['data.priceBreakdown'] = priceBreakdown;
+      if (newViatura24) updateSet['data.viatura'] = newViatura24;
       await db2.collection('conversations').updateOne(
         { _id: oid },
         { $set: updateSet }
@@ -365,8 +372,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             const depotsFri = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
             let depotPriceFri: number | undefined;
             let depotInfoFri: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
+            let viaturaNoteFri = '';
+            let newViaturaFri: string | null = null;
             if (depotsFri.length > 0 && convDoc.data.origem) {
-              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine);
+              const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsFri, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined);
               if (!dr) {
                 fridayBotText = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
                 fridayStep = 'ESCALATED_TO_HUMAN'; fridayEscalate = true;
@@ -377,6 +386,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               }
               depotPriceFri = dr.pickupPrice;
               depotInfoFri = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+              if (dr.viaturaOverridden && dr.viaturaRequired) {
+                newViaturaFri = dr.viaturaRequired;
+                viaturaNoteFri = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;
+              }
             }
 
             const tariffDocs = await db.collection('partnerTariffs')
@@ -409,7 +422,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const { cutoffNote: cnFri } = build24hPriceHeader(kg);
               const totalCmFri = (convDoc.data as any).totalCm ?? 0;
               const recapFri = cargoRecapLine(nVolFri, totalCmFri, kg);
-              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}\n\nQual janela prefere?`;
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}${viaturaNoteFri}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
 
               let priceBreakdownFri: any;
@@ -435,6 +448,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 updatedAt: now,
               };
               if (priceBreakdownFri) updateSetFri['data.priceBreakdown'] = priceBreakdownFri;
+              if (newViaturaFri) updateSetFri['data.viatura'] = newViaturaFri;
               await db.collection('conversations').updateOne(
                 { _id: oid },
                 { $set: updateSetFri }
@@ -683,8 +697,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const depotsTmr = ((routingDoc as any)?.partnerDepots ?? []) as PartnerDepot[];
           let depotPriceTmr: number | undefined;
           let depotInfoTmr: import('@/lib/pricing/priceBreakdownBuilder').DepotInfo | undefined;
+          let viaturaNoteTmr = '';
+          let newViaturaТmr: string | null = null;
           if (depotsTmr.length > 0 && convDoc.data.origem) {
-            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine);
+            const dr = await calcDepotPickupPrice(convDoc.data.origem, convDoc.data.viatura ?? 'Furgão Classe 1', convDoc.data.urgencia ?? '4 Horas', depotsTmr, db, (routingDoc as any)?.calcPriceMachine, kg, totalCmKnown || undefined);
             if (!dr) {
               const escMsg = `${DEPOT_OUT_OF_RANGE_MSG}\n\n${businessHoursContact()}\n\n${URGENCY_NOTE}`;
               history.push({ role: 'bot', text: escMsg, timestamp: now });
@@ -694,6 +710,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             }
             depotPriceTmr = dr.pickupPrice;
             depotInfoTmr = { name: dr.depot.name, distanceKm: dr.distanceKm, type: dr.type, precedence: dr.precedence, priceKm: dr.priceKm, priceMin: dr.priceMin, LX_PT: dr.LX_PT, GLX_GPT: dr.GLX_GPT };
+            if (dr.viaturaOverridden && dr.viaturaRequired) {
+              newViaturaТmr = dr.viaturaRequired;
+              viaturaNoteTmr = `\n\n_Atenção: o peso/volume da carga requer *${dr.viaturaRequired}* — a viatura foi ajustada no cálculo (em vez de ${convDoc.data.viatura ?? 'Moto'})._`;
+            }
           }
 
           const tariffDocs = await db.collection('partnerTariffs')
@@ -715,24 +735,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const isSaturday = new Date().getDay() === 6;
           const prices = calcAllActiveTariffs(tariffDocs, kg, totalCm, isSaturday, defaultMarkup, depotPriceTmr);
 
-          console.log('[calculate_tomorrow] Preços calculados:', {
-            convId: oid.toString(),
-            weightKg: kg,
-            pricesCount: prices.length,
-            hasError: prices.length === 0,
-          });
-
           if (prices.length > 0) {
             const sorted = [...prices].reverse();
             const recommended = sorted[Math.floor(sorted.length / 2)];
-            const recTariffTmr = tariffDocs.find((t) => t._id?.toString() === recommended.tariffId);
-
-            console.log('[calculate_tomorrow] Procurando tarifa:', {
-              convId: oid.toString(),
-              recommendedTariffId: recommended.tariffId,
-              found: !!recTariffTmr,
-              tariffName: recTariffTmr?.partner,
-            });
             const priceLines = sorted.map((p) => `*${p.serviceLabelShort}* — €${p.finalPrice.toFixed(2)} _(IVA 23% incl.)_`).join('\n');
             const nVolTmr = (convDoc.data as any).nVolumes ?? 1;
             const maxVolKgTmr = maxVolumeKg(tariffDocs);
@@ -743,7 +748,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               : '';
             const { header: hdrTmr, cutoffNote: cnTmr } = build24hPriceHeader(kg);
             const recapTmr = cargoRecapLine(nVolTmr, totalCmKnown, kg);
-            botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}\n\nQual janela prefere?`;
+            botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}${viaturaNoteTmr}\n\nQual janela prefere?`;
 
             // Usar recommended directamente — já tem toda a info de preço calculada
             const priceBreakdownTmr = buildPartnerServiceBreakdown(
@@ -766,16 +771,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               updatedAt: now,
             };
             if (priceBreakdownTmr) updateSetTmr['data.priceBreakdown'] = priceBreakdownTmr;
+            if (newViaturaТmr) updateSetTmr['data.viatura'] = newViaturaТmr;
             await db.collection('conversations').updateOne(
               { _id: oid },
               { $set: updateSetTmr }
             );
           }
-        } catch (err) {
-          console.error('[calculate_tomorrow] ERRO ao calcular preço:', {
-            convId: oid.toString(),
-            error: err instanceof Error ? err.message : String(err),
-          });
+        } catch {
           botText = botText || 'Não foi possível calcular o preço. A nossa equipa vai contactar brevemente.';
           nextStep = 'ESCALATED_TO_HUMAN';
           escalate = true;
