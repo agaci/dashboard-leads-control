@@ -84,7 +84,30 @@ export default function PrecosPage() {
       })
       .then((d) => {
         if (d.success) {
-          setCalc({ discountPercent: 0.1, ...d.calculator });
+          const raw = d.calculator ?? {};
+          const defPrec: Precedence = { priceKm: 0, priceMin: 0, pricePoint: 0 };
+          const defVeh: VehicleType = { precedence1: defPrec, precedence4: defPrec };
+          const defGlobal: GlobalParams = { distance2To50: 0, distance4To1: 0, discountUp2Points: 0, discount4To1: 0 };
+          const defOoh: OutOfHours = {
+            timeWindow1: 9, timeWindow2: 20, timeWindow3: 23, timeWindow4: 0,
+            flatRate1: 0, flatRate2: 0, flatRate3: 0, flatRate4: 0,
+            flatRateSaturdays: 0, flatRateSundays: 0, flatRateHolidays: 0,
+            additionalKmsFee1: 0, additionalKmsFee2: 0, additionalKmsFee3: 0, additionalKmsFee4: 0,
+            additionalKmsFeeSaturdays: 0, additionalKmsFeeSundays: 0, additionalKmsFeeHolidays: 0,
+            distanceTariffsPercentageTotal: 0, percentageTotalWorsening: 0,
+          };
+          setCalc({
+            discountPercent: 0.1,
+            percentPlusMaxForcalcPriceMachineForAPIFromSiteYourbox: 0,
+            percentPlusMinForcalcPriceMachineForAPIFromSiteYourbox: 0,
+            ...raw,
+            type2:   { ...defVeh, ...raw.type2 },
+            type50:  { ...defVeh, ...raw.type50 },
+            type150: { ...defVeh, ...raw.type150 },
+            type300: { ...defVeh, ...raw.type300 },
+            globalParameters: { ...defGlobal, ...raw.globalParameters },
+            outOfHoursFees:   { ...defOoh,    ...raw.outOfHoursFees   },
+          });
           setActiveCalcName(d.name ?? '');
         } else {
           setLoadError(d.error ?? 'Calculadora não encontrada');
