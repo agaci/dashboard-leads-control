@@ -4,6 +4,8 @@ import { isEscalationRequest, isPriceShock } from './matcher';
 import { getSituacaoById } from './situacoes';
 import { parseWeight } from './partnerPricing';
 
+export const CARGO_DISCLAIMER = '_O valor apresentado baseia-se nas informações fornecidas. Caso o peso, número de volumes ou dimensões reais sejam diferentes, o preço poderá ser revisto._';
+
 // Perguntas de qualificação — fluxo principal
 const QUESTIONS: Record<ConversationStep, { text: string; quickReplies?: string[] }> = {
   COLLECTING_ORIGEM: {
@@ -105,6 +107,7 @@ export function buildPriceMessage(conv: Conversation, showAggOffer = false): Bot
       `Urgência: ${urgencia}` +
       capacityNote +
       notasLine +
+      CARGO_DISCLAIMER + '\n\n' +
       closingLine
     : 'Para calcular o preço, precisamos dos detalhes do serviço.';
 
@@ -201,6 +204,7 @@ export function buildPartnerPriceMessage(
       lines.join('\n') +
       `\n\nRecomendamos *${recommended.serviceLabelShort}* — €${recommended.finalPrice.toFixed(2)}\n\n` +
       dimNote +
+      CARGO_DISCLAIMER + '\n\n' +
       `Escolha a janela de entrega:`,
     nextStep: 'PRESENTING_PARTNER_PRICE',
     quickReplies: prices.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`).concat(['Cancelar']),

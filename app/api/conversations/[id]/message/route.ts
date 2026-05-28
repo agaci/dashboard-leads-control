@@ -4,6 +4,7 @@ import { ObjectId } from 'mongodb';
 import { getLlmResponse } from '@/lib/agent/llmResponder';
 import { calcAllActiveTariffs, parseTotalCm } from '@/lib/agent/partnerPricing';
 import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
+import { CARGO_DISCLAIMER } from '@/lib/agent/botResponder';
 import { buildPartnerServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
@@ -278,7 +279,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         : '';
       const { header: hdr24, cutoffNote: cn24 } = build24hPriceHeader(kg);
       const recap24 = cargoRecapLine(nVol24, totalCm === 0 ? 0 : totalCm, kg);
-      const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}${viaturaNote24}\n\nQual janela prefere?`;
+      const botText = `${hdr24}\n\n${recap24}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${dimNote}${limitsNote24}${cn24}${viaturaNote24}\n\n${CARGO_DISCLAIMER}\n\nQual janela prefere?`;
 
       // ── Construir breakdown para auditoria ──
       let priceBreakdown: any;
@@ -422,7 +423,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               const { cutoffNote: cnFri } = build24hPriceHeader(kg);
               const totalCmFri = (convDoc.data as any).totalCm ?? 0;
               const recapFri = cargoRecapLine(nVolFri, totalCmFri, kg);
-              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}${viaturaNoteFri}\n\nQual janela prefere?`;
+              fridayBotText = `*Entrega YourBox — ${kg} kg* (segunda-feira)\n\n${recapFri}${priceLines}\n\nRecomendamos *${rec.serviceLabelShort}* a €${rec.finalPrice.toFixed(2)}.${limitsNoteFri}${cnFri}${viaturaNoteFri}\n\n${CARGO_DISCLAIMER}\n\nQual janela prefere?`;
               fridayQuickReplies.push(...sorted.map((p) => `${p.serviceLabelShort} €${p.finalPrice.toFixed(2)}`), 'Cancelar');
 
               let priceBreakdownFri: any;
@@ -727,7 +728,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               : '';
             const { header: hdrTmr, cutoffNote: cnTmr } = build24hPriceHeader(kg);
             const recapTmr = cargoRecapLine(nVolTmr, totalCmKnown, kg);
-            botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}${viaturaNoteTmr}\n\nQual janela prefere?`;
+            botText = `${hdrTmr}\n\n${recapTmr}${priceLines}\n\nRecomendamos *${recommended.serviceLabelShort}* a €${recommended.finalPrice.toFixed(2)}.${limitsNoteTmr}${cnTmr}${viaturaNoteTmr}\n\n${CARGO_DISCLAIMER}\n\nQual janela prefere?`;
 
             // Usar recommended directamente — já tem toda a info de preço calculada
             const priceBreakdownTmr = buildPartnerServiceBreakdown(
