@@ -472,6 +472,7 @@ export default function NavSidebar({
       { id: 'clientes',   label: 'Clientes',   icon: <IcoClientes /> },
       { id: 'agregacoes', label: 'Agreg.',     icon: <IcoAgregacoes />, blink: aggBlink },
       { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
+      { id: 'precos',     label: 'Preços',     icon: <IcoPrecos /> },
       { id: 'baseIA',     label: 'Base IA',    icon: <IcoBaseIA /> },
       { id: 'relatorios', label: 'Relatórios', icon: <IcoRelatorios /> },
       { id: 'widgets',    label: 'Widgets',    icon: <IcoWidgets /> },
