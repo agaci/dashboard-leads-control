@@ -2029,7 +2029,7 @@ function RoutingPanel() {
 
   function toggle(key: keyof RoutingConfig) { setConfig((c) => ({ ...c, [key]: !c[key] })); }
   function num(key: keyof RoutingConfig, val: string) { setConfig((c) => ({ ...c, [key]: parseInt(val) || 0 })); }
-  function numFloat(key: keyof RoutingConfig, val: string) { setConfig((c) => ({ ...c, [key]: parseFloat(val) || 0 })); }
+  function numFloat(key: keyof RoutingConfig, rawNum: number) { setConfig((c) => ({ ...c, [key]: isNaN(rawNum) ? 0 : rawNum })); }
 
   const cardS: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
   const inputS: React.CSSProperties = { border: `1.5px solid ${BORDER}`, borderRadius: 8, fontSize: 14, outline: 'none', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const };
@@ -2086,7 +2086,7 @@ function RoutingPanel() {
       <div style={cardS}>
         <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)', display: 'block', marginBottom: 4 }}>Delay antes do bot (minutos)</label>
         <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginBottom: 8 }}>Minutos a aguardar antes do bot responder (0 = imediato · 0.5 = 30 segundos · 1 = 1 minuto)</p>
-        <input type="number" min={0} max={60} step={0.5} value={config.delayMinutesBeforeBot} onChange={(e) => numFloat('delayMinutesBeforeBot', e.target.value)}
+        <input type="number" min={0} max={60} step={0.5} value={config.delayMinutesBeforeBot} onChange={(e) => numFloat('delayMinutesBeforeBot', e.target.valueAsNumber)}
           style={{ ...inputS, width: 100, padding: '7px 10px' }} />
       </div>
 
