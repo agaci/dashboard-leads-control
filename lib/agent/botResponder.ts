@@ -83,13 +83,21 @@ const VEHICLE_CAPACITY: Record<string, string> = {
   'Furgão Classe 2': '300 kg / 9 m³',
 };
 
+const TYPE_CAPACITY: Record<string, string> = {
+  '2': '2 kg / 10 L',
+  '50': '50 kg / 1 m³',
+  '150': '150 kg / 3 m³',
+  '300': '300 kg / 9 m³',
+};
+
 // Resposta após preço calculado
 export function buildPriceMessage(conv: Conversation, showAggOffer = false): BotResponse {
   const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura, notas } = conv.data;
+  const effectiveType = (conv.data as any).effectiveType as string | undefined;
 
-  const capacityNote = viatura && VEHICLE_CAPACITY[viatura]
-    ? `\n_Capacidade máxima: ${VEHICLE_CAPACITY[viatura]}_\n\n`
-    : '\n\n';
+  // Se effectiveType diverge da viatura seleccionada (upgrade por distância), mostrar capacidade real
+  const capacityStr = effectiveType ? TYPE_CAPACITY[effectiveType] : (viatura ? VEHICLE_CAPACITY[viatura] : undefined);
+  const capacityNote = capacityStr ? `\n_Capacidade máxima: ${capacityStr}_\n\n` : '\n\n';
 
   const notasLine = notas ? `_Obs.: ${notas}_\n\n` : '';
 

@@ -450,8 +450,8 @@ export async function POST(request: NextRequest) {
           const discount = priceCalculated * discountRate;
           const priceWithDiscount = priceCalculated - discount;
 
-          await updateConversationData(telemovel, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal });
-          conv.data = { ...conv.data, priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal };
+          await updateConversationData(telemovel, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type });
+          conv.data = { ...conv.data, priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type };
 
           const timeStamp = new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
           const simResult = await db.collection('messages').insertOne({

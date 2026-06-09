@@ -90,6 +90,7 @@ export interface ConversationData {
   source?: string;   // domain/origin identifier (e.g. 'yourbox.com.pt', 'meusite.pt', 'bot')
   nVolumes?: number;
   aggOfferShown?: boolean;
+  effectiveType?: string;    // tipo real usado no cálculo (pode diferir de viatura por upgrade de distância)
   offTopicStreak?: number;   // mensagens off-topic consecutivas nesta conversa
   closedForOffTopic?: boolean;
   abuseIp?: string;          // IP registado em encerramento por abuso

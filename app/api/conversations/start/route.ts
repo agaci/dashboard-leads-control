@@ -200,7 +200,7 @@ export async function POST(request: NextRequest) {
             calcNameStart,
           );
 
-          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown });
+          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown, effectiveType: type });
           if (viaturaWarningStart) (data as any)._viaturaWarning = viaturaWarningStart;
         }
       } catch {
