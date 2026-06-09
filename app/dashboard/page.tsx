@@ -759,6 +759,7 @@ export default function DashboardPage() {
             <RoutingPanel />
             <div style={{ marginTop: 32 }}>
               <VariantPanel />
+              <VariantSchedulePanel />
             </div>
           </div>
         </div>
@@ -1399,6 +1400,7 @@ function ConfigPage() {
           <RoutingPanel />
           <div style={{ height: 1, background: BORDER, margin: '32px 0' }} />
           <VariantPanel />
+          <VariantSchedulePanel />
           <div style={{ height: 1, background: BORDER, margin: '32px 0' }} />
           <DepotPanel />
         </>
@@ -2471,6 +2473,230 @@ function VariantPanel() {
       <button onClick={save} disabled={saving || total !== 100}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: (saving || total !== 100) ? 'default' : 'pointer', background: saved ? '#166534' : total !== 100 ? 'rgba(255,255,255,0.1)' : CYAN, color: total !== 100 ? '#4a6080' : '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
         {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar distribuição'}
+      </button>
+      <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
+    </div>
+  );
+}
+
+// ── Variant Schedule Panel ────────────────────────────────────────────────────
+
+type VariantSchedule = {
+  id: string;
+  label: string;
+  startHour: number;
+  endHour: number;
+  weights: Record<string, number>;
+};
+
+function newSlotId() {
+  return Math.random().toString(36).slice(2, 9);
+}
+
+function VariantSchedulePanel() {
+  const [variantKeys, setVariantKeys] = useState<string[]>([]);
+  const [schedules, setSchedules] = useState<VariantSchedule[]>([]);
+  const [active, setActive] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [error, setError] = useState('');
+
+  // Hora actual de Lisboa (para chip "slot activo agora")
+  const [nowHour, setNowHour] = useState(() =>
+    new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })).getHours()
+  );
+  useEffect(() => {
+    const t = setInterval(() =>
+      setNowHour(new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' })).getHours()),
+      60_000,
+    );
+    return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    Promise.all([
+      fetch('/api/variant-config').then((r) => r.json()),
+      fetch('/api/variant-config/schedules').then((r) => r.json()),
+    ]).then(([varData, schData]) => {
+      setVariantKeys((varData.variants ?? []).map((v: { key: string }) => v.key));
+      setSchedules(schData.schedules ?? []);
+      setActive(schData.active ?? false);
+    }).finally(() => setLoading(false));
+  }, []);
+
+  const activeSlot = schedules.find((s) => nowHour >= s.startHour && nowHour < s.endHour);
+
+  function addSlot() {
+    const used = new Set(schedules.flatMap((s) => Array.from({ length: s.endHour - s.startHour }, (_, i) => s.startHour + i)));
+    let start = 0;
+    while (used.has(start) && start < 24) start++;
+    const end = Math.min(start + 4, 24);
+    const w: Record<string, number> = {};
+    if (variantKeys.length > 0) {
+      variantKeys.forEach((k) => (w[k] = 0));
+      w[variantKeys[0]] = 100;
+    }
+    setSchedules((s) => [...s, { id: newSlotId(), label: 'Novo slot', startHour: start, endHour: end, weights: w }]);
+  }
+
+  function removeSlot(id: string) {
+    setSchedules((s) => s.filter((sl) => sl.id !== id));
+  }
+
+  function updateSlot(id: string, field: keyof VariantSchedule, value: unknown) {
+    setSchedules((s) => s.map((sl) => sl.id === id ? { ...sl, [field]: value } : sl));
+  }
+
+  function updateWeight(id: string, key: string, val: number) {
+    setSchedules((s) => s.map((sl) => sl.id === id ? { ...sl, weights: { ...sl.weights, [key]: val } } : sl));
+  }
+
+  async function save() {
+    setError(''); setSaving(true); setSaved(false);
+    try {
+      const res = await fetch('/api/variant-config/schedules', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ schedules, active }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) setError(data.error ?? 'Erro ao guardar');
+      else { setSaved(true); setTimeout(() => setSaved(false), 2500); }
+    } catch (e: any) { setError('Erro de rede: ' + e.message); }
+    finally { setSaving(false); }
+  }
+
+  const cardS: React.CSSProperties = { background: 'var(--yb-card)', borderRadius: 10, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 10 };
+  const inpS: React.CSSProperties = { padding: '5px 8px', border: `1.5px solid ${BORDER}`, borderRadius: 7, fontSize: 13, outline: 'none', background: 'var(--yb-input)', color: 'var(--yb-fg)', colorScheme: 'inherit' as const, width: '100%' };
+  const numS: React.CSSProperties = { ...inpS, width: 56, textAlign: 'right' as const };
+
+  if (loading) return null;
+
+  return (
+    <div style={{ marginTop: 32 }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>
+          Agendamento de Distribuição
+        </h2>
+        {active && activeSlot && (
+          <span style={{ fontSize: 12, fontWeight: 700, background: 'rgba(34,197,94,0.15)', color: '#22c55e', padding: '3px 10px', borderRadius: 20 }}>
+            Activo agora: {activeSlot.label}
+          </span>
+        )}
+        {active && !activeSlot && (
+          <span style={{ fontSize: 12, fontWeight: 600, background: 'rgba(250,204,21,0.15)', color: '#ca8a04', padding: '3px 10px', borderRadius: 20 }}>
+            Fora de slot — usando distribuição base
+          </span>
+        )}
+      </div>
+      <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 14 }}>
+        Define percentagens automáticas por faixa horária. Quando activo, a distribuição muda sozinha à hora programada (propagação máx. 60s).
+      </p>
+
+      {/* Toggle activar */}
+      <div style={{ ...cardS, display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          onClick={() => setActive((v) => !v)}
+          style={{
+            width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative',
+            background: active ? CYAN : 'var(--yb-border)', transition: 'background 0.2s', flexShrink: 0,
+          }}>
+          <span style={{
+            position: 'absolute', top: 3, left: active ? 22 : 3, width: 18, height: 18,
+            borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
+          }} />
+        </button>
+        <div>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)' }}>
+            {active ? 'Agendamento activo' : 'Agendamento desactivado'}
+          </span>
+          <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '2px 0 0' }}>
+            {active ? 'Os pesos são definidos automaticamente pela hora de Lisboa.' : 'A distribuição manual (painel acima) está em vigor.'}
+          </p>
+        </div>
+      </div>
+
+      {/* Lista de slots */}
+      {schedules.length === 0 && (
+        <p style={{ fontSize: 13, color: 'var(--yb-subtle)', textAlign: 'center', padding: '16px 0' }}>
+          Nenhum slot definido. Clique em "+ Adicionar slot" para começar.
+        </p>
+      )}
+
+      {schedules.map((slot) => {
+        const slotTotal = Object.values(slot.weights).reduce((a, b) => a + b, 0);
+        const isNow = active && nowHour >= slot.startHour && nowHour < slot.endHour;
+        return (
+          <div key={slot.id} style={{ ...cardS, border: isNow ? `1.5px solid ${CYAN}` : `1px solid ${BORDER}` }}>
+            {/* Cabeçalho do slot */}
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 12 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
+                <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Etiqueta</span>
+                <input value={slot.label} onChange={(e) => updateSlot(slot.id, 'label', e.target.value)} style={inpS} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Das</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="number" min={0} max={23} value={slot.startHour}
+                    onChange={(e) => updateSlot(slot.id, 'startHour', Math.max(0, Math.min(23, parseInt(e.target.value) || 0)))}
+                    style={numS} />
+                  <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>h</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Até</span>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <input type="number" min={1} max={24} value={slot.endHour}
+                    onChange={(e) => updateSlot(slot.id, 'endHour', Math.max(1, Math.min(24, parseInt(e.target.value) || 1)))}
+                    style={numS} />
+                  <span style={{ fontSize: 12, color: 'var(--yb-muted)' }}>h</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 'auto' }}>
+                {isNow && (
+                  <span style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>ACTIVO AGORA</span>
+                )}
+                <span style={{ fontSize: 12, fontWeight: 700, color: slotTotal === 100 ? '#22c55e' : '#f87171' }}>
+                  {slotTotal}%
+                </span>
+                <button onClick={() => removeSlot(slot.id)}
+                  style={{ background: 'none', border: `1.5px solid rgba(239,68,68,0.3)`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontSize: 16, color: '#f87171', lineHeight: 1 }}>
+                  ×
+                </button>
+              </div>
+            </div>
+
+            {/* Pesos por variante */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+              {variantKeys.map((key) => (
+                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', minWidth: 60 }}>
+                  <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: CYAN, background: 'rgba(0,188,212,0.12)', padding: '2px 7px', borderRadius: 5 }}>{key}</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    <input type="number" min={0} max={100}
+                      value={slot.weights[key] ?? 0}
+                      onChange={(e) => updateWeight(slot.id, key, parseInt(e.target.value) || 0)}
+                      style={{ ...numS, width: 48 }} />
+                    <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>%</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      <button onClick={addSlot}
+        style={{ width: '100%', padding: '10px', border: `1.5px dashed ${BORDER}`, borderRadius: 8, background: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--yb-muted)', marginBottom: 10 }}>
+        + Adicionar slot
+      </button>
+
+      {error && <p style={{ fontSize: 12, color: '#f87171', margin: '0 0 8px' }}>{error}</p>}
+
+      <button onClick={save} disabled={saving}
+        style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
+        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar horários'}
       </button>
       <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
     </div>

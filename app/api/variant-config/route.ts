@@ -14,11 +14,33 @@ const DEFAULT_VARIANTS = [
 
 export type VariantItem = { key: string; label: string; desc: string; file: string; weight: number };
 
+export type VariantSchedule = {
+  id: string;
+  label: string;
+  startHour: number;   // 0–23
+  endHour: number;     // 1–24 (24 = meia-noite)
+  weights: Record<string, number>;
+};
+
 export async function GET() {
   try {
     const db = await getDb();
     const doc = await db.collection(COLLECTION).findOne({ _id: DOC_ID as any });
-    const variants: VariantItem[] = (doc as any)?.variants ?? DEFAULT_VARIANTS;
+    let variants: VariantItem[] = (doc as any)?.variants ?? DEFAULT_VARIANTS;
+
+    // Aplicar schedule se activo — não altera produção enquanto flag = false/undefined
+    const schedulesActive: boolean = (doc as any)?.variantSchedulesActive ?? false;
+    const schedules: VariantSchedule[] = (doc as any)?.variantSchedules ?? [];
+
+    if (schedulesActive && schedules.length > 0) {
+      const lisbonNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+      const h = lisbonNow.getHours();
+      const activeSlot = schedules.find((s) => h >= s.startHour && h < s.endHour);
+      if (activeSlot) {
+        variants = variants.map((v) => ({ ...v, weight: activeSlot.weights[v.key] ?? 0 }));
+      }
+    }
+
     return Response.json({ variants });
   } catch {
     return Response.json({ variants: DEFAULT_VARIANTS });
