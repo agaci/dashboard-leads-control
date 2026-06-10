@@ -94,6 +94,7 @@ const TYPE_CAPACITY: Record<string, string> = {
 export function buildPriceMessage(conv: Conversation, showAggOffer = false): BotResponse {
   const { priceCalculated, priceWithDiscount, discount, distance, urgencia, viatura, notas } = conv.data;
   const effectiveType = (conv.data as any).effectiveType as string | undefined;
+  const oohNote = (conv.data as any).oohNote as string | undefined;
 
   // Se effectiveType diverge da viatura seleccionada (upgrade por distância), mostrar capacidade real
   const capacityStr = effectiveType ? TYPE_CAPACITY[effectiveType] : (viatura ? VEHICLE_CAPACITY[viatura] : undefined);
@@ -109,6 +110,7 @@ export function buildPriceMessage(conv: Conversation, showAggOffer = false): Bot
     ? `*Orçamento Estimado*\n\n` +
       `~~€${priceCalculated!.toFixed(2)}~~  *-€${discount!.toFixed(2)}*\n` +
       `*€${priceWithDiscount!.toFixed(2)}* _Desconto de 10% incluído_\n` +
+      (oohNote ? `_${oohNote}_\n` : '') +
       `_(IVA 23% incluído)_\n\n` +
       `Distância: ${distance} km\n` +
       `Viatura: ${viatura}\n` +

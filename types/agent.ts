@@ -91,6 +91,7 @@ export interface ConversationData {
   nVolumes?: number;
   aggOfferShown?: boolean;
   effectiveType?: string;    // tipo real usado no cálculo (pode diferir de viatura por upgrade de distância)
+  oohNote?: string;          // nota de suplemento OOH (feriado/fim-de-semana) aplicado ao preço directo
   offTopicStreak?: number;   // mensagens off-topic consecutivas nesta conversa
   closedForOffTopic?: boolean;
   abuseIp?: string;          // IP registado em encerramento por abuso

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
-import { sendEscalationEmail } from '@/lib/email/resend';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -39,7 +39,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       );
       if (conv) {
         const lastMsg = (conv.history as any[])?.[0]?.text as string | undefined;
-        sendEscalationEmail({
+        dispatchNotification('escalation', {
           convId:    id,
           telemovel: conv.telemovel,
           nome:      conv.data?.nome,

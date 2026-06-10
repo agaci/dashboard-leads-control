@@ -24,6 +24,7 @@ import { matchSituacao, matchTriggerCode } from '@/lib/agent/matcher';
 import { findAggregationHints } from '@/lib/agent/aggregation';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
+import { getOohInfo, getLisbonNow, isPortugueseHoliday, build24hPriceHeader } from '@/lib/utils/holidays';
 import { calcAllActiveTariffs, parseWeight } from '@/lib/agent/partnerPricing';
 import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
@@ -49,27 +50,7 @@ function dimQuestionWA(nVol: number): string {
     : `Indique as dimensões *da caixa* (C × L × A em cm):\n\n_(ex: 60×40×30)_\n\nPode responder *saltar* se não souber.`;
 }
 
-function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
-  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
-  const dow = l.getDay();
-  const afterCutoff = l.getHours() >= 16;
-
-  if (dow === 0 || dow === 6) {
-    return {
-      header: `*Entrega YourBox — 3ª feira — ${kg} kg*`,
-      cutoffNote: `\n\n_Nota: como é fim de semana, a recolha será na *segunda-feira de manhã*, com entrega na *terça-feira*._`,
-    };
-  }
-
-  return {
-    header: afterCutoff
-      ? `*Entrega YourBox — 2 dias úteis — ${kg} kg*`
-      : `*Entrega YourBox Amanhã — ${kg} kg*`,
-    cutoffNote: afterCutoff
-      ? `\n\n⚠️ *Atenção:* após as 16h00, a recolha hoje já não é possível. A carga ficará agendada para *amanhã de manhã*, com entrega no *dia seguinte*.`
-      : `\n\n_Nota: confirme antes das *16h00* para garantir recolha hoje._`,
-  };
-}
+// build24hPriceHeader importado de @/lib/utils/holidays
 
 function parseNVolumes(text: string): number | null {
   const wordMap: Record<string, number> = {
@@ -445,13 +426,17 @@ export async function POST(request: NextRequest) {
           if (fixResult.distanciaFinal > settings.globalParameters?.distance4To1 || new Date().getHours() > 13) precedence = '1';
 
           const priceResult = calculatePrice(fixResult, { type, precedence }, settings);
-          const priceCalculated = priceResult.maxPrice;
+          const oohInfoWA = getOohInfo(getLisbonNow(), settings?.outOfHoursFees);
+          let priceCalculated = priceResult.maxPrice;
+          if (oohInfoWA.multiplier !== 1) {
+            priceCalculated = Math.round(priceCalculated * oohInfoWA.multiplier * 10) / 10;
+          }
           const discountRate = settings.discountPercent ?? 0.1;
           const discount = priceCalculated * discountRate;
           const priceWithDiscount = priceCalculated - discount;
-
-          await updateConversationData(telemovel, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type });
-          conv.data = { ...conv.data, priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type };
+          const oohNoteWA = oohInfoWA.note ?? undefined;
+          await updateConversationData(telemovel, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type, ...(oohNoteWA ? { oohNote: oohNoteWA } : {}) });
+          conv.data = { ...conv.data, priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, effectiveType: type, ...(oohNoteWA ? { oohNote: oohNoteWA } : {}) };
 
           const timeStamp = new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' });
           const simResult = await db.collection('messages').insertOne({
@@ -485,8 +470,8 @@ export async function POST(request: NextRequest) {
         const db = await getDb();
 
         // ── 6ª feira: pedir Sábado vs Segunda antes de calcular ──────────────
-        const lisbonNowWA = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
-        if (lisbonNowWA.getDay() === 5 && conv.step !== 'CONFIRMING_FRIDAY_DELIVERY') {
+        const lisbonNowWA = getLisbonNow();
+        if (lisbonNowWA.getDay() === 5 && !isPortugueseHoliday(lisbonNowWA) && conv.step !== 'CONFIRMING_FRIDAY_DELIVERY') {
           const kgFri = conv.data.weightKg ?? 1;
           const fridayQ = `Como hoje é *sexta-feira*, a entrega *amanhã* seria ao *sábado*.\n\nPrefere entrega no *sábado* ou pode aguardar até *segunda-feira*?`;
           await setConversationStep(telemovel, 'CONFIRMING_FRIDAY_DELIVERY');

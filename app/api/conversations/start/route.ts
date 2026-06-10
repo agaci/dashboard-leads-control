@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { buildPriceMessage, build24hIntroMessage } from '@/lib/agent/botResponder';
+import { getOohInfo, getLisbonNow } from '@/lib/utils/holidays';
 import { findAggregationHints } from '@/lib/agent/aggregation';
 import { calcAllActiveTariffs, parseTotalCm, parseNVolumesFromText, parseWeightKgFromText } from '@/lib/agent/partnerPricing';
 import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
@@ -185,7 +186,11 @@ export async function POST(request: NextRequest) {
           if (fixResult.distanciaFinal > settings.globalParameters?.distance4To1 || new Date().getHours() > 13) precedence = '1';
 
           const priceResult = calculatePrice(fixResult, { type, precedence }, settings);
-          const priceCalculated = priceResult.maxPrice;
+          const oohInfo = getOohInfo(getLisbonNow(), settings?.outOfHoursFees);
+          let priceCalculated = priceResult.maxPrice;
+          if (oohInfo.multiplier !== 1) {
+            priceCalculated = Math.round(priceCalculated * oohInfo.multiplier * 10) / 10;
+          }
           const discountRate = settings.discountPercent ?? 0.1;
           const discount = priceCalculated * discountRate;
           const priceWithDiscount = priceCalculated - discount;
@@ -200,7 +205,7 @@ export async function POST(request: NextRequest) {
             calcNameStart,
           );
 
-          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown, effectiveType: type });
+          Object.assign(data, { priceCalculated, discount, priceWithDiscount, distance: fixResult.distanciaFinal, priceBreakdown: breakdown, effectiveType: type, ...(oohInfo.note ? { oohNote: oohInfo.note } : {}) });
           if (viaturaWarningStart) (data as any)._viaturaWarning = viaturaWarningStart;
         }
       } catch {

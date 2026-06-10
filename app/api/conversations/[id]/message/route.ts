@@ -7,6 +7,7 @@ import { calcDepotPickupPrice } from '@/lib/agent/depotPricing';
 import { CARGO_DISCLAIMER } from '@/lib/agent/botResponder';
 import { buildPartnerServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { build24hPriceHeader, isPortugueseHoliday, getLisbonNow } from '@/lib/utils/holidays';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { PartnerTariff } from '@/types/partner';
 import type { PartnerDepot } from '@/types/pricing';
@@ -44,27 +45,7 @@ function cargoRecapLine(nVol: number | undefined, totalCm: number, kg: number): 
   return `_Carga confirmada: ${parts.join(' · ')}_\n\n`;
 }
 
-function build24hPriceHeader(kg: number): { header: string; cutoffNote: string } {
-  const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
-  const dow = l.getDay(); // 0=Dom, 1=Seg, ..., 5=Sex, 6=Sáb
-  const afterCutoff = l.getHours() >= 16;
-
-  if (dow === 0 || dow === 6) {
-    return {
-      header: `*Entrega YourBox — 3ª feira — ${kg} kg*`,
-      cutoffNote: `\n\n_Nota: como é fim de semana, a recolha será na *segunda-feira de manhã*, com entrega na *terça-feira*._`,
-    };
-  }
-
-  return {
-    header: afterCutoff
-      ? `*Entrega YourBox — 2 dias úteis — ${kg} kg*`
-      : `*Entrega YourBox Amanhã — ${kg} kg*`,
-    cutoffNote: afterCutoff
-      ? `\n\n⚠️ *Atenção:* após as 16h00, a recolha hoje já não é possível. A carga ficará agendada para *amanhã de manhã*, com entrega no *dia seguinte*.`
-      : `\n\n_Nota: confirme antes das *16h00* para garantir recolha hoje._`,
-  };
-}
+// build24hPriceHeader importado de @/lib/utils/holidays
 
 function maxExpeditionKg(tariffDocs: PartnerTariff[]): number {
   return tariffDocs.reduce((m, t) => Math.max(m, t.conditions?.maxWeightPerExpedition ?? 0), 0);
@@ -403,6 +384,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
                 const fridayFieldsEsc: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
                 await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFieldsEsc });
+                dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
                 return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
               }
               depotPriceFri = dr.pickupPrice;
@@ -424,6 +406,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               history.push({ role: 'bot', text: fridayBotText!, timestamp: now });
               const fridayFieldsEsc2: Record<string, unknown> = { history, step: fridayStep, updatedAt: now, escalatedAt: now };
               await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFieldsEsc2 });
+              dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
               return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: [], escalate: true });
             }
 
@@ -491,6 +474,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const fridayFields: Record<string, unknown> = { history, step: fridayStep, updatedAt: now };
       if (fridayEscalate) fridayFields.escalatedAt = now;
       await db.collection('conversations').updateOne({ _id: oid }, { $set: fridayFields });
+      if (fridayEscalate) dispatchNotification('escalation', { convId: oid.toString(), nome: convDoc.data?.nome, telemovel: convDoc.data?.telefone ?? convDoc.data?.telemovel, origem: convDoc.data?.origem, destino: convDoc.data?.destino, lastMsg: mensagem });
       return Response.json({ success: true, message: fridayBotText!, step: fridayStep, quickReplies: fridayQuickReplies, escalate: fridayEscalate });
     }
 
@@ -652,9 +636,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         }
       }
 
-      // ── 6ª feira: confirmar sábado vs segunda ──────────────────────────────
-      const lisbonNow6 = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
-      if (lisbonNow6.getDay() === 5) {
+      // ── 6ª feira: confirmar sábado vs segunda (não activa em feriado) ────────
+      const lisbonNow6 = getLisbonNow();
+      if (lisbonNow6.getDay() === 5 && !isPortugueseHoliday(lisbonNow6)) {
         const fridayQ = `Como hoje é *sexta-feira*, a entrega *amanhã* seria ao *sábado*.\n\nPrefere entrega no *sábado* ou pode aguardar até *segunda-feira*?`;
         history.push({ role: 'bot', text: fridayQ, timestamp: now });
         await db.collection('conversations').updateOne(
