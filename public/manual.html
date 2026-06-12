@@ -256,6 +256,7 @@
     <a href="#bot-config">Configuração do Bot</a>
     <a href="#aparencia">Aparência (Tema)</a>
     <a href="#notificacoes">Notificações de Alerta</a>
+    <a href="#ab-routing">Distribuição A/B e Agendamento</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Integrações</div>
@@ -277,7 +278,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.3</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.4</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -544,6 +545,44 @@
         <div class="step"><div class="step-num">5</div><div class="step-body"><div class="step-title">Roteamento</div><div class="step-desc">Decide se a lead vai para Bot (automático) ou fica para o Operador tratar manualmente.</div></div></div>
       </div>
 
+      <h3>Surcharge de Fora de Horas e Feriados</h3>
+      <p>Quando um cliente pede orçamento num <strong>feriado nacional, sábado ou domingo</strong>, o sistema detecta automaticamente essa condição e inclui o surcharge no preço apresentado desde o início. O cliente vê o preço correcto logo no primeiro orçamento — sem surpresas posteriores.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Condição</th><th>Surcharge aplicado</th><th>Nota no orçamento</th></tr></thead>
+          <tbody>
+            <tr><td>Feriado nacional (dia útil)</td><td>Taxa de feriado configurada (padrão 30%)</td><td>Sim — informação incluída na mensagem</td></tr>
+            <tr><td>Sábado</td><td>Taxa de sábado configurada</td><td>Sim</td></tr>
+            <tr><td>Domingo</td><td>Taxa de domingo configurada</td><td>Sim</td></tr>
+            <tr><td>Dia útil normal dentro de horário</td><td>Nenhum</td><td>—</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>As taxas são configuradas na calculadora activa, nos campos <code>flatRateHolidays</code>, <code>flatRateSaturdays</code> e <code>flatRateSundays</code> (valores em percentagem). O sistema conhece todos os feriados nacionais portugueses fixos e os variáveis (Carnaval, Páscoa, etc.) calculados automaticamente por ano.</p>
+      <div class="callout tip"><div class="callout-icon">+</div><div>O step <code>CONFIRMING_FRIDAY_DELIVERY</code> (confirmação de entrega na segunda-feira às sextas-feiras) <strong>não dispara em feriados</strong> que calhem a sexta-feira — o sistema reconhece que a recolha não é possível nesse dia e adapta o fluxo em conformidade.</div></div>
+
+      <h3>Elevação Automática de Viatura</h3>
+      <p>Se o cliente preenche o campo <strong>Observações</strong> com dados de carga (peso, dimensões) e esses dados indicam que a viatura seleccionada no formulário não é suficiente, o sistema <strong>eleva automaticamente para a viatura adequada</strong>.</p>
+      <ul>
+        <li>Exemplo: cliente seleccionou <strong>Moto</strong> (até 2 kg), mas as observações indicam 15 kg → o sistema usa <strong>Auto</strong> (até 50 kg)</li>
+        <li>A mensagem de orçamento inclui um aviso transparente: <em>"Atenção: o peso/volume da carga requer Auto — a viatura foi ajustada automaticamente."</em></li>
+        <li>A capacidade apresentada no orçamento reflecte sempre a viatura efectivamente usada no cálculo, nunca a original do formulário.</li>
+      </ul>
+
+      <h3>Disclaimer de Preço</h3>
+      <p>Todas as mensagens de orçamento incluem automaticamente uma nota de aviso:</p>
+      <div class="callout info" style="font-style:italic;font-size:0.9rem;"><div class="callout-icon">"</div><div><em>O valor apresentado baseia-se nas informações fornecidas. Caso o peso, número de volumes ou dimensões reais sejam diferentes, o preço poderá ser revisto.</em></div></div>
+      <p>Este aviso protege operacionalmente a YourBox em casos onde a carga real difere do que foi declarado pelo cliente.</p>
+
+      <h3>Auditoria de Preço — Breakdown Detalhado</h3>
+      <p>Em cada lead registada é possível consultar o <strong>detalhamento completo do cálculo de preço</strong>. Clique no botão <strong>Ver detalhe</strong> (ícone de lupa) no painel de detalhe da lead.</p>
+      <p>O modal de auditoria mostra:</p>
+      <ul>
+        <li><strong>Serviço direto (1h/4h):</strong> distância, tipo de viatura, tarifa base, desconto, IVA, preço final</li>
+        <li><strong>Serviço arrasto (24h):</strong> peso, dimensões, tarifa do parceiro, suplementos, depot, markup, preço final</li>
+      </ul>
+      <div class="callout info"><div class="callout-icon">i</div><div>O breakdown é gerado no momento do cálculo e guardado com a lead. Permite auditar o preço apresentado ao cliente mesmo semanas depois, independentemente de eventuais alterações às tarifas.</div></div>
+
       <h3>Tarifas de Parceiros (Arrasto 24h)</h3>
       <p>Para serviços de 24 horas, o sistema consulta as tarifas dos parceiros logísticos (ex: MRW, CTT Expresso). Cada tarifa tem:</p>
       <ul>
@@ -750,6 +789,8 @@
             <tr><td>Recolher Moradas Completas</td><td>Se o bot pede a morada completa para agendamento</td></tr>
             <tr><td>Pagamento Activo</td><td>Se o fluxo de pagamento está activo no bot</td></tr>
             <tr><td>Provider de Pagamento</td><td>Stripe / MB Way Ifthenpay / Pay By Link</td></tr>
+            <tr><td><strong>Delay antes do Bot</strong></td><td>Minutos de espera antes de o bot assumir. Suporta valores decimais (ex: <code>0.5</code> = 30 segundos). Enquanto aguarda, o cliente vê o indicador de "digitação".</td></tr>
+            <tr><td><strong>Multiplicador de Distância Depot</strong></td><td>Factor multiplicativo aplicado à distância do depot nos cálculos de arrasto (24h). Valor padrão 1.0. Ajustar se as distâncias reais do depot diferirem das calculadas pelo Google Maps.</td></tr>
           </tbody>
         </table>
       </div>
@@ -891,6 +932,58 @@
 
       <div class="callout info"><div class="callout-icon">i</div><div>Os avisos são enviados em modo assíncrono — não afectam o tempo de resposta do bot ao cliente. Se o envio falhar (ex: rede indisponível), o sistema regista o erro internamente mas não interrompe o fluxo da conversa.</div></div>
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> o helpdesk recebe <strong>Escalamento</strong> para resposta imediata via WhatsApp, e a equipa comercial recebe <strong>Nova Lead</strong> por email para follow-up.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="ab-routing"></span>
+    <div class="section">
+      <h2>Distribuição A/B e Agendamento</h2>
+      <p>O painel de <strong>Routing</strong> (em Perfil → Configurações) permite controlar como o tráfego da landing page é distribuído entre diferentes variantes do formulário de cálculo, e programar essa distribuição por horário.</p>
+
+      <h3>Distribuição Manual de Variantes</h3>
+      <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão do formulário. As variantes disponíveis são identificadas por letra (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>).</p>
+      <ul>
+        <li>A soma das percentagens deve ser exactamente <strong>100%</strong></li>
+        <li>Colocar 100% numa variante desactiva as restantes efectivamente</li>
+        <li>A distribuição manual está em vigor quando o <strong>Agendamento</strong> está desactivado</li>
+      </ul>
+
+      <h3>Agendamento de Distribuição por Horário</h3>
+      <p>O painel <strong>Agendamento de Distribuição</strong> permite definir percentagens diferentes para cada faixa horária do dia. Quando activo, o sistema muda automaticamente a distribuição à hora programada, sem intervenção manual.</p>
+
+      <h4>Toggle global de agendamento</h4>
+      <p>O toggle <strong>Agendamento activo / desactivado</strong> controla se o sistema usa os slots programados ou a distribuição manual do painel acima. Quando desactivado, a distribuição manual fica em vigor independentemente dos slots existentes.</p>
+
+      <h4>Criar e gerir slots</h4>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Adicionar slot</div><div class="step-desc">Clicar em <strong>+ Adicionar slot</strong>. O sistema sugere automaticamente um intervalo de horas não sobreposto com os slots existentes.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Definir horário</div><div class="step-desc">Preencher os campos <strong>Das</strong> e <strong>Até</strong> com as horas de início e fim (0–24). Ex: das 9h às 11h.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Atribuir percentagens</div><div class="step-desc">Para cada variante do formulário, definir a percentagem. A soma deve ser exactamente 100%.</div></div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-body"><div class="step-title">Activar/desactivar slot</div><div class="step-desc">Cada slot tem um mini-toggle individual. Slots desactivados são ignorados pelo agendamento mas ficam guardados para uso futuro.</div></div></div>
+        <div class="step"><div class="step-num">5</div><div class="step-body"><div class="step-title">Guardar</div><div class="step-desc">Clicar em <strong>Guardar horários</strong>. A propagação demora no máximo 60 segundos.</div></div></div>
+      </div>
+
+      <h4>Regras e validações</h4>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Regra</th><th>Detalhe</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Sem sobreposição</strong></td><td>Dois slots activos não podem ter horários que se cruzem. O sistema recusa o guardado e indica os slots em conflito.</td></tr>
+            <tr><td><strong>Pesos = 100%</strong></td><td>Apenas slots activos são obrigados a somar 100%. Slots desactivados podem ter qualquer distribuição.</td></tr>
+            <tr><td><strong>Horas fora de slot</strong></td><td>Quando nenhum slot activo corresponde à hora actual, o sistema usa a distribuição manual do painel acima. O chip no cabeçalho indica "Fora de slot — usando distribuição base".</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Indicadores visuais</h4>
+      <ul>
+        <li>Slot a correr agora: borda e texto <strong>ACTIVO AGORA</strong> em verde-ciano</li>
+        <li>Slot desactivado individualmente: opacidade reduzida, etiqueta "Desactivado", pesos ocultos</li>
+        <li>Badge no cabeçalho: <span class="badge badge-green">Activo agora: [nome do slot]</span> ou aviso amarelo quando fora de qualquer slot</li>
+      </ul>
+
+      <div class="callout warn"><div class="callout-icon">!</div><div>O agendamento usa a <strong>hora de Lisboa</strong> (Europe/Lisbon, com ajuste automático para horário de verão). Confirme que os slots estão configurados nesse fuso.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> manhã 9h–12h com 80% chat-demo (para testar tráfego fresco), tarde 14h–20h com 50%/50% entre variantes A e B para teste controlado. Fora destes horários, distribuição base em vigor.</div></div>
     </div>
 
     <hr>
@@ -1099,6 +1192,10 @@
             <tr><td>Markup</td><td>Margem aplicada sobre tarifas de parceiros</td></tr>
             <tr><td>fixCityPrice</td><td>Tarifa fixa configurada para um par origem/destino</td></tr>
             <tr><td>Pay By Link</td><td>Link de pagamento multi-método enviado ao cliente</td></tr>
+            <tr><td>Breakdown de Preço</td><td>Detalhamento completo do cálculo de preço de uma lead — distância, tarifas, descontos, depot e IVA discriminados. Consultável no painel de detalhe da lead.</td></tr>
+            <tr><td>OOH (Out of Hours)</td><td>Surcharge aplicado automaticamente quando o orçamento é pedido fora do horário de trabalho (feriados, sábados, domingos). Incluído no preço inicial, não retroactivo.</td></tr>
+            <tr><td>Slot de Agendamento</td><td>Intervalo horário com distribuição de variantes A/B configurada. O sistema activa/desactiva slots automaticamente à hora programada.</td></tr>
+            <tr><td>Distribuição A/B</td><td>Mecanismo de roteamento que divide o tráfego da landing page entre diferentes variantes do formulário, com percentagens configuráveis por horário.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1135,7 +1232,7 @@
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.3 — Maio 2026</span>
+      <span>YourBox Dashboard — Manual v1.4 — Junho 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
