@@ -1,8 +1,8 @@
 import { sendWhatsAppMessage } from '@/lib/whatsapp/evolution';
-import { sendEscalationEmail, sendLeadEmail } from '@/lib/email/resend';
+import { sendConversationEmail, sendEscalationEmail, sendLeadEmail } from '@/lib/email/resend';
 import { getDb } from '@/lib/mongodb';
 
-export type NotificationEvent = 'escalation' | 'lead';
+export type NotificationEvent = 'conversation' | 'escalation' | 'lead';
 
 export interface NotificationPayload {
   convId:     string;
@@ -41,7 +41,7 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
     : null;
 
   const waLines = [
-    event === 'escalation' ? '*Conversa escalada para humano*' : '*Nova lead registada*',
+    event === 'conversation' ? '*Nova conversa iniciada*' : event === 'escalation' ? '*Conversa escalada para humano*' : '*Nova lead registada*',
     `Ref: *${ref}*`,
     `Lead: *${nome}*`,
     ...(payload.telemovel ? [`Tel: ${payload.telemovel}`] : []),
@@ -61,7 +61,16 @@ async function _dispatch(event: NotificationEvent, payload: NotificationPayload)
       sendWhatsAppMessage(target.phone.trim(), waText).catch(() => {});
     }
     if (target.email?.trim()) {
-      if (event === 'escalation') {
+      if (event === 'conversation') {
+        sendConversationEmail({
+          convId:     payload.convId,
+          telemovel:  payload.telemovel ?? '',
+          nome:       payload.nome,
+          origem:     payload.origem,
+          destino:    payload.destino,
+          toOverride: [target.email.trim()],
+        }).catch(() => {});
+      } else if (event === 'escalation') {
         sendEscalationEmail({
           convId:      payload.convId,
           telemovel:   payload.telemovel ?? '',

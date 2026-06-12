@@ -8,6 +8,7 @@ import { fixCityPrice } from '@/lib/pricing/fixCityPrice';
 import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { buildDirectServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { decideMode, defaultRoutingConfig } from '@/lib/routing/decideMode';
+import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { ConversationData, ConversationMessage } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
@@ -65,6 +66,13 @@ export async function POST(request: NextRequest) {
           createdAt: now,
           updatedAt: now,
         });
+        dispatchNotification('conversation', {
+          convId:    liveConv.insertedId.toString(),
+          telemovel: identifier,
+          nome:      nome ?? undefined,
+          origem,
+          destino,
+        });
         return Response.json({
           success: true,
           conversationId: liveConv.insertedId.toString(),
@@ -101,6 +109,13 @@ export async function POST(request: NextRequest) {
         escalatedAt: now,
         createdAt: now,
         updatedAt: now,
+      });
+      dispatchNotification('conversation', {
+        convId:    escalatedConv.insertedId.toString(),
+        telemovel: identifier,
+        nome:      nome ?? undefined,
+        origem,
+        destino,
       });
       return Response.json({
         success: true,
@@ -254,6 +269,14 @@ export async function POST(request: NextRequest) {
       history: [botMsg],
       createdAt: now,
       updatedAt: now,
+    });
+
+    dispatchNotification('conversation', {
+      convId:    conv.insertedId.toString(),
+      telemovel: identifier,
+      nome:      nome ?? undefined,
+      origem,
+      destino,
     });
 
     // Disparar análise de agregação em background — não bloqueia a resposta

@@ -53,7 +53,7 @@ type NotificationTarget = {
   name: string;
   phone: string;
   email: string;
-  events: ('escalation' | 'lead')[];
+  events: ('conversation' | 'escalation' | 'lead')[];
 };
 
 type LeadData = {
@@ -2242,7 +2242,7 @@ function RoutingPanel() {
                 style={{ ...inputS, flex: 1, padding: '6px 8px', borderRadius: 6, fontSize: 12 }} />
             </div>
             <div style={{ display: 'flex', gap: 16 }}>
-              {(['escalation', 'lead'] as const).map((ev) => (
+              {(['conversation', 'escalation', 'lead'] as const).map((ev) => (
                 <label key={ev} style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer', color: 'var(--yb-muted)' }}>
                   <input type="checkbox" checked={t.events.includes(ev)}
                     onChange={(e) => setConfig((c) => {
@@ -2251,7 +2251,7 @@ function RoutingPanel() {
                       tgts[i] = { ...tgts[i], events: evts };
                       return { ...c, notificationTargets: tgts };
                     })} />
-                  {ev === 'escalation' ? 'Escalamento' : 'Nova Lead'}
+                  {ev === 'conversation' ? 'Nova Conversa' : ev === 'escalation' ? 'Escalamento' : 'Nova Lead'}
                 </label>
               ))}
             </div>

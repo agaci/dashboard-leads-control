@@ -153,6 +153,10 @@ export async function POST(request: NextRequest) {
 
     if (!conv) {
       conv = await createConversation(telemovel, canal as any);
+      dispatchNotification('conversation', {
+        convId:    conv._id?.toString() ?? telemovel,
+        telemovel,
+      });
     }
 
     await appendMessage(telemovel, { role: 'lead', text: mensagem, timestamp: new Date() });

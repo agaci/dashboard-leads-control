@@ -67,7 +67,7 @@ export interface NotificationTarget {
   name: string;
   phone: string;
   email: string;
-  events: ('escalation' | 'lead')[];
+  events: ('conversation' | 'escalation' | 'lead')[];
 }
 
 export interface LeadRoutingConfig {
