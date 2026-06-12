@@ -1680,7 +1680,13 @@
         var p = document.getElementById('prog' + i);
         if (p) { i <= n ? p.classList.add('active') : p.classList.remove('active'); }
       }
-      if (window.innerWidth <= 968) {
+      if (n === 2) {
+        // Ao entrar no chat, garantir visibilidade em TODAS as resoluções
+        setTimeout(function () {
+          var formEl = document.getElementById('form');
+          if (formEl) formEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 150);
+      } else if (window.innerWidth <= 968) {
         setTimeout(function () {
           document.getElementById('form').scrollIntoView({ behavior: 'smooth', block: 'start' });
         }, 100);

@@ -32,14 +32,18 @@ export async function POST(request: NextRequest) {
       if (s.startHour < 0 || s.startHour > 23) return Response.json({ error: `Hora início inválida no slot "${s.label}"` }, { status: 400 });
       if (s.endHour < 1 || s.endHour > 24) return Response.json({ error: `Hora fim inválida no slot "${s.label}"` }, { status: 400 });
       if (s.startHour >= s.endHour) return Response.json({ error: `Hora início deve ser anterior à hora fim no slot "${s.label}"` }, { status: 400 });
-      const total = Object.values(s.weights).reduce((a, b) => a + b, 0);
-      if (total !== 100) return Response.json({ error: `Slot "${s.label}": percentagens somam ${total}% (deve ser 100%)` }, { status: 400 });
+      // pesos só obrigatoriamente 100% em slots activos
+      if (s.enabled !== false) {
+        const total = Object.values(s.weights).reduce((a, b) => a + b, 0);
+        if (total !== 100) return Response.json({ error: `Slot "${s.label}": percentagens somam ${total}% (deve ser 100%)` }, { status: 400 });
+      }
     }
 
-    // Verificar sobreposições
-    for (let i = 0; i < schedules.length; i++) {
-      for (let j = i + 1; j < schedules.length; j++) {
-        const a = schedules[i], b = schedules[j];
+    // Verificar sobreposições apenas entre slots activos
+    const activeSlots = schedules.filter((s) => s.enabled !== false);
+    for (let i = 0; i < activeSlots.length; i++) {
+      for (let j = i + 1; j < activeSlots.length; j++) {
+        const a = activeSlots[i], b = activeSlots[j];
         if (a.startHour < b.endHour && b.startHour < a.endHour) {
           return Response.json({ error: `Slots "${a.label}" e "${b.label}" sobrepõem-se` }, { status: 400 });
         }

@@ -20,6 +20,7 @@ export type VariantSchedule = {
   startHour: number;   // 0–23
   endHour: number;     // 1–24 (24 = meia-noite)
   weights: Record<string, number>;
+  enabled?: boolean;   // undefined = true (compatibilidade)
 };
 
 export async function GET() {
@@ -35,7 +36,7 @@ export async function GET() {
     if (schedulesActive && schedules.length > 0) {
       const lisbonNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
       const h = lisbonNow.getHours();
-      const activeSlot = schedules.find((s) => h >= s.startHour && h < s.endHour);
+      const activeSlot = schedules.find((s) => s.enabled !== false && h >= s.startHour && h < s.endHour);
       if (activeSlot) {
         variants = variants.map((v) => ({ ...v, weight: activeSlot.weights[v.key] ?? 0 }));
       }

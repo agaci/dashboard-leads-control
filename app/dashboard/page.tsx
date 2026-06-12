@@ -2487,6 +2487,7 @@ type VariantSchedule = {
   startHour: number;
   endHour: number;
   weights: Record<string, number>;
+  enabled?: boolean;
 };
 
 function newSlotId() {
@@ -2525,7 +2526,7 @@ function VariantSchedulePanel() {
     }).finally(() => setLoading(false));
   }, []);
 
-  const activeSlot = schedules.find((s) => nowHour >= s.startHour && nowHour < s.endHour);
+  const activeSlot = schedules.find((s) => s.enabled !== false && nowHour >= s.startHour && nowHour < s.endHour);
 
   function addSlot() {
     const used = new Set(schedules.flatMap((s) => Array.from({ length: s.endHour - s.startHour }, (_, i) => s.startHour + i)));
@@ -2537,7 +2538,7 @@ function VariantSchedulePanel() {
       variantKeys.forEach((k) => (w[k] = 0));
       w[variantKeys[0]] = 100;
     }
-    setSchedules((s) => [...s, { id: newSlotId(), label: 'Novo slot', startHour: start, endHour: end, weights: w }]);
+    setSchedules((s) => [...s, { id: newSlotId(), label: 'Novo slot', startHour: start, endHour: end, weights: w, enabled: true }]);
   }
 
   function removeSlot(id: string) {
@@ -2626,12 +2627,14 @@ function VariantSchedulePanel() {
       )}
 
       {schedules.map((slot) => {
+        const slotEnabled = slot.enabled !== false;
         const slotTotal = Object.values(slot.weights).reduce((a, b) => a + b, 0);
-        const isNow = active && nowHour >= slot.startHour && nowHour < slot.endHour;
+        const isNow = active && slotEnabled && nowHour >= slot.startHour && nowHour < slot.endHour;
+        const borderColor = isNow ? CYAN : slotEnabled ? BORDER : 'rgba(150,150,150,0.25)';
         return (
-          <div key={slot.id} style={{ ...cardS, border: isNow ? `1.5px solid ${CYAN}` : `1px solid ${BORDER}` }}>
+          <div key={slot.id} style={{ ...cardS, border: `1.5px solid ${borderColor}`, opacity: slotEnabled ? 1 : 0.5, transition: 'opacity 0.2s' }}>
             {/* Cabeçalho do slot */}
-            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap', marginBottom: slotEnabled ? 12 : 0 }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 2, minWidth: 100 }}>
                 <span style={{ fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase' as const, letterSpacing: 0.5 }}>Etiqueta</span>
                 <input value={slot.label} onChange={(e) => updateSlot(slot.id, 'label', e.target.value)} style={inpS} />
@@ -2658,9 +2661,27 @@ function VariantSchedulePanel() {
                 {isNow && (
                   <span style={{ fontSize: 11, fontWeight: 700, color: CYAN }}>ACTIVO AGORA</span>
                 )}
-                <span style={{ fontSize: 12, fontWeight: 700, color: slotTotal === 100 ? '#22c55e' : '#f87171' }}>
-                  {slotTotal}%
-                </span>
+                {!slotEnabled && (
+                  <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--yb-muted)' }}>Desactivado</span>
+                )}
+                {slotEnabled && (
+                  <span style={{ fontSize: 12, fontWeight: 700, color: slotTotal === 100 ? '#22c55e' : '#f87171' }}>
+                    {slotTotal}%
+                  </span>
+                )}
+                {/* Toggle activo/inactivo */}
+                <button
+                  title={slotEnabled ? 'Desactivar slot' : 'Activar slot'}
+                  onClick={() => updateSlot(slot.id, 'enabled', !slotEnabled)}
+                  style={{
+                    width: 36, height: 20, borderRadius: 10, border: 'none', cursor: 'pointer', position: 'relative',
+                    background: slotEnabled ? CYAN : 'var(--yb-border)', transition: 'background 0.2s', flexShrink: 0,
+                  }}>
+                  <span style={{
+                    position: 'absolute', top: 2, left: slotEnabled ? 17 : 2, width: 16, height: 16,
+                    borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
+                  }} />
+                </button>
                 <button onClick={() => removeSlot(slot.id)}
                   style={{ background: 'none', border: `1.5px solid rgba(239,68,68,0.3)`, borderRadius: 7, padding: '4px 10px', cursor: 'pointer', fontSize: 16, color: '#f87171', lineHeight: 1 }}>
                   ×
@@ -2668,21 +2689,23 @@ function VariantSchedulePanel() {
               </div>
             </div>
 
-            {/* Pesos por variante */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {variantKeys.map((key) => (
-                <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', minWidth: 60 }}>
-                  <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: CYAN, background: 'rgba(0,188,212,0.12)', padding: '2px 7px', borderRadius: 5 }}>{key}</span>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                    <input type="number" min={0} max={100}
-                      value={slot.weights[key] ?? 0}
-                      onChange={(e) => updateWeight(slot.id, key, parseInt(e.target.value) || 0)}
-                      style={{ ...numS, width: 48 }} />
-                    <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>%</span>
+            {/* Pesos por variante — só mostra se activo */}
+            {slotEnabled && (
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {variantKeys.map((key) => (
+                  <div key={key} style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center', minWidth: 60 }}>
+                    <span style={{ fontSize: 10, fontFamily: 'monospace', fontWeight: 700, color: CYAN, background: 'rgba(0,188,212,0.12)', padding: '2px 7px', borderRadius: 5 }}>{key}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <input type="number" min={0} max={100}
+                        value={slot.weights[key] ?? 0}
+                        onChange={(e) => updateWeight(slot.id, key, parseInt(e.target.value) || 0)}
+                        style={{ ...numS, width: 48 }} />
+                      <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>%</span>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}
