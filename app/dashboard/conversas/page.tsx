@@ -17,13 +17,17 @@ type ConvStep =
   | 'COLLECTING_DETALHES_RECOLHA' | 'COLLECTING_DETALHES_ENTREGA'
   | 'AWAITING_PAYMENT'
   | 'LIVE_CHAT'
+  | 'QUIZ_IN_PROGRESS'
   | 'LEAD_REGISTERED' | 'ESCALATED_TO_HUMAN' | 'CLOSED';
 
 type Message = {
-  role: 'lead' | 'bot' | 'bo';
+  role: 'lead' | 'bot' | 'bo' | 'step';
   text: string;
   timestamp: string;
   situacaoId?: string;
+  step?: string;
+  stepIndex?: number | null;
+  total?: number | null;
 };
 
 type AggHintItem = {
@@ -77,6 +81,7 @@ const STEP_LABEL: Record<ConvStep, string> = {
   COLLECTING_DETALHES_ENTREGA: 'Contacto entrega',
   AWAITING_PAYMENT: 'A aguardar pagamento',
   LIVE_CHAT: 'Chat ao vivo',
+  QUIZ_IN_PROGRESS: 'Quiz em curso',
   LEAD_REGISTERED: 'Lead registada',
   ESCALATED_TO_HUMAN: 'Escalada',
   CLOSED: 'Fechada',
@@ -253,7 +258,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     });
   }
 
-  const canReply = selected && !['LEAD_REGISTERED', 'CLOSED'].includes(selected.step);
+  const canReply = selected && selected.canal !== 'web-quiz' && !['LEAD_REGISTERED', 'CLOSED'].includes(selected.step);
 
   const [pendingStep, setPendingStep] = useState<'LEAD_REGISTERED' | 'CLOSED' | null>(null);
 
@@ -437,7 +442,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                   </div>
                   {lastMsg && (
                     <p className="text-xs text-muted-foreground truncate">
-                      <span className={`inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle ${lastMsg.role === 'lead' ? 'bg-secondary-foreground/40' : lastMsg.role === 'bo' ? 'bg-cyan' : 'bg-orange'}`} />
+                      <span className={`inline-block w-2.5 h-2.5 rounded-full mr-1 align-middle ${lastMsg.role === 'lead' ? 'bg-secondary-foreground/40' : lastMsg.role === 'bo' ? 'bg-cyan' : lastMsg.role === 'step' ? 'bg-cyan' : 'bg-orange'}`} />
                       {lastMsg.text.replace(/\*/g, '').replace(/\n/g, ' ').slice(0, 55)}
                     </p>
                   )}
@@ -599,9 +604,11 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
             {/* Bolhas de chat */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
-              {(selected.history ?? []).map((msg, i) => (
-                <ChatBubble key={i} msg={msg} timeStr={formatTimeShort(msg.timestamp)} />
-              ))}
+              {(selected.history ?? []).map((msg, i) =>
+                msg.role === 'step'
+                  ? <StepEntry key={i} msg={msg} timeStr={formatTimeShort(msg.timestamp)} />
+                  : <ChatBubble key={i} msg={msg} timeStr={formatTimeShort(msg.timestamp)} />
+              )}
               <div ref={chatEndRef} />
             </div>
 
@@ -634,13 +641,36 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               </div>
             ) : (
               <div className="bg-card px-4 py-2.5 text-xs text-center text-muted-foreground shrink-0 border-t border-border">
-                {selected.step === 'LEAD_REGISTERED' ? 'Lead registada — conversa concluída' : 'Conversa fechada'}
+                {selected.canal === 'web-quiz' && selected.step === 'QUIZ_IN_PROGRESS'
+                  ? 'Quiz em curso — a acompanhar em tempo real'
+                  : selected.step === 'LEAD_REGISTERED' ? 'Lead registada — conversa concluída' : 'Conversa fechada'}
               </div>
             )}
           </>
         )}
       </div>
       )}
+    </div>
+  );
+}
+
+function StepEntry({ msg, timeStr }: { msg: Message; timeStr: string }) {
+  const pos = (typeof msg.stepIndex === 'number' && typeof msg.total === 'number' && msg.total > 0)
+    ? `${Math.min(msg.stepIndex + 1, msg.total)}/${msg.total}`
+    : null;
+  return (
+    <div className="flex items-center gap-2.5 py-0.5">
+      <div className="w-7 h-7 rounded-full bg-cyan-soft flex items-center justify-center shrink-0">
+        <svg className="w-4 h-4 text-cyan" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+          <path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>
+        </svg>
+      </div>
+      <div className="flex-1 min-w-0">
+        <span className="text-sm text-foreground font-medium">{msg.text}</span>
+        {pos && <span className="ml-2 text-[11px] font-semibold text-cyan">passo {pos}</span>}
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0">{timeStr}</span>
     </div>
   );
 }
