@@ -88,6 +88,44 @@ export async function POST(req: NextRequest) {
       { upsert: true },
     );
 
+    // No envio final, registar também o lead na colecção messages (newLead) — para
+    // aparecer na lista de Leads e tocar o som de nova lead. SEM dispatchNotification:
+    // os emails ao cliente são enviados pela plataforma antiga (evita duplicação).
+    if (isSubmit) {
+      const guard: any = await col.findOneAndUpdate(
+        { quizSessionId: sessionId, leadRegisteredAt: { $exists: false } },
+        { $set: { leadRegisteredAt: now } },
+      );
+      const convDoc = guard?.value ?? null; // driver v3: devolve { value, ok }
+      if (convDoc) {
+        const d = { ...(convDoc.data ?? {}), ...(data ?? {}) };
+        const urMap: Record<string, string> = { 'Imediata': '1 Hora', 'Proprio dia': '4 Horas', 'Próprio dia': '4 Horas', '24H': '24 Horas' };
+        const urg = urMap[d.urgencia] ?? d.urgencia ?? null;
+        const serviceType = d.urgencia === '24H' ? 'arrasto' : 'direto';
+        const totalKg = (Number(d.volumes) || 0) * (Number(d.peso) || 0) || null;
+        const maxDim = Math.max(Number(d.comprimento) || 0, Number(d.largura) || 0, Number(d.altura) || 0);
+        const viatura = totalKg && totalKg <= 2 && maxDim <= 60 ? 'Moto'
+          : totalKg && totalKg <= 150 ? 'Furgão Classe 1'
+          : totalKg ? 'Furgão Classe 2' : null;
+        const cargaHtml = totalKg ? `<p><b>Carga:</b> ${d.volumes ?? '?'} volumes · ${totalKg} kg · ${d.material ?? ''} · ${d.embalado ?? ''}</p>` : '';
+
+        await db.collection('messages').insertOne({
+          company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
+          presentationMessage: 'stick', deletedAfter: 0,
+          message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone ?? ''}</p><p>${d.nome ?? ''}</p>${d.email ? `<p>${d.email}</p>` : ''}<p>${d.origem ?? ''} → ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urg ?? '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
+          companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
+          timeStamp: now, closed: false, closedAt: null, reply: [],
+          leadData: {
+            origem: d.origem, destino: d.destino,
+            urgencia: urg, serviceType, viatura, weightKg: totalKg,
+            nome: d.nome, email: d.email, telefone: realPhone ?? d.telefone,
+            volumes: d.volumes, material: d.material, embalado: d.embalado,
+            timeStamp: now, converted: true, convertedAt: now, source: 'quiz',
+          },
+        });
+      }
+    }
+
     return json({ success: true });
   } catch (err: any) {
     return json({ error: err.message }, 500);
