@@ -88,9 +88,12 @@ export async function POST(req: NextRequest) {
       { upsert: true },
     );
 
-    // No envio final, registar também o lead na colecção messages (newLead) — para
-    // aparecer na lista de Leads e tocar o som de nova lead. SEM dispatchNotification:
-    // os emails ao cliente são enviados pela plataforma antiga (evita duplicação).
+    // No envio final, registar a lead na coleccao `messages` (newLead) para aparecer na
+    // lista de Leads deste dashboard e tocar o som de nova lead. A coleccao e partilhada
+    // com a plataforma YourBox antiga, por isso marcamos a entrada com `appSource:
+    // 'leads-control'` — a YourBox filtra por esse campo para nao mostrar esta linha
+    // (a lead "oficial" e enviada pela API antiga; ver YOURBOX_FILTER_PROMPT.md).
+    // SEM dispatchNotification: o email ao cliente e enviado pela plataforma antiga.
     if (isSubmit) {
       const guard: any = await col.findOneAndUpdate(
         { quizSessionId: sessionId, leadRegisteredAt: { $exists: false } },
@@ -111,6 +114,7 @@ export async function POST(req: NextRequest) {
 
         await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
+          appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
           presentationMessage: 'stick', deletedAfter: 0,
           message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone ?? ''}</p><p>${d.nome ?? ''}</p>${d.email ? `<p>${d.email}</p>` : ''}<p>${d.origem ?? ''} → ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urg ?? '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
           companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
