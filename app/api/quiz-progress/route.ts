@@ -51,20 +51,21 @@ function isPublicIp(ip: string): boolean {
   return true;
 }
 
-// Geo aproximada por IP (cidade/região) — serviço gratuito ipwho.is, com timeout. Falha em silêncio.
+// Geo aproximada por IP (cidade/região) — ip-api.com (grátis, sem chave), com timeout.
+// Falha em silêncio. HTTP é aceitável porque a chamada é server-side.
 async function lookupIpGeo(ip: string, now: Date): Promise<Record<string, unknown> | null> {
   try {
     const ctrl = new AbortController();
     const t = setTimeout(() => ctrl.abort(), 2500);
-    const r = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { signal: ctrl.signal }).catch(() => null);
+    const r = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon`, { signal: ctrl.signal }).catch(() => null);
     clearTimeout(t);
     if (!r || !r.ok) return null;
     const g: any = await r.json().catch(() => null);
-    if (!g || !g.success) return null;
+    if (!g || g.status !== 'success') return null;
     return {
       source: 'ip', ip,
-      city: g.city ?? null, region: g.region ?? null, country: g.country ?? null,
-      lat: g.latitude ?? null, lng: g.longitude ?? null, at: now,
+      city: g.city ?? null, region: g.regionName ?? null, country: g.country ?? null,
+      lat: g.lat ?? null, lng: g.lon ?? null, at: now,
     };
   } catch { return null; }
 }
