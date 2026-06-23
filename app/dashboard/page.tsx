@@ -62,7 +62,7 @@ const DEFAULT_QUIZ_NUDGE = {
   active: false,
   delayMinutes: 5,
   channel: 'whatsapp_email' as 'whatsapp_email' | 'whatsapp' | 'email',
-  messageTemplate: 'Ola {nome}, aqui e a YourBox. Vi que comecou a pedir um orcamento ({rota}) mas nao chegou a concluir. Quer que tratemos disso por si? Responda aqui ou ligue 214 304 546 — e rapido.',
+  messageTemplate: 'Olá {nome}, aqui é a YourBox. Vi que começou a pedir um orçamento ({rota}) mas não chegou a concluir. Quer que tratemos disso por si? Responda aqui ou ligue 214 304 546 — é rápido.',
   startHour: 9,
   endHour: 20,
   weekendsOff: true,

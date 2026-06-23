@@ -35,7 +35,7 @@ export async function sendQuizNudgeEmail(opts: {
   const r = await resend.emails.send({
     from:    FROM,
     to:      [opts.to],
-    subject: `${opts.nome}, continuamos o seu orcamento?`,
+    subject: `${opts.nome}, continuamos o seu orçamento?`,
     html,
   }).catch(err => { console.error('[Resend] falha no email de reengajamento:', err); return null; });
   return !!r;
