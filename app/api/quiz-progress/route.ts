@@ -159,6 +159,11 @@ export async function POST(req: NextRequest) {
     // não houver geo (não sobrepõe a GPS).
     if (step === 'nome') {
       const ip = clientIp(req);
+      // DEBUG TEMPORARIO: guardar o IP que o container recebe (xff) para diagnosticar o nginx
+      await col.updateOne(
+        { quizSessionId: sessionId },
+        { $set: { 'data._ipSeen': ip || '(vazio)', 'data._xff': req.headers.get('x-forwarded-for') || '(sem xff)' } },
+      ).catch(() => {});
       if (isPublicIp(ip)) {
         const g = await lookupIpGeo(ip, now);
         if (g) {
