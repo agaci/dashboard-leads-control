@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useSession, signOut } from 'next-auth/react';
+import { MiniMap } from './MiniMap';
 import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
@@ -1432,14 +1433,14 @@ function ConfigPage() {
 // ── Coming Soon ───────────────────────────────────────────────────────────────
 
 const COMING_SOON_META: Record<string, { label: string; icon: string; desc: string }> = {
-  clientes:   { label: 'Clientes',   icon: '👥', desc: 'Gestão completa de clientes, histórico de encomendas e segmentação.' },
-  precos:     { label: 'Preços',     icon: '💰', desc: 'Configuração de tarifas, descontos e simulação de preços avançada.' },
-  relatorios: { label: 'Relatórios', icon: '📊', desc: 'Dashboards, métricas de conversão e exportação de dados.' },
-  inbox:      { label: 'Inbox',      icon: '📬', desc: 'Central de mensagens e notificações em tempo real.' },
+  clientes:   { label: 'Clientes',   icon: '', desc: 'Gestão completa de clientes, histórico de encomendas e segmentação.' },
+  precos:     { label: 'Preços',     icon: '', desc: 'Configuração de tarifas, descontos e simulação de preços avançada.' },
+  relatorios: { label: 'Relatórios', icon: '', desc: 'Dashboards, métricas de conversão e exportação de dados.' },
+  inbox:      { label: 'Inbox',      icon: '', desc: 'Central de mensagens e notificações em tempo real.' },
 };
 
 function ComingSoon({ tab }: { tab: NavTab }) {
-  const meta = COMING_SOON_META[tab] ?? { label: tab, icon: '🚧', desc: 'Esta secção está em desenvolvimento.' };
+  const meta = COMING_SOON_META[tab] ?? { label: tab, icon: '', desc: 'Esta secção está em desenvolvimento.' };
 
   return (
     <div style={{
@@ -1516,56 +1517,6 @@ function DetailField({ label, children }: { label: string; children: React.React
   );
 }
 
-// Carrega o Leaflet por CDN (sem dependência no build). Cacheia a promessa.
-let _leafletPromise: Promise<any> | null = null;
-function loadLeaflet(): Promise<any> {
-  if (typeof window === 'undefined') return Promise.reject();
-  if ((window as any).L) return Promise.resolve((window as any).L);
-  if (_leafletPromise) return _leafletPromise;
-  _leafletPromise = new Promise((resolve, reject) => {
-    if (!document.getElementById('leaflet-css')) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-    const s = document.createElement('script');
-    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    s.onload = () => resolve((window as any).L);
-    s.onerror = reject;
-    document.body.appendChild(s);
-  });
-  return _leafletPromise;
-}
-
-// Mini-mapa Leaflet + OpenStreetMap (sem chave). Marker; círculo de incerteza se aproximado.
-function MiniMap({ lat, lng, zoom, exact }: { lat: number; lng: number; zoom: number; exact: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    let map: any = null;
-    let cancelled = false;
-    loadLeaflet().then((L: any) => {
-      if (cancelled || !ref.current || !L) return;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-      map = L.map(ref.current, { scrollWheelZoom: false, attributionControl: true }).setView([lat, lng], zoom);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19, attribution: '&copy; OpenStreetMap',
-      }).addTo(map);
-      L.marker([lat, lng]).addTo(map);
-      if (!exact) {
-        L.circle([lat, lng], { radius: 4000, color: '#00bcd4', weight: 1, fillColor: '#00bcd4', fillOpacity: 0.12 }).addTo(map);
-      }
-      setTimeout(() => { if (!cancelled && map) map.invalidateSize(); }, 100);
-    }).catch(() => {});
-    return () => { cancelled = true; if (map) map.remove(); };
-  }, [lat, lng, zoom, exact]);
-  return <div ref={ref} style={{ height: 170, width: '100%', borderRadius: 10, overflow: 'hidden', zIndex: 0 }} />;
-}
 
 function DetailPanel({ lead, onClose, onClientConverted }: {
   lead: Lead;
@@ -1817,7 +1768,7 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
             <div>
               <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">CRM</div>
               {clientId
-                ? <p className="mt-1 text-sm text-success font-semibold">✓ Lead convertida para cliente</p>
+                ? <p className="mt-1 text-sm text-success font-semibold">Lead convertida para cliente</p>
                 : !d.telefone
                   ? <p className="mt-1 text-sm text-muted-foreground">Lead sem telefone — não é possível criar cliente</p>
                   : <p className="mt-1 text-sm text-muted-foreground">Guarda este contacto na lista de Clientes</p>
@@ -1833,7 +1784,7 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
               </button>
             ) : (
               <span className="rounded-full bg-success-soft px-3 py-1.5 text-xs font-semibold text-success shrink-0">
-                Cliente criado ✓
+                Cliente criado
               </span>
             )}
           </div>
@@ -2321,7 +2272,7 @@ function RoutingPanel() {
                 onChange={(e) => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts[i] = { ...tgts[i], name: e.target.value }; return { ...c, notificationTargets: tgts }; })}
                 style={{ ...inputS, flex: 1, padding: '6px 8px', borderRadius: 6, fontSize: 12 }} />
               <button onClick={() => setConfig((c) => { const tgts = [...(c.notificationTargets ?? [])]; tgts.splice(i, 1); return { ...c, notificationTargets: tgts }; })}
-                style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', lineHeight: 1 }}>✕</button>
+                style={{ fontSize: 16, background: 'none', border: 'none', cursor: 'pointer', color: '#ef4444', lineHeight: 1 }}>×</button>
             </div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
               <input placeholder="Telefone (351914...)" value={t.phone}
@@ -2423,7 +2374,7 @@ function RoutingPanel() {
 
       <button onClick={save} disabled={saving}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
-        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar configuração'}
+        {saving ? 'A guardar...' : saved ? 'Guardado' : 'Guardar configuração'}
       </button>
     </div>
   );
@@ -2634,7 +2585,7 @@ function VariantPanel() {
 
       <button onClick={save} disabled={saving || total !== 100}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: (saving || total !== 100) ? 'default' : 'pointer', background: saved ? '#166534' : total !== 100 ? 'rgba(255,255,255,0.1)' : CYAN, color: total !== 100 ? '#4a6080' : '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
-        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar distribuição'}
+        {saving ? 'A guardar...' : saved ? 'Guardado' : 'Guardar distribuição'}
       </button>
       <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
     </div>
@@ -2881,7 +2832,7 @@ function VariantSchedulePanel() {
 
       <button onClick={save} disabled={saving}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
-        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar horários'}
+        {saving ? 'A guardar...' : saved ? 'Guardado' : 'Guardar horários'}
       </button>
       <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6, textAlign: 'center' }}>Propagação máxima: 60 segundos (cache PHP)</p>
     </div>
@@ -3022,7 +2973,7 @@ function DepotPanel() {
 
       <button onClick={save} disabled={saving}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>
-        {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar depósitos'}
+        {saving ? 'A guardar...' : saved ? 'Guardado' : 'Guardar depósitos'}
       </button>
       <p style={{ fontSize: 11, color: 'var(--yb-subtle)', marginTop: 6 }}>
         Se a recolha estiver fora do limite de todos os depósitos, o bot escala automaticamente para operador com mensagem de cotação personalizada.

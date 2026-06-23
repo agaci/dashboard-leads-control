@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { MiniMap } from '../MiniMap';
 
 const CYAN   = '#00bcd4';
 const NAVY   = '#1a2332';
@@ -545,10 +546,10 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                   {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                     <>
                       <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors">
-                        ✓ Resolvida
+                        Resolvida
                       </button>
                       <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-secondary text-muted-foreground hover:bg-muted transition-colors">
-                        ✕ Fechar
+                        Fechar
                       </button>
                     </>
                   )}
@@ -561,10 +562,10 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 {!['LEAD_REGISTERED', 'CLOSED'].includes(selected.step) && (
                   <>
                     <button onClick={() => setPendingStep(pendingStep === 'LEAD_REGISTERED' ? null : 'LEAD_REGISTERED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-success-soft text-success hover:bg-success/20 transition-colors">
-                      ✓ Resolvida
+                      Resolvida
                     </button>
                     <button onClick={() => setPendingStep(pendingStep === 'CLOSED' ? null : 'CLOSED')} className="px-3 py-1 text-xs rounded-lg font-semibold bg-secondary text-muted-foreground hover:bg-muted transition-colors">
-                      ✕ Fechar
+                      Fechar
                     </button>
                   </>
                 )}
@@ -590,7 +591,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 </button>
                 <button onClick={() => setPendingStep(null)}
                   className="ml-auto text-muted-foreground bg-transparent border-none cursor-pointer text-base leading-none hover:text-foreground">
-                  ✕
+                  ×
                 </button>
               </div>
             )}
@@ -618,6 +619,18 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 )}
               </div>
             )}
+
+            {/* Mini-mapa da localização do visitante */}
+            {selected.data?.geo && (() => {
+              const g: any = selected.data.geo;
+              if (g.lat == null || g.lng == null) return null;
+              const isGps = g.source === 'gps';
+              return (
+                <div className="px-4 pt-2 shrink-0">
+                  <MiniMap lat={Number(g.lat)} lng={Number(g.lng)} zoom={isGps ? 16 : 11} exact={isGps} height={150} />
+                </div>
+              );
+            })()}
 
             {/* Bolhas de chat */}
             <div className="flex-1 overflow-y-auto px-4 py-4 space-y-2">
