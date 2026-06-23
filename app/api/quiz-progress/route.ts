@@ -38,38 +38,6 @@ function stepValue(step: string | undefined, data: Record<string, any> | undefin
   }
 }
 
-// IP do visitante (atrás do nginx vem em x-forwarded-for)
-function clientIp(req: NextRequest): string {
-  const xff = req.headers.get('x-forwarded-for') ?? '';
-  return xff.split(',')[0].trim() || req.headers.get('x-real-ip') || '';
-}
-
-function isPublicIp(ip: string): boolean {
-  if (!ip || ip === '::1') return false;
-  if (ip.startsWith('127.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return false;
-  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return false;
-  return true;
-}
-
-// Geo aproximada por IP (cidade/região) — ip-api.com (grátis, sem chave), com timeout.
-// Falha em silêncio. HTTP é aceitável porque a chamada é server-side.
-async function lookupIpGeo(ip: string, now: Date): Promise<Record<string, unknown> | null> {
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 2500);
-    const r = await fetch(`http://ip-api.com/json/${encodeURIComponent(ip)}?fields=status,country,regionName,city,lat,lon`, { signal: ctrl.signal }).catch(() => null);
-    clearTimeout(t);
-    if (!r || !r.ok) return null;
-    const g: any = await r.json().catch(() => null);
-    if (!g || g.status !== 'success') return null;
-    return {
-      source: 'ip', ip,
-      city: g.city ?? null, region: g.regionName ?? null, country: g.country ?? null,
-      lat: g.lat ?? null, lng: g.lon ?? null, at: now,
-    };
-  } catch { return null; }
-}
-
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
@@ -87,7 +55,7 @@ export async function POST(req: NextRequest) {
       label?: string;
       data?: Record<string, any>;
       variante?: string;
-      geo?: { lat?: number; lng?: number; address?: string; field?: string };
+      geo?: { lat?: number; lng?: number; address?: string; field?: string; source?: string; city?: string; region?: string; country?: string };
     };
 
     if (!sessionId || typeof sessionId !== 'string') {
@@ -154,25 +122,19 @@ export async function POST(req: NextRequest) {
       { upsert: true },
     );
 
-    // Geo APROXIMADA por IP — num update SEPARADO (evita conflito $set/$setOnInsert no
-    // mesmo 'data', que rebentava a criacao da conversa). Só no 1.º passo e só se ainda
-    // não houver geo (não sobrepõe a GPS).
-    if (step === 'nome') {
-      const ip = clientIp(req);
-      // DEBUG TEMPORARIO: guardar o IP que o container recebe (xff) para diagnosticar o nginx
+    // Geo APROXIMADA por IP — vem do BROWSER no payload (o browser pergunta a um serviço
+    // que vê o IP REAL do visitante; contorna o IP mascarado pelo Docker no servidor).
+    // Só preenche se ainda não houver geo GPS (a GPS é mais precisa e tem prioridade).
+    if (geo && (geo.city || geo.lat != null) && geo.source !== 'gps') {
       await col.updateOne(
-        { quizSessionId: sessionId },
-        { $set: { 'data._ipSeen': ip || '(vazio)', 'data._xff': req.headers.get('x-forwarded-for') || '(sem xff)' } },
+        { quizSessionId: sessionId, 'data.geo.source': { $ne: 'gps' } },
+        { $set: { 'data.geo': {
+          source: 'ip',
+          city: geo.city ?? null, region: geo.region ?? null, country: geo.country ?? null,
+          lat: geo.lat != null ? Number(geo.lat) : null, lng: geo.lng != null ? Number(geo.lng) : null,
+          at: now,
+        } } },
       ).catch(() => {});
-      if (isPublicIp(ip)) {
-        const g = await lookupIpGeo(ip, now);
-        if (g) {
-          await col.updateOne(
-            { quizSessionId: sessionId, 'data.geo': { $exists: false } },
-            { $set: { 'data.geo': g } },
-          ).catch(() => {});
-        }
-      }
     }
 
     // No envio final, registar a lead na coleccao `messages` (newLead) para aparecer na
