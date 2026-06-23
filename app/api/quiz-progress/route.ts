@@ -135,21 +135,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Geo APROXIMADA por IP — só no 1.º passo (nome), guardada apenas na criação da conversa
-    // (via $setOnInsert, para não sobrepor uma geo GPS que possa chegar depois).
-    let geoOnInsert: Record<string, unknown> = {};
-    if (step === 'nome') {
-      const ip = clientIp(req);
-      if (isPublicIp(ip)) {
-        const g = await lookupIpGeo(ip, now);
-        if (g) geoOnInsert = { 'data.geo': g };
-      }
-    }
-
     await col.updateOne(
       { quizSessionId: sessionId },
       {
-        $setOnInsert: { canal: 'web-quiz', quizSessionId: sessionId, createdAt: now, ...geoOnInsert },
+        $setOnInsert: { canal: 'web-quiz', quizSessionId: sessionId, createdAt: now },
         $set: {
           telemovel: tel,
           step: isSubmit ? 'LEAD_REGISTERED' : 'QUIZ_IN_PROGRESS',
@@ -163,6 +152,22 @@ export async function POST(req: NextRequest) {
       },
       { upsert: true },
     );
+
+    // Geo APROXIMADA por IP — num update SEPARADO (evita conflito $set/$setOnInsert no
+    // mesmo 'data', que rebentava a criacao da conversa). Só no 1.º passo e só se ainda
+    // não houver geo (não sobrepõe a GPS).
+    if (step === 'nome') {
+      const ip = clientIp(req);
+      if (isPublicIp(ip)) {
+        const g = await lookupIpGeo(ip, now);
+        if (g) {
+          await col.updateOne(
+            { quizSessionId: sessionId, 'data.geo': { $exists: false } },
+            { $set: { 'data.geo': g } },
+          ).catch(() => {});
+        }
+      }
+    }
 
     // No envio final, registar a lead na coleccao `messages` (newLead) para aparecer na
     // lista de Leads deste dashboard e tocar o som de nova lead. A coleccao e partilhada
