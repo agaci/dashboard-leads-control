@@ -1516,6 +1516,57 @@ function DetailField({ label, children }: { label: string; children: React.React
   );
 }
 
+// Carrega o Leaflet por CDN (sem dependência no build). Cacheia a promessa.
+let _leafletPromise: Promise<any> | null = null;
+function loadLeaflet(): Promise<any> {
+  if (typeof window === 'undefined') return Promise.reject();
+  if ((window as any).L) return Promise.resolve((window as any).L);
+  if (_leafletPromise) return _leafletPromise;
+  _leafletPromise = new Promise((resolve, reject) => {
+    if (!document.getElementById('leaflet-css')) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    s.onload = () => resolve((window as any).L);
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+  return _leafletPromise;
+}
+
+// Mini-mapa Leaflet + OpenStreetMap (sem chave). Marker; círculo de incerteza se aproximado.
+function MiniMap({ lat, lng, zoom, exact }: { lat: number; lng: number; zoom: number; exact: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    let map: any = null;
+    let cancelled = false;
+    loadLeaflet().then((L: any) => {
+      if (cancelled || !ref.current || !L) return;
+      L.Icon.Default.mergeOptions({
+        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+      });
+      map = L.map(ref.current, { scrollWheelZoom: false, attributionControl: true }).setView([lat, lng], zoom);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        maxZoom: 19, attribution: '&copy; OpenStreetMap',
+      }).addTo(map);
+      L.marker([lat, lng]).addTo(map);
+      if (!exact) {
+        L.circle([lat, lng], { radius: 4000, color: '#00bcd4', weight: 1, fillColor: '#00bcd4', fillOpacity: 0.12 }).addTo(map);
+      }
+      setTimeout(() => { if (!cancelled && map) map.invalidateSize(); }, 100);
+    }).catch(() => {});
+    return () => { cancelled = true; if (map) map.remove(); };
+  }, [lat, lng, zoom, exact]);
+  return <div ref={ref} style={{ height: 170, width: '100%', borderRadius: 10, overflow: 'hidden', zIndex: 0 }} />;
+}
+
 function DetailPanel({ lead, onClose, onClientConverted }: {
   lead: Lead;
   onClose: () => void;
@@ -1644,11 +1695,15 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
               ? (g.address ? String(g.address).split(',').slice(0, 2).join(',').trim() : (g.lat != null ? `${Number(g.lat).toFixed(4)}, ${Number(g.lng).toFixed(4)}` : ''))
               : [g.city, g.region].filter(Boolean).join(', ');
             if (!txt) return null;
-            const maps = (g.lat != null && g.lng != null) ? `https://www.google.com/maps?q=${g.lat},${g.lng}` : null;
+            const hasCoords = g.lat != null && g.lng != null;
+            const maps = hasCoords ? `https://www.google.com/maps?q=${g.lat},${g.lng}` : null;
             return (
-              <DetailField label={isGps ? 'Localização do visitante (GPS)' : 'Localização do visitante (aprox.)'}>
-                {maps ? <a href={maps} target="_blank" rel="noopener" className="text-cyan hover:underline">{txt}</a> : txt}
-              </DetailField>
+              <>
+                <DetailField label={isGps ? 'Localização do visitante (GPS)' : 'Localização do visitante (aprox.)'}>
+                  {maps ? <a href={maps} target="_blank" rel="noopener" className="text-cyan hover:underline">{txt}</a> : txt}
+                </DetailField>
+                {hasCoords && <MiniMap lat={Number(g.lat)} lng={Number(g.lng)} zoom={isGps ? 16 : 11} exact={isGps} />}
+              </>
             );
           })()}
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
