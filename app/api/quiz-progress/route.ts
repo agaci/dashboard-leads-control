@@ -38,6 +38,37 @@ function stepValue(step: string | undefined, data: Record<string, any> | undefin
   }
 }
 
+// IP do visitante (atrás do nginx vem em x-forwarded-for)
+function clientIp(req: NextRequest): string {
+  const xff = req.headers.get('x-forwarded-for') ?? '';
+  return xff.split(',')[0].trim() || req.headers.get('x-real-ip') || '';
+}
+
+function isPublicIp(ip: string): boolean {
+  if (!ip || ip === '::1') return false;
+  if (ip.startsWith('127.') || ip.startsWith('10.') || ip.startsWith('192.168.')) return false;
+  if (/^172\.(1[6-9]|2\d|3[01])\./.test(ip)) return false;
+  return true;
+}
+
+// Geo aproximada por IP (cidade/região) — serviço gratuito ipwho.is, com timeout. Falha em silêncio.
+async function lookupIpGeo(ip: string, now: Date): Promise<Record<string, unknown> | null> {
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 2500);
+    const r = await fetch(`https://ipwho.is/${encodeURIComponent(ip)}`, { signal: ctrl.signal }).catch(() => null);
+    clearTimeout(t);
+    if (!r || !r.ok) return null;
+    const g: any = await r.json().catch(() => null);
+    if (!g || !g.success) return null;
+    return {
+      source: 'ip', ip,
+      city: g.city ?? null, region: g.region ?? null, country: g.country ?? null,
+      lat: g.latitude ?? null, lng: g.longitude ?? null, at: now,
+    };
+  } catch { return null; }
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
@@ -46,15 +77,16 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const body = raw ? JSON.parse(raw) : {};
-    const { sessionId, event, step, stepIndex, total, label, data, variante } = body as {
+    const { sessionId, event, step, stepIndex, total, label, data, variante, geo } = body as {
       sessionId?: string;
-      event?: 'progress' | 'submit';
+      event?: 'progress' | 'submit' | 'geo';
       step?: string;
       stepIndex?: number;
       total?: number;
       label?: string;
       data?: Record<string, any>;
       variante?: string;
+      geo?: { lat?: number; lng?: number; address?: string; field?: string };
     };
 
     if (!sessionId || typeof sessionId !== 'string') {
@@ -65,6 +97,18 @@ export async function POST(req: NextRequest) {
     const col = db.collection('conversations');
     const now = new Date();
     const isSubmit = event === 'submit';
+
+    // Evento de localizacao PRECISA (GPS) — o user clicou no botao das moradas (consentido).
+    // Actualiza so a geo (substitui a aproximada por IP), sem mexer no passo/timeline.
+    if (event === 'geo') {
+      if (geo && geo.lat != null && geo.lng != null) {
+        await col.updateOne(
+          { quizSessionId: sessionId },
+          { $set: { 'data.geo': { source: 'gps', lat: Number(geo.lat), lng: Number(geo.lng), address: geo.address ?? null, field: geo.field ?? null, at: now }, updatedAt: now } },
+        );
+      }
+      return json({ success: true, geo: 'gps' });
+    }
 
     // Telemóvel real assim que conhecido; caso contrário identificador anónimo
     const telDigits = String(data?.telefone ?? '').replace(/\D/g, '');
@@ -91,10 +135,21 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Geo APROXIMADA por IP — só no 1.º passo (nome), guardada apenas na criação da conversa
+    // (via $setOnInsert, para não sobrepor uma geo GPS que possa chegar depois).
+    let geoOnInsert: Record<string, unknown> = {};
+    if (step === 'nome') {
+      const ip = clientIp(req);
+      if (isPublicIp(ip)) {
+        const g = await lookupIpGeo(ip, now);
+        if (g) geoOnInsert = { 'data.geo': g };
+      }
+    }
+
     await col.updateOne(
       { quizSessionId: sessionId },
       {
-        $setOnInsert: { canal: 'web-quiz', quizSessionId: sessionId, createdAt: now },
+        $setOnInsert: { canal: 'web-quiz', quizSessionId: sessionId, createdAt: now, ...geoOnInsert },
         $set: {
           telemovel: tel,
           step: isSubmit ? 'LEAD_REGISTERED' : 'QUIZ_IN_PROGRESS',
