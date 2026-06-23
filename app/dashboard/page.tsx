@@ -47,6 +47,25 @@ type RoutingConfig = {
   voiceAssistantName: string;
   voiceAssistantGender: 'female' | 'male';
   notificationTargets: NotificationTarget[];
+  quizNudge?: {
+    active: boolean;
+    delayMinutes: number;
+    channel: 'whatsapp_email' | 'whatsapp' | 'email';
+    messageTemplate: string;
+    startHour: number;
+    endHour: number;
+    weekendsOff: boolean;
+  };
+};
+
+const DEFAULT_QUIZ_NUDGE = {
+  active: false,
+  delayMinutes: 5,
+  channel: 'whatsapp_email' as 'whatsapp_email' | 'whatsapp' | 'email',
+  messageTemplate: 'Ola {nome}, aqui e a YourBox. Vi que comecou a pedir um orcamento ({rota}) mas nao chegou a concluir. Quer que tratemos disso por si? Responda aqui ou ligue 214 304 546 — e rapido.',
+  startHour: 9,
+  endHour: 20,
+  weekendsOff: true,
 };
 
 type NotificationTarget = {
@@ -1995,6 +2014,7 @@ function RoutingPanel() {
     whatsappBotAtivo: false, whatsappNumero: '', evolutionApiUrl: '', evolutionApiKey: '', evolutionInstance: 'yourbox',
     aggEscalationThreshold: 0, depotDistanceMultiplier: 1, urgencyPhone: '', assistantName: '',
     voiceAssistantName: 'Yox', voiceAssistantGender: 'female', notificationTargets: [],
+    quizNudge: { ...DEFAULT_QUIZ_NUDGE },
   };
 
   const [config, setConfig] = useState<RoutingConfig>(defaults);
@@ -2258,6 +2278,78 @@ function RoutingPanel() {
           </div>
         ))}
       </div>
+
+      {/* ── Reengajamento de Quiz Abandonado ── */}
+      {(() => {
+        const qn = config.quizNudge ?? DEFAULT_QUIZ_NUDGE;
+        const setQn = (patch: Partial<typeof DEFAULT_QUIZ_NUDGE>) =>
+          setConfig((c) => ({ ...c, quizNudge: { ...(c.quizNudge ?? DEFAULT_QUIZ_NUDGE), ...patch } }));
+        const lblS: React.CSSProperties = { fontSize: 12, fontWeight: 600, color: 'var(--yb-muted)', display: 'block', marginBottom: 3 };
+        return (
+          <div style={{ ...cardS, borderTop: `3px solid #8b5cf6`, marginTop: 16 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <h3 style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)', margin: 0 }}>Reengajamento de Quiz Abandonado</h3>
+                <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>Toque proactivo quando o visitante deu nome + contacto mas não concluiu o quiz</p>
+              </div>
+              <ToggleSwitch checked={qn.active} onChange={() => setQn({ active: !qn.active })} />
+            </div>
+
+            {qn.active && (
+              <div style={{ marginTop: 14, display: 'grid', gap: 12 }}>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 150px' }}>
+                    <label style={lblS}>Inactividade antes do toque (min)</label>
+                    <input type="number" min={1} value={qn.delayMinutes}
+                      onChange={(e) => setQn({ delayMinutes: parseInt(e.target.value) || 1 })}
+                      style={{ ...inputS, width: '100%', padding: '7px 10px', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ flex: '1 1 180px' }}>
+                    <label style={lblS}>Canal</label>
+                    <select value={qn.channel}
+                      onChange={(e) => setQn({ channel: e.target.value as 'whatsapp_email' | 'whatsapp' | 'email' })}
+                      style={{ ...inputS, width: '100%', padding: '7px 10px', boxSizing: 'border-box' }}>
+                      <option value="whatsapp_email">WhatsApp (email se falhar)</option>
+                      <option value="whatsapp">Só WhatsApp</option>
+                      <option value="email">Só email</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div style={{ flex: '1 1 90px' }}>
+                    <label style={lblS}>Das (h)</label>
+                    <input type="number" min={0} max={23} value={qn.startHour}
+                      onChange={(e) => setQn({ startHour: parseInt(e.target.value) || 0 })}
+                      style={{ ...inputS, width: '100%', padding: '7px 10px', boxSizing: 'border-box' }} />
+                  </div>
+                  <div style={{ flex: '1 1 90px' }}>
+                    <label style={lblS}>Às (h)</label>
+                    <input type="number" min={1} max={24} value={qn.endHour}
+                      onChange={(e) => setQn({ endHour: parseInt(e.target.value) || 0 })}
+                      style={{ ...inputS, width: '100%', padding: '7px 10px', boxSizing: 'border-box' }} />
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'var(--yb-fg)', flex: '1 1 auto' }}>
+                    <ToggleSwitch checked={qn.weekendsOff} onChange={() => setQn({ weekendsOff: !qn.weekendsOff })} />
+                    Não enviar ao fim-de-semana
+                  </label>
+                </div>
+
+                <div>
+                  <label style={lblS}>Mensagem (tokens: {'{nome}'} e {'{rota}'})</label>
+                  <textarea value={qn.messageTemplate} rows={3}
+                    onChange={(e) => setQn({ messageTemplate: e.target.value })}
+                    style={{ ...inputS, width: '100%', padding: '8px 10px', boxSizing: 'border-box', resize: 'vertical', fontFamily: 'inherit', lineHeight: 1.5 }} />
+                </div>
+
+                <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: 0 }}>
+                  Requer o cron a chamar <code>/api/cron/quiz-nudge</code> e o WhatsApp (Evolution) configurado. Envia um toque por visitante.
+                </p>
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       <button onClick={save} disabled={saving}
         style={{ width: '100%', padding: '11px 20px', borderRadius: 8, border: 'none', cursor: saving ? 'default' : 'pointer', background: saved ? '#166534' : CYAN, color: '#fff', fontSize: 14, fontWeight: 700, opacity: saving ? 0.7 : 1, transition: 'background 0.2s' }}>

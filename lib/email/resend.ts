@@ -4,6 +4,43 @@ const FROM    = process.env.ALERT_FROM_EMAIL ?? 'YourBox <noreply@yourbox.com.pt
 const TO      = (process.env.ALERT_EMAIL ?? '').split(',').map(e => e.trim()).filter(Boolean);
 const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.yourbox.com.pt').replace(/\/$/, '');
 
+// Email de reengajamento — enviado AO VISITANTE que comecou o quiz e nao concluiu.
+export async function sendQuizNudgeEmail(opts: {
+  to:    string;
+  nome:  string;
+  rota:  string;   // "origem -> destino" ou "o seu envio"
+  texto: string;   // corpo ja com tokens preenchidos
+}) {
+  if (!process.env.RESEND_API_KEY || !opts.to) return false;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const html = `
+<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
+  <div style="background:#1a2332;padding:18px 24px">
+    <span style="color:#fff;font-weight:700;font-size:16px">YourBox</span>
+  </div>
+  <div style="padding:24px;color:#333;font-size:14px;line-height:1.6">
+    <p>${opts.texto.replace(/\n/g, '<br/>')}</p>
+    <div style="margin-top:20px">
+      <a href="tel:+351214304546" style="display:inline-block;background:#bed62f;color:#1a2332;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px">
+        214 304 546
+      </a>
+    </div>
+  </div>
+  <div style="background:#f9fafb;padding:10px 24px;font-size:11px;color:#aaa">
+    YourBox - estafetas e transportes
+  </div>
+</div>`;
+
+  const r = await resend.emails.send({
+    from:    FROM,
+    to:      [opts.to],
+    subject: `${opts.nome}, continuamos o seu orcamento?`,
+    html,
+  }).catch(err => { console.error('[Resend] falha no email de reengajamento:', err); return null; });
+  return !!r;
+}
+
 export async function sendEscalationEmail(opts: {
   convId:      string;
   telemovel:   string;

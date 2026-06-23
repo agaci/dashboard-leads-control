@@ -99,6 +99,16 @@ export interface LeadRoutingConfig {
   };
   calcPriceMachine?: string;
   depotDistanceMultiplier?: number; // multiplicador da distância origem→depósito (1 = simples, 2 = ida e volta, etc.)
+  // Reengajamento de quiz abandonado (toque proactivo quando há nome + contacto)
+  quizNudge?: {
+    active: boolean;                                   // liga/desliga
+    delayMinutes: number;                              // min de inactividade antes do toque (default 5)
+    channel: 'whatsapp_email' | 'whatsapp' | 'email'; // ordem/canal (default whatsapp_email)
+    messageTemplate: string;                           // tokens: {nome} {rota}
+    startHour: number;                                 // hora início (Lisboa, default 9)
+    endHour: number;                                   // hora fim (Lisboa, default 20)
+    weekendsOff: boolean;                              // não enviar ao fim-de-semana (default true)
+  };
 }
 
 export interface PriceBreakdown {
