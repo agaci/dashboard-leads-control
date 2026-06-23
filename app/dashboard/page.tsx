@@ -93,6 +93,7 @@ type LeadData = {
   distance?: number;
   converted?: boolean;
   source?: string;
+  geo?: { source?: string; city?: string; region?: string; country?: string; lat?: number; lng?: number; address?: string };
 };
 
 type Lead = {
@@ -1636,6 +1637,20 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
         </div>
         <div className="space-y-4">
           <DetailField label="Trajecto">{`${d.origem ?? '—'} → ${d.destino ?? '—'}`}</DetailField>
+          {d.geo && (() => {
+            const g: any = d.geo;
+            const isGps = g.source === 'gps';
+            const txt = isGps
+              ? (g.address ? String(g.address).split(',').slice(0, 2).join(',').trim() : (g.lat != null ? `${Number(g.lat).toFixed(4)}, ${Number(g.lng).toFixed(4)}` : ''))
+              : [g.city, g.region].filter(Boolean).join(', ');
+            if (!txt) return null;
+            const maps = (g.lat != null && g.lng != null) ? `https://www.google.com/maps?q=${g.lat},${g.lng}` : null;
+            return (
+              <DetailField label={isGps ? 'Localização do visitante (GPS)' : 'Localização do visitante (aprox.)'}>
+                {maps ? <a href={maps} target="_blank" rel="noopener" className="text-cyan hover:underline">{txt}</a> : txt}
+              </DetailField>
+            );
+          })()}
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             {d.serviceType === 'arrasto' ? (
               <>

@@ -200,6 +200,7 @@ export async function POST(req: NextRequest) {
             urgencia: urg, serviceType, viatura, weightKg: totalKg,
             nome: d.nome, email: d.email, telefone: realPhone ?? d.telefone,
             volumes: d.volumes, material: d.material, embalado: d.embalado,
+            geo: d.geo ?? null,
             timeStamp: now, converted: true, convertedAt: now, source: 'quiz',
           },
         });
