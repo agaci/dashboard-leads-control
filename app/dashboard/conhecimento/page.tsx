@@ -187,7 +187,7 @@ export default function ConhecimentoPage() {
                       disabled={deleting === s._id}
                       className="w-8 h-8 rounded-lg neu-raised-sm flex items-center justify-center text-red-400 hover:text-red-600 text-sm disabled:opacity-30"
                     >
-                      ✕
+                      ×
                     </button>
                   </div>
                 </div>

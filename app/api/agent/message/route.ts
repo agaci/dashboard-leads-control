@@ -706,7 +706,7 @@ export async function POST(request: NextRequest) {
               conv.data.pblPaymentUrl = result.redirectUrl;
               response = {
                 text: `Para confirmar o seu serviço, efectue o pagamento através do link:\n\n` +
-                  `👉 ${result.redirectUrl}\n\n` +
+                  `${result.redirectUrl}\n\n` +
                   `*Valor: €${finalPrice?.toFixed(2)}*\n\n` +
                   `Pode pagar por MB Way, Multibanco ou Cartão. ` +
                   `O link é válido por *24 horas*.`,

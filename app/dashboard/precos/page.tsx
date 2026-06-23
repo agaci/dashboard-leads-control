@@ -206,7 +206,7 @@ export default function PrecosPage() {
           <button onClick={save} disabled={saving}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white disabled:opacity-50 transition-all"
             style={{ background: saving ? '#aaa' : saved ? '#22c55e' : '#00bcd4' }}>
-            {saving ? 'A guardar...' : saved ? '✓ Guardado' : 'Guardar alterações'}
+            {saving ? 'A guardar...' : saved ? 'Guardado' : 'Guardar alterações'}
           </button>
         </div>
 

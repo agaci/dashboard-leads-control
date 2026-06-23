@@ -295,7 +295,7 @@ export default function WidgetsPage() {
                           fontWeight: 600,
                         }}
                       >
-                        {copiedToken === c._id ? '✓ Copiado' : 'Copiar token'}
+                        {copiedToken === c._id ? 'Copiado' : 'Copiar token'}
                       </button>
                     )}
                     <button
@@ -359,7 +359,7 @@ export default function WidgetsPage() {
           <div style={{ background: 'var(--yb-card)', borderRadius: 14, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', padding: 24, border: `1px solid ${BORDER}` }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 18 }}>
               <h2 style={{ fontSize: 16, fontWeight: 700, color: NAVY, margin: 0 }}>{editId ? 'Editar Cliente' : 'Novo Cliente'}</h2>
-              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--yb-subtle)' }}>✕</button>
+              <button onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--yb-subtle)' }}>×</button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>

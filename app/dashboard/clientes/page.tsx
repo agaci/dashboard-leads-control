@@ -289,7 +289,7 @@ export default function ClientesPage() {
                           onKeyDown={e => { if (e.key === 'Enter') saveEdit('email'); if (e.key === 'Escape') setEditing({}); }}
                           style={{ ...fieldStyle, fontSize: 12, padding: '3px 7px' }}
                         />
-                        <button onClick={() => saveEdit('email')} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, border: `1px solid ${CYAN}`, background: 'rgba(0,188,212,0.1)', color: CYAN, cursor: 'pointer' }}>✓</button>
+                        <button onClick={() => saveEdit('email')} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, border: `1px solid ${CYAN}`, background: 'rgba(0,188,212,0.1)', color: CYAN, cursor: 'pointer' }}>OK</button>
                       </div>
                     ) : (
                       <dd
@@ -314,7 +314,7 @@ export default function ClientesPage() {
                           onKeyDown={e => { if (e.key === 'Enter') saveEdit('empresa'); if (e.key === 'Escape') setEditing({}); }}
                           style={{ ...fieldStyle, fontSize: 12, padding: '3px 7px' }}
                         />
-                        <button onClick={() => saveEdit('empresa')} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, border: `1px solid ${CYAN}`, background: 'rgba(0,188,212,0.1)', color: CYAN, cursor: 'pointer' }}>✓</button>
+                        <button onClick={() => saveEdit('empresa')} style={{ fontSize: 11, padding: '2px 7px', borderRadius: 5, border: `1px solid ${CYAN}`, background: 'rgba(0,188,212,0.1)', color: CYAN, cursor: 'pointer' }}>OK</button>
                       </div>
                     ) : (
                       <dd
@@ -386,7 +386,7 @@ export default function ClientesPage() {
                       transition: 'background 0.2s',
                     }}
                   >
-                    {saved ? '✓ Guardado' : saving ? 'A guardar...' : 'Guardar Notas'}
+                    {saved ? 'Guardado' : saving ? 'A guardar...' : 'Guardar Notas'}
                   </button>
                 </div>
               </div>

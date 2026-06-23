@@ -54,7 +54,7 @@ async function insertPreLeadSimulation(
     presentationMessage: 'stick',
     deletedAfter: 10000,
     message: `<div style="line-height:1;">
-      <p><b>🧮 SIMULAÇÃO DE PREÇO</b> <small>(${timeStamp})</small></p>
+      <p><b>SIMULAÇÃO DE PREÇO</b> <small>(${timeStamp})</small></p>
       <p><b>Locais:</b></p>
       <p>${params.local_recolha}</p>
       <p>${params.local_entrega}</p>
@@ -63,7 +63,7 @@ async function insertPreLeadSimulation(
       <p><b>Distância:</b> ${totalDistance} kms</p>
       <p><b>Preço:</b> €${priceCalculated.toFixed(2)}</p>
       <p><b>Com 10% OFF:</b> €${priceWithDiscount.toFixed(2)}</p>
-      <p style="color:orange;"><b>⚠️ Sem contacto</b></p>
+      <p style="color:orange;"><b>Sem contacto</b></p>
     </div>`,
     companyProvider: 'Yourbox',
     senderName: 'Simulação Web ' + variante,
@@ -176,12 +176,12 @@ async function insert24hSimulation(
     presentationMessage: 'stick',
     deletedAfter: 10000,
     message: `<div style="line-height:1;">
-      <p><b>🧮 SIMULAÇÃO 24H</b> <small>(${timeStamp})</small></p>
+      <p><b>SIMULAÇÃO 24H</b> <small>(${timeStamp})</small></p>
       <p>${params.local_recolha}</p>
       <p>${params.local_entrega}</p>
       <p><b>Viatura:</b> ${params.viatura ?? ''}</p>
       <p><b>Urgência:</b> 24 Horas</p>
-      <p style="color:orange;"><b>⚠️ Requer contacto para orçamento</b></p>
+      <p style="color:orange;"><b>Requer contacto para orçamento</b></p>
     </div>`,
     companyProvider: 'Yourbox',
     senderName: 'Simulação Web ' + variante,

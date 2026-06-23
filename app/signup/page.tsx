@@ -65,7 +65,7 @@ export default function SignupPage() {
               background: 'rgba(16,185,129,0.12)', border: '2px solid rgba(16,185,129,0.3)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               fontSize: 26, margin: '0 auto 16px', color: '#10b981',
-            }}>✓</div>
+            }}><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
             <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--yb-fg)', marginBottom: 8 }}>
               Conta criada com sucesso
             </p>

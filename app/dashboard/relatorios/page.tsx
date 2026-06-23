@@ -224,7 +224,7 @@ export default function RelatoriosPage() {
                 const isResolved = r.step === 'LEAD_REGISTERED';
                 return (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', borderRadius: 8, background: isResolved ? 'rgba(16,185,129,0.08)' : CARD_INNER, border: `1px solid ${isResolved ? 'rgba(16,185,129,0.2)' : BORDER}` }}>
-                    <span style={{ fontSize: 16, color: isResolved ? '#10b981' : TEXT3 }}>{isResolved ? '✓' : '✕'}</span>
+                    <span style={{ fontSize: 16, color: isResolved ? '#10b981' : TEXT3 }}>{isResolved ? 'Sim' : 'Não'}</span>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <p style={{ fontSize: 12, fontWeight: 600, color: NAVY, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.reason}</p>
                       <p style={{ fontSize: 10, color: TEXT3, margin: 0 }}>{isResolved ? 'Resolvida' : 'Fechada'}</p>
