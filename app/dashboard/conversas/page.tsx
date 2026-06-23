@@ -627,7 +627,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               const isGps = g.source === 'gps';
               return (
                 <div className="px-4 pt-2 shrink-0">
-                  <MiniMap lat={Number(g.lat)} lng={Number(g.lng)} zoom={isGps ? 16 : 11} exact={isGps} height={150} />
+                  <MiniMap lat={Number(g.lat)} lng={Number(g.lng)} zoom={isGps ? 16 : 11} exact={isGps} height={220} />
                 </div>
               );
             })()}
