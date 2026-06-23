@@ -18,6 +18,26 @@ function json(obj: unknown, status = 200) {
   return Response.json(obj, { status, headers: CORS });
 }
 
+// Valor introduzido pelo visitante no passo `step` (para mostrar na timeline do dashboard)
+function stepValue(step: string | undefined, data: Record<string, any> | undefined): string | null {
+  if (!step || !data) return null;
+  const v = (x: any) => (x === undefined || x === null || x === '' ? null : String(x));
+  switch (step) {
+    case 'nome':      return v(data.nome);
+    case 'telefone':  return v(data.telefone);
+    case 'email':     return v(data.email);
+    case 'origem':    return v(data.origem);
+    case 'destino':   return v(data.destino);
+    case 'volumes':   return data.volumes ? `${data.volumes} volumes` : null;
+    case 'peso':      return data.peso ? `${data.peso} kg/volume` : null;
+    case 'dimensoes': return (data.comprimento && data.largura && data.altura) ? `${data.comprimento} x ${data.largura} x ${data.altura} cm` : null;
+    case 'urgencia':  return v(data.urgencia);
+    case 'material':  return v(data.material);
+    case 'embalado':  return v(data.embalado);
+    default:          return null;
+  }
+}
+
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
 }
@@ -57,6 +77,7 @@ export async function POST(req: NextRequest) {
       step: step ?? null,
       stepIndex: typeof stepIndex === 'number' ? stepIndex : null,
       total: typeof total === 'number' ? total : null,
+      value: stepValue(step, data), // valor introduzido neste passo (para mostrar na timeline)
       timestamp: now,
     };
 

@@ -28,6 +28,7 @@ type Message = {
   step?: string;
   stepIndex?: number | null;
   total?: number | null;
+  value?: string | null;
 };
 
 type AggHintItem = {
@@ -668,6 +669,7 @@ function StepEntry({ msg, timeStr }: { msg: Message; timeStr: string }) {
       </div>
       <div className="flex-1 min-w-0">
         <span className="text-sm text-foreground font-medium">{msg.text}</span>
+        {msg.value && <span className="ml-2 text-sm text-muted-foreground">— {msg.value}</span>}
         {pos && <span className="ml-2 text-[11px] font-semibold text-cyan">passo {pos}</span>}
       </div>
       <span className="text-xs text-muted-foreground shrink-0">{timeStr}</span>
