@@ -92,7 +92,11 @@ async function handle(req: NextRequest) {
   const secret = process.env.CRON_SECRET;
   if (secret) {
     const key = new URL(req.url).searchParams.get('key');
-    if (key !== secret) return Response.json({ error: 'unauthorized' }, { status: 401 });
+    const auth = req.headers.get('authorization') ?? '';
+    const bearer = auth.startsWith('Bearer ') ? auth.slice(7).trim() : '';
+    if (key !== secret && bearer !== secret) {
+      return Response.json({ error: 'unauthorized' }, { status: 401 });
+    }
   }
   try {
     const result = await run();
