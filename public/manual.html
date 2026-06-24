@@ -245,6 +245,7 @@
   <div class="sidebar-section">
     <div class="sidebar-section-title">Módulos</div>
     <a href="#inbox">Inbox — Conversas</a>
+    <a href="#quiz-funil">Funil Quiz e Localização</a>
     <a href="#leads">Leads</a>
     <a href="#clientes">Clientes</a>
     <a href="#precos">Preços e Motor</a>
@@ -256,6 +257,7 @@
     <a href="#bot-config">Configuração do Bot</a>
     <a href="#aparencia">Aparência (Tema)</a>
     <a href="#notificacoes">Notificações de Alerta</a>
+    <a href="#reengajamento">Reengajamento de Quiz</a>
     <a href="#ab-routing">Distribuição A/B e Agendamento</a>
   </div>
   <div class="sidebar-section">
@@ -278,7 +280,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.4</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.5</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -447,6 +449,44 @@
 
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Dica:</strong> conversas em modo <strong>Chat ao Vivo</strong> (badge roxo) aguardam resposta do operador. O cliente vê o aviso "A aguardar operador" mas o input está habilitado — pode escrever enquanto aguarda. Responda pelo campo de texto no fundo do painel.</div></div>
       <div class="callout warning" style="margin-top:0.75rem;"><div class="callout-icon">!</div><div>Conversas <strong>ESCALATED_TO_HUMAN</strong> ficam marcadas a vermelho e tocam um alerta sonoro. Priorize sempre estas e as de Chat ao Vivo antes das restantes.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="quiz-funil"></span>
+    <div class="section">
+      <h2>Funil Quiz — Conversas em Curso e Localização</h2>
+      <p>Além do formulário clássico, a landing page tem uma variante em formato <strong>quiz</strong> (perguntas passo a passo). À medida que o visitante avança, o progresso é enviado em <strong>tempo quase real</strong> para a Inbox — mesmo que ele não conclua o pedido.</p>
+
+      <h3>Como aparece na Inbox</h3>
+      <p>Cada visitante do quiz cria uma conversa com o canal <span class="badge badge-cyan">web-quiz</span> e o estado <span class="badge badge-cyan">Quiz em curso</span>. Ao abrir, em vez de um diálogo de chat vê uma <strong>timeline de passos</strong>: cada linha é um passo do quiz com o <strong>valor que o visitante introduziu</strong>.</p>
+      <ul>
+        <li><em>Nome — Helder Silva · passo 1/11</em></li>
+        <li><em>Telemóvel — 961234567 · passo 2/11</em></li>
+        <li><em>Local de recolha — Av. Central 578 · passo 4/11</em></li>
+        <li><em>Urgência — Próprio dia · passo 9/11</em>…</li>
+      </ul>
+      <p>A conversa entra logo no <strong>1.º passo (Nome)</strong> e vai sendo actualizada a cada passo seguinte (polling de ~5–10 s). Quando o visitante submete, passa a <span class="badge badge-green">Lead registada</span> e aparece também em <strong>Leads</strong>.</p>
+
+      <h3>Alertas sonoros</h3>
+      <ul>
+        <li><strong>Nova conversa</strong> — toca quando um visitante começa o quiz (entra a conversa).</li>
+        <li><strong>Nova lead</strong> — toca quando o visitante conclui e submete o pedido.</li>
+      </ul>
+
+      <h3>Localização do visitante</h3>
+      <p>Para dar contexto comercial, a conversa (e a lead) mostram a <strong>localização do visitante</strong> com um <strong>mini-mapa</strong> e link para o Google Maps:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Como é obtida</th><th>Precisão</th><th>No mapa</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Aproximada (IP)</strong></td><td>Automática, no início do quiz, a partir do IP do visitante.</td><td>Nível de cidade/região.</td><td>Pin <strong>azul-escuro</strong> + círculo de incerteza.</td></tr>
+            <tr><td><strong>Precisa (GPS)</strong></td><td>Só se o visitante <strong>carregar no botão de localização</strong> de uma morada e <strong>autorizar</strong> no browser.</td><td>Exacta (metros).</td><td>Pin <strong>verde</strong>, sem círculo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout info"><div class="callout-icon">i</div><div>A localização por IP é <strong>aproximada</strong> (rótulo "aprox.") — o círculo no mapa indica a margem de erro. A precisa (GPS) só existe quando o visitante a autoriza de livre vontade. Ver implicações de privacidade na Política de Privacidade.</div></div>
+
+      <div class="callout tip"><div class="callout-icon">+</div><div>Para acompanhar um visitante <strong>ao vivo</strong>, abra a Inbox no filtro <strong>Activas / Hoje</strong> enquanto ele preenche o quiz — os passos vão surgindo sozinhos.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -896,7 +936,7 @@
             </tr>
             <tr>
               <td><strong>Eventos</strong></td>
-              <td>Tipo de avisos a receber: <strong>Escalamento</strong> e/ou <strong>Nova Lead</strong>. Pelo menos um deve estar seleccionado.</td>
+              <td>Tipo de avisos a receber: <strong>Nova Conversa</strong>, <strong>Escalamento</strong> e/ou <strong>Nova Lead</strong>. Pelo menos um deve estar seleccionado.</td>
               <td>—</td>
             </tr>
           </tbody>
@@ -908,6 +948,11 @@
         <table>
           <thead><tr><th>Evento</th><th>Quando dispara</th><th>Informação incluída</th></tr></thead>
           <tbody>
+            <tr>
+              <td><strong>Nova Conversa</strong></td>
+              <td>Quando entra uma nova conversa — alguém inicia o quiz ou o chat.</td>
+              <td>Referência, nome/telefone, rota (se já houver), link para a Inbox.</td>
+            </tr>
             <tr>
               <td><strong>Escalamento</strong></td>
               <td>Quando o bot transfere uma conversa para atendimento humano.</td>
@@ -932,6 +977,40 @@
 
       <div class="callout info"><div class="callout-icon">i</div><div>Os avisos são enviados em modo assíncrono — não afectam o tempo de resposta do bot ao cliente. Se o envio falhar (ex: rede indisponível), o sistema regista o erro internamente mas não interrompe o fluxo da conversa.</div></div>
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> o helpdesk recebe <strong>Escalamento</strong> para resposta imediata via WhatsApp, e a equipa comercial recebe <strong>Nova Lead</strong> por email para follow-up.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="reengajamento"></span>
+    <div class="section">
+      <h2>Reengajamento de Quiz Abandonado</h2>
+      <p>Quando um visitante começa o quiz, fornece <strong>nome + um contacto</strong> (telefone ou email) mas <strong>não conclui</strong>, o sistema pode enviar-lhe <strong>um toque proactivo</strong> a oferecer ajuda — recuperando leads que de outra forma se perderiam.</p>
+
+      <h3>Como configurar</h3>
+      <p>Em <strong>Perfil → Configurações → Reengajamento de Quiz Abandonado</strong> (painel roxo):</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Descrição</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Ligar/desligar</strong></td><td>Activa ou desactiva todo o reengajamento.</td></tr>
+            <tr><td><strong>Inactividade antes do toque</strong></td><td>Minutos sem actividade antes de enviar. Por defeito <strong>5</strong>.</td></tr>
+            <tr><td><strong>Canal</strong></td><td><strong>WhatsApp (email se falhar)</strong>, só WhatsApp, ou só email.</td></tr>
+            <tr><td><strong>Das / Às (h)</strong></td><td>Janela horária de envio (hora de Lisboa). Fora dela, não envia.</td></tr>
+            <tr><td><strong>Não enviar ao fim-de-semana</strong></td><td>Evita toques a sábados e domingos.</td></tr>
+            <tr><td><strong>Mensagem</strong></td><td>Texto do toque. Aceita os tokens <code>{nome}</code> e <code>{rota}</code> (substituídos automaticamente).</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Regras de envio</h3>
+      <ul>
+        <li><strong>Um toque por visitante</strong> — nunca repete na mesma conversa.</li>
+        <li>Só dentro do <strong>horário</strong> configurado e (opcionalmente) em dias úteis.</li>
+        <li>Só conversas <strong>paradas entre ~5 min e 6 h</strong> — evita inundar abandonos antigos.</li>
+        <li>Quando o visitante responde no WhatsApp, a conversa segue pela Inbox normal.</li>
+      </ul>
+
+      <div class="callout warning"><div class="callout-icon">!</div><div>Requisitos técnicos (uma vez): um <strong>cron</strong> tem de chamar o endpoint <code>/api/cron/quiz-nudge</code> de poucos em poucos minutos, e o <strong>WhatsApp (Evolution)</strong> tem de estar configurado para o canal de WhatsApp funcionar. O email usa o serviço de envio já configurado.</div></div>
+      <div class="callout info"><div class="callout-icon">i</div><div>O reengajamento é um contacto transacional (o visitante iniciou o pedido), mas deve ser coberto na Política de Privacidade, com forma de oposição/opt-out.</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -1196,6 +1275,9 @@
             <tr><td>OOH (Out of Hours)</td><td>Surcharge aplicado automaticamente quando o orçamento é pedido fora do horário de trabalho (feriados, sábados, domingos). Incluído no preço inicial, não retroactivo.</td></tr>
             <tr><td>Slot de Agendamento</td><td>Intervalo horário com distribuição de variantes A/B configurada. O sistema activa/desactiva slots automaticamente à hora programada.</td></tr>
             <tr><td>Distribuição A/B</td><td>Mecanismo de roteamento que divide o tráfego da landing page entre diferentes variantes do formulário, com percentagens configuráveis por horário.</td></tr>
+            <tr><td>Funil Quiz</td><td>Variante da landing em formato de perguntas passo a passo. O progresso é enviado em tempo quase real para a Inbox (canal <code>web-quiz</code>), mostrado como timeline de passos com os valores introduzidos.</td></tr>
+            <tr><td>Localização (IP / GPS)</td><td>Localização do visitante mostrada na conversa/lead. <strong>IP</strong> = aproximada (cidade), automática. <strong>GPS</strong> = exacta, só se o visitante autorizar no browser. Apresentada em mini-mapa com pin.</td></tr>
+            <tr><td>Reengajamento</td><td>Toque proactivo (WhatsApp/email) a quem começou o quiz com nome + contacto mas não concluiu, dentro do horário e regras configuradas.</td></tr>
           </tbody>
         </table>
       </div>
@@ -1232,7 +1314,7 @@
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.4 — Junho 2026</span>
+      <span>YourBox Dashboard — Manual v1.5 — Junho 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
