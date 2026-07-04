@@ -10,9 +10,18 @@ import { getDb } from '@/lib/mongodb';
 
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type',
 };
+
+// Início do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).
+function lisbonStartOfTodayUtc(): Date {
+  const now = new Date();
+  const lisbonNow = new Date(now.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const diff = now.getTime() - lisbonNow.getTime(); // ajuste fuso Lisboa -> UTC
+  const midnightWall = new Date(lisbonNow.getFullYear(), lisbonNow.getMonth(), lisbonNow.getDate(), 0, 0, 0, 0);
+  return new Date(midnightWall.getTime() + diff);
+}
 
 function json(obj: unknown, status = 200) {
   return Response.json(obj, { status, headers: CORS });
@@ -40,6 +49,29 @@ function stepValue(step: string | undefined, data: Record<string, any> | undefin
 
 export async function OPTIONS() {
   return new Response(null, { status: 204, headers: CORS });
+}
+
+// Prova social REAL para o quiz (site_YB): quantas pessoas INICIARAM um orçamento hoje.
+// Conta as conversas do quiz (canal web-quiz) criadas hoje — mais representativo da
+// actividade do que só as que chegaram a lead. Cache de 60s em memória para não varrer
+// a colecção a cada carregamento de página.
+let _startsTodayCache: { at: number; value: number } | null = null;
+
+export async function GET() {
+  try {
+    if (_startsTodayCache && Date.now() - _startsTodayCache.at < 60_000) {
+      return json({ startsToday: _startsTodayCache.value });
+    }
+    const db = await getDb();
+    const startsToday = await db.collection('conversations').countDocuments({
+      canal: 'web-quiz',
+      createdAt: { $gte: lisbonStartOfTodayUtc() },
+    });
+    _startsTodayCache = { at: Date.now(), value: startsToday };
+    return json({ startsToday });
+  } catch (err: any) {
+    return json({ error: err.message }, 500);
+  }
 }
 
 export async function POST(req: NextRequest) {
