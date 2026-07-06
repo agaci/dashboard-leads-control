@@ -6,6 +6,7 @@ import { MiniMap } from './MiniMap';
 import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
+import VisitasPage from './visitas/page';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
@@ -726,6 +727,13 @@ export default function DashboardPage() {
             </div>
           )}
         </>
+      )}
+
+      {/* visitas → Mapa vivo de visitas ao site */}
+      {tab === 'visitas' && (
+        <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <VisitasPage />
+        </div>
       )}
 
       {/* inbox → Conversas/escalações */}

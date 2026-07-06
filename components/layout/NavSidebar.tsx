@@ -5,7 +5,7 @@ import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound 
 import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager';
 
 export type NavTab =
-  | 'leads' | 'inbox' | 'clientes' | 'servicos'
+  | 'visitas' | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
   | 'routing' | 'widgets' | 'config';
 
@@ -29,6 +29,16 @@ function IcoLeads() {
       <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
       <line x1="12" y1="12" x2="12" y2="17"/>
       <line x1="9" y1="14.5" x2="15" y2="14.5"/>
+    </svg>
+  );
+}
+
+function IcoVisitas() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/>
+      <circle cx="12" cy="12" r="4.5"/>
+      <circle cx="12" cy="12" r="1.3" fill="currentColor" stroke="none"/>
     </svg>
   );
 }
@@ -467,6 +477,7 @@ export default function NavSidebar({
   // ── Mobile: bottom nav bar ────────────────────────────────────────────────
   if (mobile) {
     const mobileItems: { id: NavTab; label: string; icon: React.ReactNode; badge?: number; blink?: boolean }[] = [
+      { id: 'visitas',    label: 'Visitas',    icon: <IcoVisitas /> },
       { id: 'inbox',      label: 'Inbox',      icon: <IcoInbox />,      badge: inboxBadge },
       { id: 'leads',      label: 'Leads',      icon: <IcoLeads />,      badge: leadsBadge },
       { id: 'clientes',   label: 'Clientes',   icon: <IcoClientes /> },
@@ -577,6 +588,7 @@ export default function NavSidebar({
 
       {/* Main nav */}
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%', padding: '4px 0' }}>
+        <NavItem id="visitas"    label="Visitas"   icon={<IcoVisitas />}    active={activeTab === 'visitas'}    onClick={() => onTabChange('visitas')} />
         <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}      active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}      badge={inboxBadge} />
         <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}      active={activeTab === 'leads'}      onClick={() => onTabChange('leads')}      badge={leadsBadge} />
         <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}   active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />

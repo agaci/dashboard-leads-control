@@ -4,7 +4,7 @@ import { useEffect, useRef } from 'react';
 
 // Carrega o Leaflet por CDN (sem dependência no build). Cacheia a promessa.
 let _leafletPromise: Promise<any> | null = null;
-function loadLeaflet(): Promise<any> {
+export function loadLeaflet(): Promise<any> {
   if (typeof window === 'undefined') return Promise.reject();
   if ((window as any).L) return Promise.resolve((window as any).L);
   if (_leafletPromise) return _leafletPromise;
