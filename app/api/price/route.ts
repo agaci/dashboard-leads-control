@@ -280,6 +280,19 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  // Anti-bot (server-side). Simulações reais vêm do autocomplete do Google Places →
+  // morada sempre formatada com vírgula ("Lisboa, Portugal", "2710 Sintra, Portugal").
+  // Bots/scripts enviam texto simples sem vírgula ("Lisboa", "Porto"). Rejeitar antes
+  // de calcular ou gravar, para não poluir a colecção `messages` nem inflacionar leads.
+  // (Validação no JS do browser é inútil — o bot ignora o frontend.)
+  const isFormattedAddr = (loc?: string) => typeof loc === 'string' && loc.trim().includes(',');
+  if (!isFormattedAddr(params.local_recolha) || !isFormattedAddr(params.local_entrega)) {
+    return Response.json(
+      { error: 'Endereço inválido. Use as sugestões do autocomplete.' },
+      { status: 400 }
+    );
+  }
+
   const hasContact =
     params.email &&
     params.telemovel &&
