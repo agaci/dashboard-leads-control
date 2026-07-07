@@ -15,8 +15,10 @@ export async function GET(request: NextRequest) {
     if (status === 'active')    filter.step = { $nin: ['CLOSED', 'LEAD_REGISTERED', 'ESCALATED_TO_HUMAN'] };
     if (status === 'escalated') filter.step = 'ESCALATED_TO_HUMAN';
     if (status === 'closed')    filter.step = { $in: ['CLOSED', 'LEAD_REGISTERED'] };
+    if (status === 'contact')   filter.contactRequestOpen = true; // pedidos de contacto por atender
 
-    if (dateFrom || dateTo) {
+    // Pedidos de contacto por atender ignoram o filtro de data (são sempre urgentes).
+    if ((dateFrom || dateTo) && status !== 'contact') {
       const range: Record<string, Date> = {};
       if (dateFrom) range.$gte = new Date(dateFrom);
       if (dateTo)   range.$lte = new Date(dateTo);
@@ -28,7 +30,7 @@ export async function GET(request: NextRequest) {
       .find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
-      .project({ history: { $slice: -1 }, telemovel: 1, canal: 1, step: 1, data: 1, createdAt: 1, updatedAt: 1, escalatedAt: 1, closedAt: 1, leadId: 1 })
+      .project({ history: { $slice: -1 }, telemovel: 1, canal: 1, step: 1, data: 1, createdAt: 1, updatedAt: 1, escalatedAt: 1, closedAt: 1, leadId: 1, contactRequestOpen: 1, contactRequestChannel: 1 })
       .toArray();
 
     return Response.json({ success: true, conversations });

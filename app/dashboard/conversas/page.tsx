@@ -58,6 +58,8 @@ type ConvSummary = {
   aggHints?: AggHintItem[];
   aggHintsSeen?: boolean;
   aggHintsAt?: string;
+  contactRequestOpen?: boolean;
+  contactRequestChannel?: string | null;
 };
 
 type ConvFull = ConvSummary & { history: Message[] };
@@ -109,17 +111,26 @@ function isRealPhone(tel?: string) {
   return tel && !tel.startsWith('web_');
 }
 
+// Melhor telefone disponível: o quiz guarda em data.telefone; outros canais em
+// data.telemovel ou no telemovel de topo. Ignora placeholders "web_quiz_...".
+function bestPhone(c: { telemovel?: string; data?: Record<string, any> }): string | null {
+  for (const t of [c.data?.telefone, c.data?.telemovel, c.telemovel]) {
+    if (isRealPhone(t)) return t as string;
+  }
+  return null;
+}
+
 export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = false }: { initialConvId?: string; onGoToAgg?: (convId: string) => void; isMobile?: boolean }) {
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [selected, setSelected] = useState<ConvFull | null>(null);
-  const [filter, setFilter] = useState<'active' | 'escalated' | 'closed' | 'all'>('active');
+  const [filter, setFilter] = useState<'active' | 'escalated' | 'contact' | 'closed' | 'all'>('active');
   const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'ontem' | 'semana' | 'custom'>('hoje');
   const [customDate, setCustomDate] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
-  const [counts, setCounts] = useState<{ active: number; escalated: number; closed: number; all: number }>({ active: 0, escalated: 0, closed: 0, all: 0 });
+  const [counts, setCounts] = useState<{ active: number; escalated: number; contact: number; closed: number; all: number }>({ active: 0, escalated: 0, contact: 0, closed: 0, all: 0 });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
@@ -175,6 +186,18 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
       setTimeout(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
     }
   }, []);
+
+  // "Atendido" — desliga o alarme do pedido de contacto neste cartão.
+  const ackContact = useCallback(async (id: string) => {
+    setConversations((prev) => prev.map((c) => (c._id === id ? { ...c, contactRequestOpen: false } : c)));
+    try {
+      await fetch('/api/contact-request', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ convId: id }),
+      });
+    } catch { /* silencioso */ }
+    fetchList();
+  }, [fetchList]);
 
   // Polling lista
   useEffect(() => {
@@ -313,23 +336,29 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
         {/* Filtros de estado */}
         <div className="flex flex-wrap gap-1.5 px-5 pb-2">
-          {(['active', 'escalated', 'all', 'closed'] as const).map((f) => {
-            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'closed' ? 'Fechadas' : 'Todas';
+          {(['active', 'escalated', 'contact', 'all', 'closed'] as const).map((f) => {
+            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'contact' ? 'Pede contacto' : f === 'closed' ? 'Fechadas' : 'Todas';
             const count = counts[f];
             const active = filter === f;
             const isEscalated = f === 'escalated';
+            const isContact = f === 'contact';
+            const contactAlarm = isContact && count > 0; // pedidos por atender -> destacar
             return (
               <button
                 key={f}
                 onClick={() => setFilter(f)}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  active ? 'bg-cyan text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                  active
+                    ? (isContact ? 'bg-red-600 text-white' : 'bg-cyan text-white')
+                    : contactAlarm
+                      ? 'bg-red-600 text-white animate-pulse'
+                      : 'bg-secondary text-secondary-foreground hover:bg-muted'
                 }`}
               >
                 {label}
                 {count > 0 && (
                   <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                    active ? 'bg-white/25 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
+                    active || contactAlarm ? 'bg-white/25 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
                   }`}>
                     {count > 99 ? '99+' : count}
                   </span>
@@ -420,16 +449,35 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
             return visible.map((conv) => {
               const lastMsg = conv.history?.[0];
               const isSelected = selected?._id === conv._id;
+              const phone = bestPhone(conv);
               return (
                 <button
                   key={conv._id}
                   onClick={() => openConv(conv._id)}
                   className={`w-full rounded-xl p-4 text-left transition-all shadow-card ${
-                    isSelected
-                      ? 'bg-cyan-soft border-l-[3px] border-cyan'
-                      : 'bg-card hover:shadow-elevated border-l-[3px] border-transparent'
+                    conv.contactRequestOpen
+                      ? 'bg-red-50 border-l-[3px] border-red-500 ring-1 ring-red-400/60'
+                      : isSelected
+                        ? 'bg-cyan-soft border-l-[3px] border-cyan'
+                        : 'bg-card hover:shadow-elevated border-l-[3px] border-transparent'
                   }`}
                 >
+                  {conv.contactRequestOpen && (
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wide text-white animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white" />
+                        Pede contacto{conv.contactRequestChannel ? ` · ${conv.contactRequestChannel === 'whatsapp' ? 'WhatsApp' : 'Email'}` : ''}
+                      </span>
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        onClick={(e) => { e.stopPropagation(); ackContact(conv._id); }}
+                        className="cursor-pointer rounded-md bg-[#1a2332] px-2.5 py-1 text-[10px] font-bold text-white hover:opacity-80"
+                      >
+                        Atendido
+                      </span>
+                    </div>
+                  )}
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <span className="text-[15px] font-semibold text-foreground truncate">
                       {conv.data?.nome ?? refCode(conv._id)}
@@ -453,9 +501,9 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       {conv.data.origem.split(',')[0]} → {(conv.data.destino ?? '...').split(',')[0]}
                     </p>
                   )}
-                  {(isRealPhone(conv.data?.telemovel) || conv.data?.email || conv.data?.viatura) && (
+                  {(phone || conv.data?.email || conv.data?.viatura) && (
                     <p className="text-[10px] text-muted-foreground/75 mt-0.5 truncate">
-                      {isRealPhone(conv.data?.telemovel) && <span className="mr-2 font-medium">{conv.data.telemovel}</span>}
+                      {phone && <span className="mr-2 font-medium">{phone}</span>}
                       {conv.data?.viatura && <span className="mr-2">{conv.data.viatura}</span>}
                       {conv.data?.email && <span>{conv.data.email}</span>}
                     </p>
@@ -508,6 +556,16 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       </span>
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
+                      {bestPhone(selected) && (
+                        isMobile
+                          ? <a href={`tel:+351${String(bestPhone(selected)).replace(/\D/g, '')}`} className="font-semibold text-foreground hover:underline">{bestPhone(selected)}</a>
+                          : <span className="font-semibold text-foreground select-all">{bestPhone(selected)}</span>
+                      )}
+                      {selected.data?.email && (
+                        isMobile
+                          ? <a href={`mailto:${selected.data.email}`} className="truncate max-w-[220px] hover:underline">{selected.data.email}</a>
+                          : <span className="truncate max-w-[220px] select-all">{selected.data.email}</span>
+                      )}
                       {selected.data?.origem && (
                         <span className="truncate max-w-[200px] md:max-w-none">
                           {selected.data.origem.split(',')[0]} → {(selected.data.destino ?? '').split(',')[0]}

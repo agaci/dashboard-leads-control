@@ -2,6 +2,9 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { sendWhatsAppMessage } from '@/lib/whatsapp/evolution';
 import { sendQuizNudgeEmail } from '@/lib/email/resend';
+import { contactToken } from '@/lib/contactToken';
+
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.comgo.pt').replace(/\/$/, '');
 
 // Reengajamento de quiz abandonado.
 // Varre as conversas web-quiz que pararam (nome + contacto, sem submeter) e envia
@@ -65,15 +68,20 @@ async function run() {
       : 'o seu envio';
     const texto = String(cfg.messageTemplate).replace(/\{nome\}/g, nome).replace(/\{rota\}/g, rota);
 
+    // CTA "Contactem-me" — o clique regista o pedido no inbox (alarme em tempo real).
+    const token = contactToken(String(c._id));
+    const ctaBase = `${APP_URL}/api/contact-request?c=${c._id}&t=${token}`;
+
     let sent = false;
     let channelUsed: string | null = null;
 
     if ((cfg.channel === 'whatsapp' || cfg.channel === 'whatsapp_email') && tel) {
-      const ok = await sendWhatsAppMessage('351' + tel, texto);
+      const waText = `${texto}\n\nQuer que o contactemos? Toque aqui: ${ctaBase}&ch=whatsapp`;
+      const ok = await sendWhatsAppMessage('351' + tel, waText);
       if (ok) { sent = true; channelUsed = 'whatsapp'; }
     }
     if (!sent && (cfg.channel === 'email' || cfg.channel === 'whatsapp_email') && email) {
-      const ok = await sendQuizNudgeEmail({ to: email, nome, rota, texto });
+      const ok = await sendQuizNudgeEmail({ to: email, nome, rota, texto, ctaUrl: `${ctaBase}&ch=email` });
       if (ok) { sent = true; channelUsed = 'email'; }
     }
 

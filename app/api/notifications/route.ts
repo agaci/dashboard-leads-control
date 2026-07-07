@@ -5,7 +5,7 @@ export async function GET(request: Request) {
   const since = new Date(searchParams.get('since') ?? Date.now() - 30000);
 
   const db = await getDb();
-  const [escalations, aggEscalations, leadDocs, aggHintConvs, liveChats, liveChatMessages, newBotConvs] = await Promise.all([
+  const [escalations, aggEscalations, leadDocs, aggHintConvs, liveChats, liveChatMessages, newBotConvs, contactRequestsNew, openContactRequests] = await Promise.all([
     // Voz só na transição inicial — usa escalatedAt em vez de updatedAt
     db.collection('conversations').countDocuments({
       step: 'ESCALATED_TO_HUMAN',
@@ -53,6 +53,13 @@ export async function GET(request: Request) {
         { aggHintsAt: { $gte: since }, 'aggHints.0': { $exists: true }, createdAt: { $gte: new Date(since.getTime() - 90_000) } },
       ],
     }),
+    // Pedidos de contacto NOVOS desde o último poll (dispara o som).
+    db.collection('conversations').countDocuments({
+      contactRequestedAt: { $gte: since },
+      contactRequestOpen: true,
+    }),
+    // Pedidos de contacto ABERTOS (por atender) — alarme persistente até desligar.
+    db.collection('conversations').countDocuments({ contactRequestOpen: true }),
   ]);
 
   const leads = leadDocs.length;
@@ -72,5 +79,5 @@ export async function GET(request: Request) {
     topDriver: c.aggHints?.[0]?.driver ?? null,
   }));
 
-  return Response.json({ escalations, aggEscalations, leads, leadDetails, aggHints, liveChats, liveChatMessages, newBotConvs });
+  return Response.json({ escalations, aggEscalations, leads, leadDetails, aggHints, liveChats, liveChatMessages, newBotConvs, contactRequestsNew, openContactRequests });
 }

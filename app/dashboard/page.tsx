@@ -7,6 +7,7 @@ import { useIsMobile } from '@/lib/useIsMobile';
 import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import VisitasPage from './visitas/page';
+import ContactAlertBanner from './ContactAlertBanner';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
@@ -352,6 +353,8 @@ export default function DashboardPage() {
     >
       {/* Toasts de hipótese de agregação */}
       <AggToastStack toasts={aggToasts} onDismiss={dismissAggToast} onGoToChat={goToConversas} />
+      {/* Alarme "Pede contacto" — banner global a piscar até "Atendido" */}
+      <ContactAlertBanner />
       {/* ── Leads ── */}
       {tab === 'leads' && (
         <>

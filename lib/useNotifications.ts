@@ -17,7 +17,7 @@ export type AggHintAlert = {
 };
 
 export type NotifAlert =
-  | { type: 'escalation' | 'agg_escalation' | 'lead' | 'live_chat' | 'new_conv' }
+  | { type: 'escalation' | 'agg_escalation' | 'lead' | 'live_chat' | 'new_conv' | 'contact_request' }
   | AggHintAlert;
 
 type LeadDetail = { urgencia: string | null; serviceType: string | null };
@@ -31,6 +31,8 @@ type NotifResponse = {
   liveChats: number;
   liveChatMessages: number;
   newBotConvs: number;
+  contactRequestsNew: number;
+  openContactRequests: number;
 };
 
 // ── Hook principal ───────────────────────────────────────────────────────────
@@ -96,6 +98,15 @@ export function useNotifications(
           // sem voz — apenas pling para novas mensagens em conversas ativas
         });
       }
+      // Pedido de contacto NOVO — alerta visual (banner a piscar)
+      if ((data.contactRequestsNew ?? 0) > 0) {
+        queue.push(() => onAlertRef.current({ type: 'contact_request' }));
+      }
+      // Alarme persistente: um toque a cada poll enquanto houver pedidos por atender
+      if ((data.openContactRequests ?? 0) > 0) {
+        queue.push(() => playEscalationSound());
+      }
+
       for (const hint of data.aggHints ?? []) {
         const h = hint;
         queue.push(() => {

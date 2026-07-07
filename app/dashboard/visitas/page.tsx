@@ -257,7 +257,9 @@ export default function VisitasPage() {
 
         {/* Coluna de visitas */}
         <div style={{
-          width: isMobile ? '100%' : 380, flexShrink: 0, display: 'flex', flexDirection: 'column',
+          width: isMobile ? '100%' : 380,
+          ...(isMobile ? { flex: 1 } : { flexShrink: 0 }),
+          display: 'flex', flexDirection: 'column',
           background: '#fff', borderRadius: 14, border: `1px solid ${BORDER}`,
           boxShadow: '0 1px 3px rgba(16,24,40,0.06)', overflow: 'hidden', minHeight: 0,
         }}>
