@@ -60,6 +60,7 @@ type ConvSummary = {
   aggHintsAt?: string;
   contactRequestOpen?: boolean;
   contactRequestChannel?: string | null;
+  quizVariante?: string | null;
 };
 
 type ConvFull = ConvSummary & { history: Message[] };
@@ -489,6 +490,11 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       {STEP_LABEL[conv.step]}
                     </span>
                     <span className="text-[11px] text-muted-foreground">{conv.canal}</span>
+                    {conv.quizVariante && (
+                      <span className="rounded-full px-1.5 py-0.5 text-[9px] font-bold bg-indigo-50 text-indigo-600 border border-indigo-200">
+                        {conv.quizVariante}
+                      </span>
+                    )}
                   </div>
                   {lastMsg && (
                     <p className="text-xs text-muted-foreground truncate">

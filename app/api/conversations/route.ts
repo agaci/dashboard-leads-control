@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
       .find(filter)
       .sort({ createdAt: -1 })
       .limit(limit)
-      .project({ history: { $slice: -1 }, telemovel: 1, canal: 1, step: 1, data: 1, createdAt: 1, updatedAt: 1, escalatedAt: 1, closedAt: 1, leadId: 1, contactRequestOpen: 1, contactRequestChannel: 1 })
+      .project({ history: { $slice: -1 }, telemovel: 1, canal: 1, step: 1, data: 1, createdAt: 1, updatedAt: 1, escalatedAt: 1, closedAt: 1, leadId: 1, contactRequestOpen: 1, contactRequestChannel: 1, quizVariante: 1 })
       .toArray();
 
     return Response.json({ success: true, conversations });
