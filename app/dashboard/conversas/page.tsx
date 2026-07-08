@@ -307,7 +307,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   return (
     <div className="flex h-full bg-background">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div className={`${isMobile ? 'w-full' : 'w-[460px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
+      <div className={`${isMobile ? 'w-full' : 'w-[500px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h1 className="text-xl font-bold tracking-tight text-foreground">Inbox</h1>
@@ -347,7 +347,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   active
                     ? (isContact ? 'bg-red-600 text-white' : 'bg-cyan text-white')
                     : contactAlarm
