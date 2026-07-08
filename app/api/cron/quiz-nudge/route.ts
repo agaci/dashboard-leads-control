@@ -18,6 +18,9 @@ const DEFAULTS = {
   channel: 'whatsapp_email' as 'whatsapp_email' | 'whatsapp' | 'email',
   messageTemplate:
     'Olá {nome}, aqui é a YourBox. Vi que começou a pedir um orçamento ({rota}) mas não chegou a concluir. Quer que tratemos disso por si? Responda aqui ou ligue 214 304 546 — é rápido.',
+  // Mensagem para quem ja avancou bastante (entrou nos detalhes de carga): "falta um passo".
+  messageTemplateNearComplete:
+    'Olá {nome}, aqui é a YourBox. Está quase! Faltou apenas confirmar o seu orçamento ({rota}). Quer que tratemos disso por si? É só um clique.',
   startHour: 9,
   endHour: 20,
   weekendsOff: true,
@@ -66,7 +69,11 @@ async function run() {
     const rota = c.data?.origem
       ? `${String(c.data.origem).split(',')[0].trim()} -> ${String(c.data?.destino ?? '...').split(',')[0].trim()}`
       : 'o seu envio';
-    const texto = String(cfg.messageTemplate).replace(/\{nome\}/g, nome).replace(/\{rota\}/g, rota);
+    // Quase-completo: ja entrou nos detalhes de carga -> mensagem "falta um passo".
+    const cargoSteps = ['volumes', 'peso', 'dimensoes', 'urgencia', 'material', 'embalado', 'review'];
+    const nearComplete = cargoSteps.indexOf(String(c.quizStep ?? '')) >= 0 || !!c.data?.volumes;
+    const tpl = (nearComplete && cfg.messageTemplateNearComplete) ? cfg.messageTemplateNearComplete : cfg.messageTemplate;
+    const texto = String(tpl).replace(/\{nome\}/g, nome).replace(/\{rota\}/g, rota);
 
     // CTA "Contactem-me" — o clique regista o pedido no inbox (alarme em tempo real).
     const token = contactToken(String(c._id));
