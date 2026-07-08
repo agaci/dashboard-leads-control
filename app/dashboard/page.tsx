@@ -114,6 +114,8 @@ type Lead = {
 
 const VARIANTE_LABELS: Record<string, string> = {
   A: 'Site A', B: 'Site B', C: 'Site C', D: 'Site D', BOT: 'Bot',
+  QUIZ: 'Quiz', QUIZ4: 'Quiz 4',
+  'QUIZ-RAPIDO': 'Quiz rápido', 'QUIZ4-RAPIDO': 'Quiz 4 rápido',
 };
 
 // ── Avatar ────────────────────────────────────────────────────────────────────
@@ -610,6 +612,17 @@ export default function DashboardPage() {
                           {urgencia === '1 Hora' && (
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#f87171', letterSpacing: '0.04em' }}>URGENTE</span>
                           )}
+                          {lead.variante && lead.variante !== 'BOT' && (() => {
+                            const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['rgba(148,163,184,0.15)', '#94a3b8'];
+                            return (
+                              <span style={{
+                                fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+                                background: bg, color: fg, letterSpacing: '0.04em',
+                              }}>
+                                {VARIANTE_LABELS[lead.variante] ?? lead.variante}
+                              </span>
+                            );
+                          })()}
                         </div>
                         <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>{relTime(lead.timeStamp)}</span>
                       </div>
@@ -1517,6 +1530,10 @@ const VARIANTE_TAG: Record<string, [string, string]> = {
   C: ['rgba(16,185,129,0.15)', '#34d399'],
   D: ['rgba(236,72,153,0.15)', '#f472b6'],
   BOT: ['rgba(0,188,212,0.15)', '#00bcd4'],
+  QUIZ: ['rgba(99,102,241,0.15)', '#818cf8'],
+  'QUIZ-RAPIDO': ['rgba(99,102,241,0.15)', '#818cf8'],
+  QUIZ4: ['rgba(234,88,12,0.15)', '#fb923c'],
+  'QUIZ4-RAPIDO': ['rgba(234,88,12,0.15)', '#fb923c'],
 };
 
 function DetailField({ label, children }: { label: string; children: React.ReactNode }) {
