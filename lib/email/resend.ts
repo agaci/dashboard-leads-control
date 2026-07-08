@@ -39,10 +39,11 @@ export async function sendQuizNudgeEmail(opts: {
   </div>
   <div style="background:#f9fafb;padding:14px 24px;font-size:11px;color:#999;line-height:1.5;border-top:1px solid #eef0f3">
     <strong style="color:#777">YourBox &ndash; estafetas e transportes</strong><br/>
+    <strong style="color:#777">Este é um contacto único &mdash; não lhe enviaremos mais nenhuma mensagem deste género.</strong><br/>
     Usamos os seus dados <strong>apenas</strong> para tratar o seu pedido de orçamento e contactá-lo. Não são vendidos nem
-    partilhados com terceiros para fins de marketing. Pode aceder, corrigir ou apagar os seus dados quando quiser &mdash;
-    consulte a nossa <a href="https://yourbox.com.pt/politica_de_privacidade.html" style="color:#999">Política de Privacidade</a>.
-    Para deixar de receber estas mensagens, responda com "SAIR".
+    partilhados com terceiros para fins de marketing. Para <strong>aceder, corrigir ou apagar</strong> os seus dados, basta
+    responder a este email ou contactar-nos &mdash; ver a
+    <a href="https://yourbox.com.pt/politica_de_privacidade.html" style="color:#999">Política de Privacidade</a>.
   </div>
 </div>`;
 
