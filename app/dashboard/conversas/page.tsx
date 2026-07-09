@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 import { MiniMap } from '../MiniMap';
+import { ConfirmDialog } from '../ConfirmDialog';
 
 const CYAN   = '#00bcd4';
 const NAVY   = '#1a2332';
@@ -122,8 +124,12 @@ function bestPhone(c: { telemovel?: string; data?: Record<string, any> }): strin
 }
 
 export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = false }: { initialConvId?: string; onGoToAgg?: (convId: string) => void; isMobile?: boolean }) {
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'administrator';
   const [conversations, setConversations] = useState<ConvSummary[]>([]);
   const [selected, setSelected] = useState<ConvFull | null>(null);
+  const [confirmDelConv, setConfirmDelConv] = useState(false);
+  const [deletingConv, setDeletingConv] = useState(false);
   const [filter, setFilter] = useState<'active' | 'escalated' | 'contact' | 'closed' | 'all'>('active');
   const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'ontem' | 'semana' | 'custom'>('hoje');
   const [customDate, setCustomDate] = useState('');
@@ -199,6 +205,25 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     } catch { /* silencioso */ }
     fetchList();
   }, [fetchList]);
+
+  // Apagar conversa (só administrador) — hard delete, sai das estatísticas.
+  const deleteConv = useCallback(async () => {
+    if (!selected?._id) return;
+    setDeletingConv(true);
+    try {
+      const res = await fetch(`/api/conversations/${selected._id}`, { method: 'DELETE' });
+      if (res.ok) {
+        const id = selected._id;
+        setConversations((prev) => prev.filter((c) => c._id !== id));
+        setSelected(null);
+        fetchList();
+      } else {
+        alert('Sem permissão ou falha ao apagar.');
+      }
+    } catch { alert('Falha ao apagar.'); }
+    setDeletingConv(false);
+    setConfirmDelConv(false);
+  }, [selected?._id, fetchList]);
 
   // Polling lista
   useEffect(() => {
@@ -617,6 +642,11 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       </button>
                     </>
                   )}
+                  {isAdmin && (
+                    <button onClick={() => setConfirmDelConv(true)} title="Apagar conversa (administrador)" className="p-1.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600 transition-colors">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                    </button>
+                  )}
                   <span className="text-xs text-muted-foreground">
                     {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
                   </span>
@@ -633,11 +663,25 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                     </button>
                   </>
                 )}
+                {isAdmin && (
+                  <button onClick={() => setConfirmDelConv(true)} title="Apagar conversa" className="p-1.5 rounded-lg text-muted-foreground hover:bg-red-50 hover:text-red-600">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  </button>
+                )}
                 <span className="text-xs text-muted-foreground ml-auto">
                   {selected.history?.length ?? 0} msgs · {formatTime(selected.createdAt)}
                 </span>
               </div>
             </div>
+
+            <ConfirmDialog
+              open={confirmDelConv}
+              title="Apagar conversa?"
+              message={`Vai apagar definitivamente esta conversa${selected.data?.nome ? ` de ${selected.data.nome}` : ''}. Esta ação é irreversível e remove-a das estatísticas.`}
+              onConfirm={deleteConv}
+              onCancel={() => setConfirmDelConv(false)}
+              busy={deletingConv}
+            />
 
             {/* Picker de motivo inline */}
             {pendingStep && (

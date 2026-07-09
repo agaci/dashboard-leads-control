@@ -1,10 +1,26 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
+}
+
+// DELETE — apagar uma conversa (só administrador). Hard delete: sai das estatísticas.
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if ((session?.user as any)?.role !== 'administrator') {
+    return Response.json({ error: 'Sem permissão' }, { status: 403 });
+  }
+  const { id } = await params;
+  const oid = toOid(id);
+  if (!oid) return Response.json({ error: 'invalid id' }, { status: 400 });
+  const db = await getDb();
+  const r = await db.collection('conversations').deleteOne({ _id: oid });
+  return Response.json({ success: true, deleted: r.deletedCount });
 }
 
 // PATCH — actualizar step ou flags manualmente (BO)

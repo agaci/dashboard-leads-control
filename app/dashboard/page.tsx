@@ -8,6 +8,7 @@ import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import VisitasPage from './visitas/page';
 import ContactAlertBanner from './ContactAlertBanner';
+import { ConfirmDialog } from './ConfirmDialog';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
@@ -183,6 +184,8 @@ function Tag({ label, type }: { label: string; type: string }) {
 
 export default function DashboardPage() {
   const isMobile = useIsMobile();
+  const { data: session } = useSession();
+  const isAdmin = (session?.user as any)?.role === 'administrator';
   const [tab, setTab] = useState<NavTab>('inbox');
   const [badges, setBadges] = useState<{ leads: boolean; conversas: boolean }>({ leads: false, conversas: false });
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
@@ -734,6 +737,12 @@ export default function DashboardPage() {
                 <DetailPanel
                   lead={selected}
                   onClose={() => setSelected(null)}
+                  isAdmin={isAdmin}
+                  onDeleted={(id) => {
+                    setSelected(null);
+                    setLeads(ls => ls.filter(l => l.id !== id));
+                    fetchLeadCounts();
+                  }}
                   onClientConverted={(clientId) => {
                     setLeads(ls => ls.map(l => l.id === selected.id ? { ...l, clientId } : l));
                     setSelected(s => s ? { ...s, clientId } : s);
@@ -1548,16 +1557,31 @@ function DetailField({ label, children }: { label: string; children: React.React
 }
 
 
-function DetailPanel({ lead, onClose, onClientConverted }: {
+function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDeleted }: {
   lead: Lead;
   onClose: () => void;
   onClientConverted?: (clientId: string) => void;
+  isAdmin?: boolean;
+  onDeleted?: (id: string) => void;
 }) {
   const [currentLead, setCurrentLead] = useState<Lead>(lead);
   const d = currentLead.leadData;
   const nome = d.nome ?? 'Sem nome';
   const [clientId, setClientId] = useState<string | null>(currentLead.clientId ?? null);
   const [converting, setConverting] = useState(false);
+  const [confirmDel, setConfirmDel] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    try {
+      const res = await fetch(`/api/leads/${currentLead.id}`, { method: 'DELETE' });
+      if (res.ok) { onDeleted?.(currentLead.id); }
+      else { alert('Sem permissão ou falha ao apagar.'); }
+    } catch { alert('Falha ao apagar.'); }
+    setDeleting(false);
+    setConfirmDel(false);
+  }
   const [convertError, setConvertError] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
@@ -1632,13 +1656,33 @@ function DetailPanel({ lead, onClose, onClientConverted }: {
             <div className="mt-1 text-xs text-muted-foreground">{fmt(currentLead.timeStamp)}</div>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
-        >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
-        </button>
+        <div className="flex items-center gap-1 shrink-0">
+          {isAdmin && (
+            <button
+              onClick={() => setConfirmDel(true)}
+              title="Apagar lead (administrador)"
+              className="rounded-lg p-2 text-muted-foreground hover:bg-red-50 hover:text-red-600"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          )}
+          <button
+            onClick={onClose}
+            className="rounded-lg p-2 text-muted-foreground hover:bg-secondary hover:text-foreground"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
+        </div>
       </div>
+
+      <ConfirmDialog
+        open={confirmDel}
+        title="Apagar lead?"
+        message={`Vai apagar definitivamente a lead de ${nome}. Esta ação é irreversível e remove-a das estatísticas.`}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDel(false)}
+        busy={deleting}
+      />
 
       {/* Contacto */}
       <section className="rounded-xl bg-card p-5 shadow-card">

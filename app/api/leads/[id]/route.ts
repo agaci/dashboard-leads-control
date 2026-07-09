@@ -1,4 +1,6 @@
 import { NextRequest } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 
@@ -44,6 +46,22 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         clientId:    doc.clientId ?? null,
       },
     });
+  } catch {
+    return Response.json({ error: 'invalid id' }, { status: 400 });
+  }
+}
+
+// Apagar uma lead (só administrador). Hard delete: sai de todas as estatísticas.
+export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const session = await getServerSession(authOptions);
+  if ((session?.user as any)?.role !== 'administrator') {
+    return Response.json({ error: 'Sem permissão' }, { status: 403 });
+  }
+  try {
+    const { id } = await params;
+    const db = await getDb();
+    const r = await db.collection('messages').deleteOne({ _id: new ObjectId(id) });
+    return Response.json({ success: true, deleted: r.deletedCount });
   } catch {
     return Response.json({ error: 'invalid id' }, { status: 400 });
   }
