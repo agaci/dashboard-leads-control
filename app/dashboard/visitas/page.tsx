@@ -30,7 +30,11 @@ type Visit = {
   variante?: string | null;
   pageViews?: number;
   geo?: Geo | null;
+  device?: string | null;
+  os?: string | null;
 };
+
+const DEVICE_PT: Record<string, string> = { mobile: 'Telemóvel', tablet: 'Tablet', desktop: 'PC' };
 
 type Range = 'hoje' | 'ontem' | 'semana' | 'tudo';
 
@@ -67,6 +71,7 @@ function refLabel(ref?: string | null): string {
 
 const VAR_META: Record<string, { label: string; bg: string; fg: string }> = {
   QUIZ:  { label: 'Quiz',   bg: 'rgba(99,102,241,0.14)', fg: '#6366f1' },
+  QUIZ3: { label: 'Quiz 3', bg: 'rgba(59,130,246,0.14)', fg: '#3b82f6' },
   QUIZ4: { label: 'Quiz 4', bg: 'rgba(234,88,12,0.14)',  fg: '#ea580c' },
   QUIZ5: { label: 'Quiz 5', bg: 'rgba(13,148,136,0.14)', fg: '#0d9488' },
   A: { label: 'Site A', bg: 'rgba(139,92,246,0.14)', fg: '#7c3aed' },
@@ -100,6 +105,12 @@ function IcoDoc({ size = 13, color = SUBTLE }: { size?: number; color?: string }
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" />
     </svg>
   );
+}
+function IcoDevice({ device, size = 13, color = MUTED }: { device?: string | null; size?: number; color?: string }) {
+  const p = { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+  if (device === 'mobile') return <svg {...p}><rect x="6" y="2" width="12" height="20" rx="2.5" /><line x1="12" y1="18.5" x2="12" y2="18.5" /></svg>;
+  if (device === 'tablet') return <svg {...p}><rect x="4" y="2.5" width="16" height="19" rx="2.5" /><line x1="12" y1="18" x2="12" y2="18" /></svg>;
+  return <svg {...p}><rect x="2" y="3.5" width="20" height="13" rx="2" /><line x1="8" y1="20.5" x2="16" y2="20.5" /><line x1="12" y1="16.5" x2="12" y2="20.5" /></svg>;
 }
 
 export default function VisitasPage() {
@@ -322,6 +333,11 @@ export default function VisitasPage() {
                       <IcoGlobe /> {refLabel(v.referrer)}
                     </span>
                     <span style={{ fontSize: 11, color: SUBTLE }}>· {v.pageViews ?? 1} {(v.pageViews ?? 1) === 1 ? 'página' : 'páginas'}</span>
+                    {v.device && (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, color: MUTED }}>
+                        <IcoDevice device={v.device} /> {DEVICE_PT[v.device] ?? v.device}{v.os ? ` · ${v.os}` : ''}
+                      </span>
+                    )}
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: SUBTLE }}>

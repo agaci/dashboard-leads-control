@@ -35,6 +35,38 @@ function anonymizeIp(ip?: string | null): string | null {
   return v;
 }
 
+// Tipo de aparelho a partir do userAgent: 'mobile' | 'tablet' | 'desktop'.
+function deviceFromUA(ua?: string | null): string | null {
+  if (!ua) return null;
+  const s = ua.toLowerCase();
+  if (/ipad|tablet|playbook|silk|kindle|(android(?!.*mobi))/.test(s)) return 'tablet';
+  if (/mobi|iphone|ipod|android.*mobile|windows phone|blackberry|opera mini|iemobile/.test(s)) return 'mobile';
+  return 'desktop';
+}
+
+// Sistema operativo (rótulo curto) a partir do userAgent.
+function osFromUA(ua?: string | null): string | null {
+  if (!ua) return null;
+  const s = ua.toLowerCase();
+  if (/iphone|ipad|ipod/.test(s)) return 'iOS';
+  if (/android/.test(s)) return 'Android';
+  if (/windows/.test(s)) return 'Windows';
+  if (/mac os|macintosh/.test(s)) return 'macOS';
+  if (/cros/.test(s)) return 'ChromeOS';
+  if (/linux/.test(s)) return 'Linux';
+  return null;
+}
+
+// Prepara a visita para o dashboard: garante device/os (deriva do ua p/ registos
+// antigos) e nunca envia o userAgent em bruto.
+function shapeVisit(v: any) {
+  const device = v.device ?? deviceFromUA(v.ua);
+  const os = v.os ?? osFromUA(v.ua);
+  const { ua, ...rest } = v;
+  void ua;
+  return { ...rest, device, os };
+}
+
 // Inicio do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).
 function lisbonStartOfTodayUtc(): Date {
   const now = new Date();
@@ -106,7 +138,7 @@ export async function POST(req: NextRequest) {
         $set: {
           lastSeen: now,
           ...(page ? { lastPage: page } : {}),
-          ...(ua ? { ua } : {}),
+          ...(ua ? { ua, device: deviceFromUA(ua), os: osFromUA(ua) } : {}),
           ...geoSet,
         },
         $inc: { pageViews: 1 },
@@ -135,7 +167,7 @@ export async function GET(req: NextRequest) {
 
     const db = await getDb();
     const col = db.collection('visits');
-    const projection = { projection: { _id: 0, ua: 0 } } as any;
+    const projection = { projection: { _id: 0 } } as any;
 
     if (since) {
       const d = new Date(since);
@@ -145,7 +177,7 @@ export async function GET(req: NextRequest) {
           .sort({ firstSeen: 1 })
           .limit(100)
           .toArray();
-        return json({ visits: rows });
+        return json({ visits: rows.map(shapeVisit) });
       }
     }
 
@@ -168,7 +200,7 @@ export async function GET(req: NextRequest) {
       col.countDocuments({ firstSeen: { $gte: lisbonStartOfTodayUtc() } }),
     ]);
 
-    return json({ visits: rows, todayCount });
+    return json({ visits: rows.map(shapeVisit), todayCount });
   } catch (err: any) {
     return json({ error: err.message }, 500);
   }

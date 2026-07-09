@@ -114,7 +114,7 @@ type Lead = {
 
 const VARIANTE_LABELS: Record<string, string> = {
   A: 'Site A', B: 'Site B', C: 'Site C', D: 'Site D', BOT: 'Bot',
-  QUIZ: 'Quiz', QUIZ4: 'Quiz 4',
+  QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5',
   'QUIZ-RAPIDO': 'Quiz rápido', 'QUIZ4-RAPIDO': 'Quiz 4 rápido',
 };
 
@@ -1532,8 +1532,10 @@ const VARIANTE_TAG: Record<string, [string, string]> = {
   BOT: ['rgba(0,188,212,0.15)', '#00bcd4'],
   QUIZ: ['rgba(99,102,241,0.15)', '#818cf8'],
   'QUIZ-RAPIDO': ['rgba(99,102,241,0.15)', '#818cf8'],
+  QUIZ3: ['rgba(59,130,246,0.15)', '#3b82f6'],
   QUIZ4: ['rgba(234,88,12,0.15)', '#fb923c'],
   'QUIZ4-RAPIDO': ['rgba(234,88,12,0.15)', '#fb923c'],
+  QUIZ5: ['rgba(20,184,166,0.15)', '#2dd4bf'],
 };
 
 function DetailField({ label, children }: { label: string; children: React.ReactNode }) {

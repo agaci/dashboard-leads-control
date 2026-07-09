@@ -32,10 +32,11 @@ type VariantFunnelRow = {
 
 const VAR_COLOR: Record<string, [string, string]> = {
   QUIZ:  ['rgba(99,102,241,0.16)', '#818cf8'],
+  QUIZ3: ['rgba(59,130,246,0.16)', '#3b82f6'],
   QUIZ4: ['rgba(234,88,12,0.16)', '#fb923c'],
   QUIZ5: ['rgba(20,184,166,0.16)', '#2dd4bf'],
 };
-const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5' };
+const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5' };
 
 const STEP_PT: Record<string, string> = {
   COLLECTING_ORIGEM: 'A recolher origem', COLLECTING_DESTINO: 'A recolher destino',
