@@ -65,11 +65,17 @@ function refLabel(ref?: string | null): string {
   try { return new URL(ref).hostname.replace(/^www\./, ''); } catch { return ref.slice(0, 40); }
 }
 
+const VAR_META: Record<string, { label: string; bg: string; fg: string }> = {
+  QUIZ:  { label: 'Quiz',   bg: 'rgba(99,102,241,0.14)', fg: '#6366f1' },
+  QUIZ4: { label: 'Quiz 4', bg: 'rgba(234,88,12,0.14)',  fg: '#ea580c' },
+  QUIZ5: { label: 'Quiz 5', bg: 'rgba(13,148,136,0.14)', fg: '#0d9488' },
+  A: { label: 'Site A', bg: 'rgba(139,92,246,0.14)', fg: '#7c3aed' },
+  B: { label: 'Site B', bg: 'rgba(245,158,11,0.14)', fg: '#d97706' },
+  C: { label: 'Site C', bg: 'rgba(16,185,129,0.14)', fg: '#059669' },
+  D: { label: 'Site D', bg: 'rgba(236,72,153,0.14)', fg: '#db2777' },
+};
 function varMeta(v?: string | null): { label: string; bg: string; fg: string } {
-  const k = (v || '').toUpperCase();
-  if (k === 'QUIZ') return { label: 'Quiz', bg: 'rgba(139,92,246,0.14)', fg: '#7c3aed' };
-  if (['A', 'B', 'C', 'D'].includes(k)) return { label: `Variante ${k}`, bg: 'rgba(0,188,212,0.13)', fg: '#0e7490' };
-  return { label: 'Site', bg: 'rgba(90,100,114,0.12)', fg: MUTED };
+  return VAR_META[(v || '').toUpperCase()] ?? { label: 'Site', bg: 'rgba(90,100,114,0.12)', fg: MUTED };
 }
 
 // ── Ícones (SVG, sem emojis) ────────────────────────────────────────────────
