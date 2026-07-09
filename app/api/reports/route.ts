@@ -1,6 +1,15 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 
+// Tipo de aparelho a partir do userAgent (fallback para visitas antigas sem `device`).
+function deviceFromUA(ua?: string | null): 'mobile' | 'tablet' | 'desktop' | null {
+  if (!ua) return null;
+  const s = ua.toLowerCase();
+  if (/ipad|tablet|playbook|silk|kindle|(android(?!.*mobi))/.test(s)) return 'tablet';
+  if (/mobi|iphone|ipod|android.*mobile|windows phone|blackberry|opera mini|iemobile/.test(s)) return 'mobile';
+  return 'desktop';
+}
+
 function getPeriodDates(period: string): { dateFrom: Date; dateTo: Date; prevFrom: Date; prevTo: Date; days: number } {
   const now = new Date();
   let dateFrom: Date;
@@ -33,7 +42,7 @@ export async function GET(request: NextRequest) {
       leadsPerDayRaw, leadsPerSourceRaw, leadsPerUrgencyRaw,
       topRoutesRaw, revenueRaw, prevPeriodLeads,
       convStats, botStepStats, closeReasonsRaw,
-      visitsByVarRaw, quizConvByVarRaw, quizLeadByVarRaw, visitsSinceRaw,
+      visitsByVarRaw, quizConvByVarRaw, quizLeadByVarRaw, visitsSinceRaw, deviceRaw,
     ] = await Promise.all([
       // Leads confirmadas no período
       db.collection('messages').countDocuments({
@@ -126,6 +135,11 @@ export async function GET(request: NextRequest) {
       db.collection('visits').aggregate([
         { $group: { _id: null, min: { $min: '$firstSeen' } } },
       ]).toArray(),
+      // Aparelho das visitas no periodo (device gravado; ua p/ derivar registos antigos)
+      db.collection('visits').find(
+        { firstSeen: { $gte: dateFrom, $lte: dateTo } },
+        { projection: { _id: 0, device: 1, ua: 1 } },
+      ).limit(20000).toArray(),
     ]);
 
     // Preencher todos os dias do período com 0
@@ -178,6 +192,15 @@ export async function GET(request: NextRequest) {
 
     const visitsSince: Date | null = (visitsSinceRaw as any[])[0]?.min ?? null;
 
+    // Distribuição por aparelho
+    const deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 };
+    for (const v of deviceRaw as any[]) {
+      const d = v.device ?? deviceFromUA(v.ua);
+      if (d === 'mobile') { deviceBreakdown.mobile++; deviceBreakdown.total++; }
+      else if (d === 'tablet') { deviceBreakdown.tablet++; deviceBreakdown.total++; }
+      else if (d === 'desktop') { deviceBreakdown.desktop++; deviceBreakdown.total++; }
+    }
+
     // Vencedora: melhor taxa conversa->lead com amostra minima (>= 5 conversas).
     const eligible = variantFunnel.filter((v) => v.conversas >= 5 && v.convToLead != null);
     const bestVariant = eligible.length
@@ -211,6 +234,7 @@ export async function GET(request: NextRequest) {
       variantFunnel,
       bestVariant,
       visitsSince,
+      deviceBreakdown,
     });
   } catch (err: any) {
     return Response.json({ success: false, error: err.message, stack: err.stack?.slice(0, 300) }, { status: 500 });

@@ -21,6 +21,7 @@ type ReportData = {
   variantFunnel: VariantFunnelRow[];
   bestVariant: string | null;
   visitsSince: string | null;
+  deviceBreakdown: { mobile: number; tablet: number; desktop: number; total: number };
 };
 
 type VariantFunnelRow = {
@@ -185,7 +186,8 @@ export default function RelatoriosPage() {
   if (loading) return <div className="p-8 text-sm text-gray-400">A carregar relatório...</div>;
   if (!data) return <div className="p-8 text-sm text-red-400">Erro ao carregar dados.</div>;
 
-  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, visitsSince = null } = data;
+  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
+  const dpct = (n: number) => (deviceBreakdown.total > 0 ? Math.round((n / deviceBreakdown.total) * 100) : 0);
   const visitsMaturing = variantFunnel.some((v) => v.conversas > 0 && v.visitToConv == null);
   const visitsSinceLabel = visitsSince ? new Date(visitsSince).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
   const maxSource = Math.max(...leadsPerSource.map(s => s.count), 1);
@@ -235,6 +237,37 @@ export default function RelatoriosPage() {
           <KPI label="Total leads" value={String(kpis.leadsAllTime)} sub="desde o início" icon="" />
           <KPI label="Taxa conversão" value={`${kpis.conversionRate}%`} sub="simulações → confirmadas" color={kpis.conversionRate >= 20 ? '#22c55e' : '#f59e0b'} icon="" />
           <KPI label="Receita estimada" value={`€${kpis.totalRevMonth.toFixed(0)}`} sub={`Média: €${kpis.avgLeadValue.toFixed(0)}/lead`} color="#22c55e" icon="" />
+        </div>
+
+        {/* Dispositivos */}
+        <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '14px 18px', marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3 }}>Dispositivos</p>
+            <span style={{ fontSize: 11, color: TEXT3 }}>{deviceBreakdown.total} visitas</span>
+          </div>
+          {deviceBreakdown.total > 0 ? (
+            <>
+              <div style={{ display: 'flex', height: 10, borderRadius: 5, overflow: 'hidden', marginTop: 10, background: 'rgba(255,255,255,0.06)' }}>
+                <div style={{ width: `${dpct(deviceBreakdown.mobile)}%`, background: '#00bcd4' }} />
+                <div style={{ width: `${dpct(deviceBreakdown.desktop)}%`, background: '#818cf8' }} />
+                <div style={{ width: `${dpct(deviceBreakdown.tablet)}%`, background: '#f59e0b' }} />
+              </div>
+              <div style={{ display: 'flex', gap: 18, marginTop: 10, flexWrap: 'wrap' }}>
+                {[
+                  { c: '#00bcd4', l: 'Telemóvel', n: deviceBreakdown.mobile },
+                  { c: '#818cf8', l: 'PC', n: deviceBreakdown.desktop },
+                  { c: '#f59e0b', l: 'Tablet', n: deviceBreakdown.tablet },
+                ].map((d) => (
+                  <span key={d.l} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: TEXT2 }}>
+                    <span style={{ width: 9, height: 9, borderRadius: 3, background: d.c }} />
+                    <strong style={{ color: NAVY }}>{dpct(d.n)}%</strong> {d.l} <span style={{ color: TEXT3 }}>({d.n})</span>
+                  </span>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p style={{ fontSize: 12, color: TEXT3, marginTop: 8 }}>Sem dados de visitas no período.</p>
+          )}
         </div>
 
         {/* Gráfico leads por dia */}
