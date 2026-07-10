@@ -20,6 +20,7 @@ type ReportData = {
   closeReasons: { reason: string; step: string; count: number }[];
   variantFunnel: VariantFunnelRow[];
   bestVariant: string | null;
+  bestMetric: 'visitToLead' | 'convToLead' | null;
   visitsSince: string | null;
   deviceBreakdown: { mobile: number; tablet: number; desktop: number; total: number };
 };
@@ -102,15 +103,18 @@ function HBar({ label, value, max, color = CYAN }: { label: string; value: numbe
 }
 
 const PERIODS = [
-  { key: '7d',  label: '7 dias' },
-  { key: '30d', label: '30 dias' },
-  { key: '90d', label: '90 dias' },
-  { key: 'mes', label: 'Este mês' },
+  { key: 'hoje',  label: 'Hoje' },
+  { key: 'ontem', label: 'Ontem' },
+  { key: '7d',    label: '7 dias' },
+  { key: '30d',   label: '30 dias' },
+  { key: '90d',   label: '90 dias' },
+  { key: 'mes',   label: 'Este mês' },
 ] as const;
 
 type PeriodKey = typeof PERIODS[number]['key'];
 
 const PERIOD_LABEL: Record<PeriodKey, string> = {
+  hoje: 'hoje', ontem: 'ontem',
   '7d': 'últimos 7 dias', '30d': 'últimos 30 dias',
   '90d': 'últimos 90 dias', 'mes': 'este mês',
 };
@@ -171,22 +175,36 @@ function VariantFunnel({ v, isBest }: { v: VariantFunnelRow; isBest: boolean }) 
 export default function RelatoriosPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<PeriodKey>('30d');
+  const [period, setPeriod] = useState<PeriodKey | 'custom'>('30d');
+  const [fromDate, setFromDate] = useState('');
+  const [toDate, setToDate] = useState('');
 
-  const load = (p: PeriodKey) => {
+  const load = (p: string, f?: string, t?: string) => {
     setLoading(true);
-    fetch(`/api/reports?period=${p}`).then(r => r.json()).then(d => {
+    let url = `/api/reports?period=${p}`;
+    if (p === 'custom' && f) url += `&from=${f}&to=${t || f}`;
+    fetch(url).then(r => r.json()).then(d => {
       if (d.success) setData(d);
       setLoading(false);
     });
   };
 
-  useEffect(() => { load(period); }, [period]);
+  useEffect(() => { if (period !== 'custom') load(period); }, [period]);
+
+  function applyCustom() {
+    if (!fromDate) return;
+    setPeriod('custom');
+    load('custom', fromDate, toDate || fromDate);
+  }
+
+  const periodLabel = period === 'custom'
+    ? (fromDate ? `${fromDate}${toDate && toDate !== fromDate ? ` a ${toDate}` : ''}` : 'intervalo')
+    : PERIOD_LABEL[period as PeriodKey];
 
   if (loading) return <div className="p-8 text-sm text-gray-400">A carregar relatório...</div>;
   if (!data) return <div className="p-8 text-sm text-red-400">Erro ao carregar dados.</div>;
 
-  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
+  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
   const dpct = (n: number) => (deviceBreakdown.total > 0 ? Math.round((n / deviceBreakdown.total) * 100) : 0);
   const visitsMaturing = variantFunnel.some((v) => v.conversas > 0 && v.visitToConv == null);
   const visitsSinceLabel = visitsSince ? new Date(visitsSince).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
@@ -206,7 +224,7 @@ export default function RelatoriosPage() {
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
             <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--yb-fg)' }}>Relatórios</h1>
-            <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {PERIOD_LABEL[period]}</p>
+            <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {periodLabel}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {PERIODS.map(p => (
@@ -223,8 +241,33 @@ export default function RelatoriosPage() {
                 {p.label}
               </button>
             ))}
+            {/* Intervalo de datas */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 4 }}>
+              <input
+                type="date" value={fromDate} max={toDate || undefined}
+                onChange={(e) => setFromDate(e.target.value)}
+                style={{ fontSize: 11, padding: '4px 6px', borderRadius: 6, border: `1px solid ${period === 'custom' ? CYAN : BORDER}`, background: 'var(--yb-card)', color: 'var(--yb-fg)' }}
+              />
+              <span style={{ fontSize: 11, color: TEXT3 }}>–</span>
+              <input
+                type="date" value={toDate} min={fromDate || undefined}
+                onChange={(e) => setToDate(e.target.value)}
+                style={{ fontSize: 11, padding: '4px 6px', borderRadius: 6, border: `1px solid ${period === 'custom' ? CYAN : BORDER}`, background: 'var(--yb-card)', color: 'var(--yb-fg)' }}
+              />
+              <button
+                onClick={applyCustom} disabled={!fromDate}
+                style={{
+                  fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 6, cursor: fromDate ? 'pointer' : 'default',
+                  border: `1px solid ${period === 'custom' ? CYAN : BORDER}`,
+                  background: period === 'custom' ? 'rgba(0,188,212,0.15)' : 'rgba(255,255,255,0.04)',
+                  color: period === 'custom' ? CYAN : TEXT2, opacity: fromDate ? 1 : 0.5,
+                }}
+              >
+                Aplicar
+              </button>
+            </div>
             <button
-              onClick={() => load(period)}
+              onClick={() => load(period, fromDate, toDate)}
               style={{ fontSize: 12, color: TEXT3, border: `1px solid ${BORDER}`, borderRadius: 6, padding: '5px 10px', background: 'rgba(255,255,255,0.04)', cursor: 'pointer' }}
               title="Actualizar"
             >↻</button>
@@ -272,7 +315,7 @@ export default function RelatoriosPage() {
 
         {/* Gráfico leads por dia */}
         <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Leads confirmadas — {PERIOD_LABEL[period]}</p>
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Leads confirmadas — {periodLabel}</p>
           <BarChart data={leadsPerDay} />
         </div>
 
@@ -316,7 +359,12 @@ export default function RelatoriosPage() {
               <strong style={{ color: '#22c55e' }}>Conclusão:</strong> a variante <strong>{VAR_LABEL[bestVariant] ?? bestVariant}</strong> é a mais eficaz
               {(() => {
                 const w = variantFunnel.find((x) => x.variante === bestVariant);
-                return w?.convToLead != null ? <> — melhor conversão <strong>conversa → lead ({w.convToLead}%)</strong></> : null;
+                if (!w) return null;
+                if (bestMetric === 'visitToLead' && w.visitToLead != null)
+                  return <> — melhor funil completo <strong>visita → lead ({w.visitToLead}%)</strong></>;
+                if (w.convToLead != null)
+                  return <> — melhor conversão <strong>conversa → lead ({w.convToLead}%)</strong></>;
+                return null;
               })()}.
             </div>
           ) : variantFunnel.length > 0 ? (

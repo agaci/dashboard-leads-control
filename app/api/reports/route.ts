@@ -10,30 +10,57 @@ function deviceFromUA(ua?: string | null): 'mobile' | 'tablet' | 'desktop' | nul
   return 'desktop';
 }
 
-function getPeriodDates(period: string): { dateFrom: Date; dateTo: Date; prevFrom: Date; prevTo: Date; days: number } {
+// Inicio do dia (em Lisboa) do instante dado, como Date UTC.
+function lisbonStartOfDay(ref: Date): Date {
+  const lisbon = new Date(ref.toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
+  const diff = ref.getTime() - lisbon.getTime();
+  const midnight = new Date(lisbon.getFullYear(), lisbon.getMonth(), lisbon.getDate(), 0, 0, 0, 0);
+  return new Date(midnight.getTime() + diff);
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+
+function getPeriodDates(period: string, fromStr?: string | null, toStr?: string | null): { dateFrom: Date; dateTo: Date; prevFrom: Date; prevTo: Date; days: number } {
   const now = new Date();
   let dateFrom: Date;
+  let dateTo: Date = now;
   let days: number;
 
-  if (period === 'mes') {
+  if (period === 'custom' && fromStr) {
+    dateFrom = lisbonStartOfDay(new Date(fromStr + 'T12:00:00'));
+    const toBase = toStr ? new Date(toStr + 'T12:00:00') : now;
+    dateTo = new Date(lisbonStartOfDay(toBase).getTime() + DAY - 1); // fim do dia `to`
+    if (dateTo > now) dateTo = now;
+    days = Math.max(1, Math.round((dateTo.getTime() - dateFrom.getTime()) / DAY));
+  } else if (period === 'hoje') {
+    dateFrom = lisbonStartOfDay(now);
+    dateTo = now;
+    days = 1;
+  } else if (period === 'ontem') {
+    const startToday = lisbonStartOfDay(now);
+    dateFrom = new Date(startToday.getTime() - DAY);
+    dateTo = new Date(startToday.getTime() - 1);
+    days = 1;
+  } else if (period === 'mes') {
     dateFrom = new Date(now.getFullYear(), now.getMonth(), 1);
     days = now.getDate();
   } else {
     days = period === '7d' ? 7 : period === '90d' ? 90 : 30;
-    dateFrom = new Date(now.getTime() - days * 24 * 60 * 60 * 1000);
+    dateFrom = new Date(now.getTime() - days * DAY);
   }
 
-  const duration = now.getTime() - dateFrom.getTime();
+  const duration = dateTo.getTime() - dateFrom.getTime();
   const prevTo   = new Date(dateFrom);
   const prevFrom = new Date(dateFrom.getTime() - duration);
 
-  return { dateFrom, dateTo: now, prevFrom, prevTo, days };
+  return { dateFrom, dateTo, prevFrom, prevTo, days };
 }
 
 export async function GET(request: NextRequest) {
   try {
-    const period = request.nextUrl.searchParams.get('period') ?? '30d';
-    const { dateFrom, dateTo, prevFrom, prevTo, days } = getPeriodDates(period);
+    const sp = request.nextUrl.searchParams;
+    const period = sp.get('period') ?? '30d';
+    const { dateFrom, dateTo, prevFrom, prevTo, days } = getPeriodDates(period, sp.get('from'), sp.get('to'));
 
     const db = await getDb();
 
@@ -98,13 +125,14 @@ export async function GET(request: NextRequest) {
         companyProvider: 'Yourbox', messageType: 'newLead',
         timeStamp: { $gte: prevFrom, $lt: prevTo },
       }),
-      // Bot: conversas por estado final (all-time)
+      // Bot: conversas por estado (iniciadas no período)
       db.collection('conversations').aggregate([
+        { $match: { createdAt: { $gte: dateFrom, $lte: dateTo } } },
         { $group: { _id: '$step', count: { $sum: 1 } } },
       ]).toArray(),
-      // Bot: step de abandono mais comum
+      // Bot: step de abandono mais comum (no período)
       db.collection('conversations').aggregate([
-        { $match: { step: { $nin: ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED', 'INIT'] } } },
+        { $match: { createdAt: { $gte: dateFrom, $lte: dateTo }, step: { $nin: ['LEAD_REGISTERED', 'ESCALATED_TO_HUMAN', 'CLOSED', 'INIT'] } } },
         { $group: { _id: '$step', count: { $sum: 1 } } },
         { $sort: { count: -1 } },
         { $limit: 5 },
@@ -201,11 +229,24 @@ export async function GET(request: NextRequest) {
       else if (d === 'desktop') { deviceBreakdown.desktop++; deviceBreakdown.total++; }
     }
 
-    // Vencedora: melhor taxa conversa->lead com amostra minima (>= 5 conversas).
-    const eligible = variantFunnel.filter((v) => v.conversas >= 5 && v.convToLead != null);
-    const bestVariant = eligible.length
-      ? eligible.reduce((best, v) => (v.convToLead! > best.convToLead! ? v : best)).variante
-      : null;
+    // Vencedora (amostra minima >= 5 conversas):
+    //  - se as visitas forem fiaveis, usar o funil COMPLETO visita->lead (global),
+    //    que capta tambem a etapa visita->conversa;
+    //  - senao, cair na taxa de conclusao conversa->lead.
+    const MIN_CONV = 5;
+    const byGlobal = variantFunnel.filter((v) => v.visitsReliable && v.visitToLead != null && v.conversas >= MIN_CONV);
+    let bestVariant: string | null = null;
+    let bestMetric: 'visitToLead' | 'convToLead' | null = null;
+    if (byGlobal.length) {
+      bestVariant = byGlobal.reduce((best, v) => (v.visitToLead! > best.visitToLead! ? v : best)).variante;
+      bestMetric = 'visitToLead';
+    } else {
+      const byConv = variantFunnel.filter((v) => v.conversas >= MIN_CONV && v.convToLead != null);
+      if (byConv.length) {
+        bestVariant = byConv.reduce((best, v) => (v.convToLead! > best.convToLead! ? v : best)).variante;
+        bestMetric = 'convToLead';
+      }
+    }
 
     return Response.json({
       success: true,
@@ -233,6 +274,7 @@ export async function GET(request: NextRequest) {
       })),
       variantFunnel,
       bestVariant,
+      bestMetric,
       visitsSince,
       deviceBreakdown,
     });
