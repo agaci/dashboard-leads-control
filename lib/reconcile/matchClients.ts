@@ -35,51 +35,56 @@ export async function reconcileClients(opts?: { sinceDays?: number; debug?: bool
     opts?.debug ? {} : { projection: { clientName: 1, points: 1, parameters: 1, timestamp: 1, nr: 1 } } as any,
   ).limit(500).toArray();
 
-  const debugOut: any = opts?.debug ? { serviceSamples: [], convSamples: [], usersFound: 0 } : null;
+  const debugOut: any = opts?.debug ? { serviceSamples: [], convSamples: [], matches: [], usersFound: 0 } : null;
 
-  // 2) Resolver telemóvel dos clientes (via users, pelo email = clientName)
-  const emails = Array.from(new Set(services.map((s: any) => norm.email(s.clientName)).filter(Boolean))) as string[];
-  const users = emails.length
+  // 2) Resolver contacto dos clientes: svc.client = _id do utilizador (users) ->
+  //    profile.phoneNumber / emails[0].address.
+  const clientIds = Array.from(new Set(services.map((s: any) => s.client).filter((v: any) => typeof v === 'string'))) as string[];
+  const users = clientIds.length
     ? await db.collection('users').find(
-        { 'emails.0.address': { $in: emails } },
-        { projection: { 'emails.address': 1, 'profile.phoneNumber': 1 } } as any,
+        { _id: { $in: clientIds } as any },
+        { projection: { 'emails.address': 1, 'profile.phoneNumber': 1, 'profile.contactEmail': 1 } } as any,
       ).toArray()
     : [];
-  const phoneByEmail: Record<string, string | null> = {};
+  const contactById: Record<string, { phone: string | null; email: string | null }> = {};
   for (const u of users as any[]) {
-    const em = norm.email(u.emails?.[0]?.address);
-    if (em) phoneByEmail[em] = norm.phone(u.profile?.phoneNumber);
+    contactById[String(u._id)] = {
+      phone: norm.phone(u.profile?.phoneNumber),
+      email: norm.email(u.emails?.[0]?.address) ?? norm.email(u.profile?.contactEmail),
+    };
   }
   if (debugOut) {
     debugOut.usersFound = users.length;
-    debugOut.emailsExtracted = emails.length;
+    debugOut.clientIds = clientIds.length;
+    debugOut.withPhone = Object.values(contactById).filter((c) => c.phone).length;
+    debugOut.withEmail = Object.values(contactById).filter((c) => c.email).length;
   }
 
   let suggestions = 0;
 
   for (const svc of services as any[]) {
-    const email = norm.email(svc.clientName);
-    const phone = email ? phoneByEmail[email] ?? null : null;
-    if (!email && !phone) continue;
+    const contact = (typeof svc.client === 'string' && contactById[svc.client]) || { phone: null, email: null };
+    const email = contact.email;
+    const phone = contact.phone;
 
     const pts: any[] = svc.points ?? [];
-    const svcOrig = norm.token(pts.find((p) => p.collectionOrDelivery === 'collection')?.addressLocal);
-    const svcDest = norm.token(pts.filter((p) => p.collectionOrDelivery === 'delivery').at(-1)?.addressLocal);
+    const svcOrig = norm.token(pts[0]?.addressLocal);
+    const svcDest = norm.token(pts.at(-1)?.addressLocal);
     const svcAt: Date | null = svc.timestamp ? new Date(svc.timestamp)
       : (svc.parameters?.dataHour ? new Date(svc.parameters.dataHour) : null);
 
-    if (debugOut && debugOut.serviceSamples.length < 6) {
-      const p0 = (svc.points ?? [])[0] ?? {};
+    if (debugOut && debugOut.serviceSamples.length < 8) {
       debugOut.serviceSamples.push({
-        topKeys: Object.keys(svc),
-        clientNameRaw: svc.clientName ?? null,
-        emailNorm: email,
+        nr: svc.nr,
+        clientName: svc.clientName ?? null,
+        clientId: svc.client ?? null,
         phoneResolved: phone,
+        emailResolved: email,
         svcOrig, svcDest, svcAt,
-        pointKeys: Object.keys(p0),
-        pointDataKeys: p0.data ? Object.keys(p0.data) : [],
       });
     }
+
+    if (!email && !phone) continue;
 
     // Conversas candidatas (sem cliente ligado, sem sugestão dispensada)
     const or: any[] = [];
@@ -124,6 +129,11 @@ export async function reconcileClients(opts?: { sinceDays?: number; debug?: bool
           },
         },
       );
+      if (debugOut) debugOut.matches.push({
+        convName: c.data?.nome ?? null, convPhone: cPhone, convEmail: cEmail,
+        serviceNr: svc.nr, clientName: svc.clientName, svcPhone: phone, svcEmail: email,
+        score, matchedOn: on,
+      });
       suggestions++;
     }
   }
