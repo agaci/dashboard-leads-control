@@ -24,6 +24,16 @@ type ReportData = {
   bestMetric: 'visitToLead' | 'convToLead' | null;
   visitsSince: string | null;
   deviceBreakdown: { mobile: number; tablet: number; desktop: number; total: number };
+  dropoff: DropoffVariant[];
+};
+
+type DropStep = { index: number; step: string; reached: number; dropped: number; droppedPct: number | null };
+type DropoffVariant = { variante: string; started: number; completed: number; steps: DropStep[] };
+
+const STEP_DROP_PT: Record<string, string> = {
+  nome: 'Nome', telefone: 'Telemóvel', email: 'Email', origem: 'Recolha', destino: 'Entrega',
+  volumes: 'Nº volumes', peso: 'Peso/volume', dimensoes: 'Dimensões', urgencia: 'Urgência',
+  material: 'Material', embalado: 'Embalagem', review: 'Resumo',
 };
 
 type VariantFunnelRow = {
@@ -38,8 +48,10 @@ const VAR_COLOR: Record<string, [string, string]> = {
   QUIZ3: ['rgba(59,130,246,0.16)', '#3b82f6'],
   QUIZ4: ['rgba(234,88,12,0.16)', '#fb923c'],
   QUIZ5: ['rgba(20,184,166,0.16)', '#2dd4bf'],
+  QUIZ6:  ['rgba(168,85,247,0.16)', '#a855f7'],
+  QUIZ6B: ['rgba(236,72,153,0.16)', '#ec4899'],
 };
-const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5' };
+const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5', QUIZ6: 'Quiz 6', QUIZ6B: 'Quiz 6b' };
 
 const STEP_PT: Record<string, string> = {
   COLLECTING_ORIGEM: 'A recolher origem', COLLECTING_DESTINO: 'A recolher destino',
@@ -209,12 +221,41 @@ function ProjStat({ label, current, projected, uplift, pct, highlight }: {
   );
 }
 
+// Gráfico de drop-off por passo de uma variante de quiz
+function DropoffChart({ d }: { d: DropoffVariant }) {
+  const top = d.started || 1;
+  // Passo com a maior fuga absoluta (o "muro")
+  let killerIdx = -1, killerDrop = 0;
+  d.steps.forEach((s, i) => { if (s.dropped > killerDrop) { killerDrop = s.dropped; killerIdx = i; } });
+  return (
+    <div>
+      {d.steps.map((s, i) => {
+        const w = Math.max(2, (s.reached / top) * 100);
+        const isKiller = i === killerIdx && s.dropped > 0;
+        return (
+          <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <span style={{ width: 92, textAlign: 'right', fontSize: 11, color: TEXT2, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{STEP_DROP_PT[s.step] ?? s.step}</span>
+            <div style={{ flex: 1, height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
+              <div style={{ width: `${w}%`, height: '100%', background: isKiller ? '#ef4444' : CYAN, opacity: 0.85, borderRadius: 4, transition: 'width 0.5s ease' }} />
+            </div>
+            <span style={{ width: 30, fontSize: 12, fontWeight: 700, color: NAVY, textAlign: 'right' }}>{s.reached}</span>
+            <span style={{ width: 118, fontSize: 11, fontWeight: 700, color: s.dropped > 0 ? (isKiller ? '#ef4444' : '#f59e0b') : TEXT3 }}>
+              {s.dropped > 0 ? `-${s.dropped}${s.droppedPct != null ? ` (-${s.droppedPct}%)` : ''}${isKiller ? ' · maior fuga' : ''}` : '—'}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function RelatoriosPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<PeriodKey | 'custom'>('30d');
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
+  const [dropVar, setDropVar] = useState<string | null>(null); // variante selecionada no drop-off
 
   const load = (p: string, f?: string, t?: string) => {
     setLoading(true);
@@ -246,7 +287,12 @@ export default function RelatoriosPage() {
     </div>
   );
 
-  const { kpis, leadsPerDay, granularity = 'day', leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
+  const { kpis, leadsPerDay, granularity = 'day', leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 }, dropoff = [] } = data;
+  // Drop-off: variante selecionada (a escolhida, senão a vencedora, senão a primeira)
+  const selectedDrop = dropoff.find((x) => x.variante === dropVar)
+    ?? dropoff.find((x) => x.variante === bestVariant)
+    ?? dropoff[0]
+    ?? null;
   const dpct = (n: number) => (deviceBreakdown.total > 0 ? Math.round((n / deviceBreakdown.total) * 100) : 0);
   const visitsMaturing = variantFunnel.some((v) => v.conversas > 0 && v.visitToConv == null);
   const visitsSinceLabel = visitsSince ? new Date(visitsSince).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
@@ -475,6 +521,39 @@ export default function RelatoriosPage() {
               {projection.basis === 'conv' && ' Como as visitas ainda não são fiáveis, projeta-se apenas a passagem conversa→lead (a inbox mantém-se).'}
               {' '}Quanto maior a amostra, mais fiável a projeção.
             </p>
+          </div>
+        )}
+
+        {/* Drop-off por passo — onde abandonam o quiz */}
+        {selectedDrop && (
+          <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 4 }}>
+              <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3 }}>Onde abandonam — drop-off por passo</p>
+              {dropoff.length > 1 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                  {dropoff.map((x) => {
+                    const [bg, fg] = VAR_COLOR[x.variante] ?? ['rgba(148,163,184,0.15)', '#94a3b8'];
+                    const on = x.variante === selectedDrop.variante;
+                    return (
+                      <button key={x.variante} onClick={() => setDropVar(x.variante)}
+                        style={{ fontSize: 11, fontWeight: 700, padding: '3px 10px', borderRadius: 20, cursor: 'pointer',
+                          background: on ? bg : 'transparent', color: on ? fg : TEXT3, border: `1px solid ${on ? fg : BORDER}` }}>
+                        {VAR_LABEL[x.variante] ?? x.variante}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+            <p style={{ fontSize: 11, color: TEXT3, marginBottom: 14, lineHeight: 1.5 }}>
+              Quantos visitantes alcançaram cada passo de <strong style={{ color: NAVY }}>{VAR_LABEL[selectedDrop.variante] ?? selectedDrop.variante}</strong> e onde caíram. A barra a vermelho é o passo com a maior fuga — o muro a atacar.
+            </p>
+            <DropoffChart d={selectedDrop} />
+            <div style={{ marginTop: 12, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, color: TEXT2 }}>
+              <span>Iniciaram: <strong style={{ color: NAVY }}>{selectedDrop.started}</strong></span>
+              <span>Concluíram (lead): <strong style={{ color: '#22c55e' }}>{selectedDrop.completed}</strong></span>
+              <span>Conclusão: <strong style={{ color: NAVY }}>{selectedDrop.started > 0 ? Math.round((selectedDrop.completed / selectedDrop.started) * 100) : 0}%</strong></span>
+            </div>
           </div>
         )}
 

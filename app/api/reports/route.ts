@@ -272,6 +272,53 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // ── Drop-off por passo (quiz): onde os visitantes abandonam ──────────────
+    // Cada conversa web-quiz guarda no history os passos por que passou
+    // ({step, stepIndex}). Reconstruímos, por variante, quantos alcançaram cada
+    // passo (a partir do índice máximo atingido) e onde caíram. A ordem dos passos
+    // é derivada dos próprios dados (moda por índice) — serve qualquer variante.
+    const quizConvsRaw = await db.collection('conversations').find(
+      { canal: 'web-quiz', createdAt: { $gte: dateFrom, $lte: dateTo } },
+      { projection: { quizVariante: 1, step: 1, 'history.step': 1, 'history.stepIndex': 1 } },
+    ).limit(5000).toArray();
+
+    type VarAgg = { started: number; completed: number; maxIdxs: number[]; nameAt: Record<number, Record<string, number>> };
+    const byVar: Record<string, VarAgg> = {};
+    for (const c of quizConvsRaw as any[]) {
+      const vv = c.quizVariante ? String(c.quizVariante) : null;
+      if (!vv || !/^QUIZ/i.test(vv)) continue;
+      const b = (byVar[vv] ??= { started: 0, completed: 0, maxIdxs: [], nameAt: {} });
+      b.started++;
+      if (c.step === 'LEAD_REGISTERED') b.completed++;
+      let maxIdx = -1;
+      const hist = Array.isArray(c.history) ? c.history : [];
+      for (const h of hist) {
+        const idx = typeof h?.stepIndex === 'number' ? h.stepIndex : -1;
+        if (idx < 0) continue;
+        if (idx > maxIdx) maxIdx = idx;
+        if (h.step) { (b.nameAt[idx] ??= {})[h.step] = (b.nameAt[idx][h.step] ?? 0) + 1; }
+      }
+      b.maxIdxs.push(maxIdx);
+    }
+
+    const dropoff = Object.entries(byVar).map(([variante, b]) => {
+      const maxObserved = b.maxIdxs.reduce((m, x) => Math.max(m, x), -1);
+      const nameAt = (i: number): string => {
+        const m = b.nameAt[i];
+        if (!m) return `passo ${i + 1}`;
+        return Object.entries(m).sort((a, c) => c[1] - a[1])[0][0];
+      };
+      const reached = (k: number) => b.maxIdxs.filter((x) => x >= k).length;
+      const steps: { index: number; step: string; reached: number; dropped: number; droppedPct: number | null }[] = [];
+      for (let k = 0; k <= maxObserved; k++) {
+        const r = reached(k);
+        const next = k < maxObserved ? reached(k + 1) : b.completed;
+        const dropped = Math.max(0, r - next);
+        steps.push({ index: k, step: nameAt(k), reached: r, dropped, droppedPct: r > 0 ? Math.round((dropped / r) * 100) : null });
+      }
+      return { variante, started: b.started, completed: b.completed, steps };
+    }).filter((d) => d.steps.length > 0).sort((a, b) => b.started - a.started);
+
     return Response.json({
       success: true,
       period,
@@ -281,6 +328,7 @@ export async function GET(request: NextRequest) {
       },
       leadsPerDay,
       granularity: hourly ? 'hour' : 'day',
+      dropoff,
       leadsPerSource:  (leadsPerSourceRaw  as any[]).map((r: any) => ({ source: r._id ?? 'desconhecida', count: r.count })),
       leadsPerUrgency: (leadsPerUrgencyRaw as any[]).map((r: any) => ({ urgency: r._id, count: r.count })),
       topRoutes: (topRoutesRaw as any[]).map((r: any) => ({
