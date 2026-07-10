@@ -25,7 +25,7 @@ const norm = {
 
 const SUGGEST_THRESHOLD = 55; // score mínimo para sugerir
 
-export async function reconcileClients(opts?: { sinceDays?: number; debug?: boolean }) {
+export async function reconcileClients(opts?: { sinceDays?: number; debug?: boolean; probe?: string }) {
   const db = await getDb();
   const since = new Date(Date.now() - (opts?.sinceDays ?? 3) * 24 * 3600 * 1000);
 
@@ -35,7 +35,7 @@ export async function reconcileClients(opts?: { sinceDays?: number; debug?: bool
     opts?.debug ? {} : { projection: { clientName: 1, points: 1, parameters: 1, timestamp: 1, nr: 1 } } as any,
   ).limit(500).toArray();
 
-  const debugOut: any = opts?.debug ? { serviceSamples: [], convSamples: [], matches: [], usersFound: 0 } : null;
+  const debugOut: any = (opts?.debug || opts?.probe) ? { serviceSamples: [], convSamples: [], matches: [], usersFound: 0 } : null;
 
   // 2) Resolver contacto dos clientes: svc.client = _id do utilizador (users) ->
   //    profile.phoneNumber / emails[0].address.
@@ -136,6 +136,26 @@ export async function reconcileClients(opts?: { sinceDays?: number; debug?: bool
       });
       suggestions++;
     }
+  }
+
+  if (debugOut && opts?.probe) {
+    const pp = norm.phone(opts.probe);
+    const svcMatch = (services as any[])
+      .filter((s) => typeof s.client === 'string' && contactById[s.client]?.phone === pp)
+      .map((s) => ({ nr: s.nr, clientName: s.clientName, email: contactById[s.client]?.email ?? null }));
+    const convMatch = await db.collection('conversations').find(
+      { $or: [{ 'data.telefone': pp }, { telemovel: pp }] },
+      { projection: { 'data.nome': 1, 'data.telefone': 1, 'data.email': 1, telemovel: 1, clientId: 1, clientMatch: 1, clientMatchDismissed: 1, step: 1, canal: 1, createdAt: 1 } } as any,
+    ).limit(10).toArray();
+    debugOut.probe = {
+      phone: pp,
+      servicesWithPhone: svcMatch,
+      convsWithPhone: (convMatch as any[]).map((c) => ({
+        nome: c.data?.nome ?? null, telefone: c.data?.telefone ?? null, email: c.data?.email ?? null, telemovel: c.telemovel ?? null,
+        clientId: c.clientId ?? null, hasClientMatch: !!c.clientMatch, dismissed: c.clientMatchDismissed ?? false,
+        step: c.step, canal: c.canal, createdAt: c.createdAt ?? null,
+      })),
+    };
   }
 
   if (debugOut) {

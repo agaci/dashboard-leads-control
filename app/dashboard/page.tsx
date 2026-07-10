@@ -111,6 +111,8 @@ type Lead = {
   variante: string | null;
   leadData: LeadData;
   clientId?: string | null;
+  clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[] } | null;
+  convId?: string | null;
 };
 
 const VARIANTE_LABELS: Record<string, string> = {
@@ -1582,6 +1584,27 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
     setDeleting(false);
     setConfirmDel(false);
   }
+
+  // Sugestão "provável cliente" (mesma da conversa no inbox) — confirmar/ignorar aqui.
+  const [suggestBusy, setSuggestBusy] = useState(false);
+  const [suggestDone, setSuggestDone] = useState(false);
+  async function handleSuggestion(action: 'confirm' | 'dismiss') {
+    if (!currentLead.convId) return;
+    setSuggestBusy(true);
+    try {
+      const res = await fetch(`/api/conversations/${currentLead.convId}/confirm-client`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setSuggestDone(true);
+        if (action === 'confirm' && data.clientId) onClientConverted?.(data.clientId);
+      } else { alert('Falha ao processar a sugestão.'); }
+    } catch { alert('Falha ao processar a sugestão.'); }
+    setSuggestBusy(false);
+  }
+
   const [convertError, setConvertError] = useState<string | null>(null);
   const [showBreakdown, setShowBreakdown] = useState(false);
 
@@ -1683,6 +1706,28 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
         onCancel={() => setConfirmDel(false)}
         busy={deleting}
       />
+
+      {/* Sugestão "provável cliente" (mesma da conversa no inbox) */}
+      {currentLead.clientMatch && currentLead.convId && !suggestDone && (
+        <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 flex items-center gap-3 flex-wrap">
+          <span className="text-[9px] font-extrabold tracking-[0.1em] uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded shrink-0">Provável cliente</span>
+          <span className="text-xs text-foreground">
+            Provavelmente passou a cliente na YourBox
+            {currentLead.clientMatch.serviceNr ? ` — serviço nr ${currentLead.clientMatch.serviceNr}` : ''}
+            {typeof currentLead.clientMatch.score === 'number' ? ` (${currentLead.clientMatch.score}%)` : ''}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button disabled={suggestBusy} onClick={() => handleSuggestion('confirm')}
+              className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer border-none hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+              {suggestBusy ? '...' : 'Confirmar cliente'}
+            </button>
+            <button disabled={suggestBusy} onClick={() => handleSuggestion('dismiss')}
+              className="px-3 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-semibold cursor-pointer border-none hover:bg-muted disabled:opacity-50 transition-colors">
+              Ignorar
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Contacto */}
       <section className="rounded-xl bg-card p-5 shadow-card">

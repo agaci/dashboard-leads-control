@@ -31,6 +31,20 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       ...(priceBreakdown && { priceBreakdown }),
     };
 
+    // Sugestão "provável cliente" — vive na CONVERSA (fonte única). Procuramos pela
+    // conversa com o mesmo telemóvel que tenha um clientMatch aberto (não convertida).
+    let clientMatch: any = null;
+    let convId: string | null = null;
+    const telDigits = String(doc.leadData?.telefone ?? '').replace(/\D/g, '');
+    const phone = /(\d{9})$/.test(telDigits) ? telDigits.slice(-9) : null;
+    if (phone && !doc.clientId) {
+      const conv = await db.collection('conversations').findOne(
+        { $or: [{ 'data.telefone': phone }, { telemovel: phone }], clientMatch: { $exists: true }, clientId: { $exists: false } },
+        { projection: { clientMatch: 1 } },
+      );
+      if (conv?.clientMatch) { clientMatch = conv.clientMatch; convId = conv._id.toString(); }
+    }
+
     return Response.json({
       success: true,
       lead: {
@@ -44,6 +58,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         variante:    doc.variante ?? null,
         leadData,
         clientId:    doc.clientId ?? null,
+        clientMatch,
+        convId,
       },
     });
   } catch {

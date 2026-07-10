@@ -28,16 +28,18 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
     const col = db.collection('conversations');
 
-    const [active, escalated, closed, all, contact] = await Promise.all([
+    const [active, escalated, closed, all, contact, clientmatch] = await Promise.all([
       col.countDocuments({ step: { $in: ACTIVE_STEPS }, ...dateMatch }),
       col.countDocuments({ step: 'ESCALATED_TO_HUMAN', ...dateMatch }),
       col.countDocuments({ step: { $in: ['CLOSED', 'LEAD_REGISTERED'] }, ...dateMatch }),
       col.countDocuments({ ...dateMatch }),
       // Pedidos de contacto por atender: independentes da data (são sempre urgentes).
       col.countDocuments({ contactRequestOpen: true }),
+      // Sugestões "provável cliente" abertas (independentes da data).
+      col.countDocuments({ clientMatch: { $exists: true } }),
     ]);
 
-    return Response.json({ success: true, counts: { active, escalated, closed, all, contact } });
+    return Response.json({ success: true, counts: { active, escalated, closed, all, contact, clientmatch } });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }

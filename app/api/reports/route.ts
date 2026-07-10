@@ -62,6 +62,9 @@ export async function GET(request: NextRequest) {
     const period = sp.get('period') ?? '30d';
     const { dateFrom, dateTo, prevFrom, prevTo, days } = getPeriodDates(period, sp.get('from'), sp.get('to'));
 
+    // Hoje / Ontem: gráfico por hora (24 baldes) em vez de por dia.
+    const hourly = period === 'hoje' || period === 'ontem';
+
     const db = await getDb();
 
     const [
@@ -86,12 +89,18 @@ export async function GET(request: NextRequest) {
         messageType: { $in: ['preLeadSimulation', 'clientSimulation'] },
         timeStamp: { $gte: dateFrom, $lte: dateTo },
       }),
-      // Leads por dia no período
-      db.collection('messages').aggregate([
-        { $match: { companyProvider: 'Yourbox', messageType: 'newLead', timeStamp: { $gte: dateFrom, $lte: dateTo } } },
-        { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$timeStamp' } }, count: { $sum: 1 } } },
-        { $sort: { _id: 1 } },
-      ]).toArray(),
+      // Leads no período. Hoje/Ontem -> buscamos os instantes e agrupamos por hora em
+      // JS (o Mongo 3.0 não suporta `timezone` no $dateToString). Restantes -> por dia.
+      hourly
+        ? db.collection('messages').find(
+            { companyProvider: 'Yourbox', messageType: 'newLead', timeStamp: { $gte: dateFrom, $lte: dateTo } },
+            { projection: { _id: 0, timeStamp: 1 } },
+          ).toArray()
+        : db.collection('messages').aggregate([
+            { $match: { companyProvider: 'Yourbox', messageType: 'newLead', timeStamp: { $gte: dateFrom, $lte: dateTo } } },
+            { $group: { _id: { $dateToString: { format: '%Y-%m-%d', date: '$timeStamp' } }, count: { $sum: 1 } } },
+            { $sort: { _id: 1 } },
+          ]).toArray(),
       // Leads por fonte no período
       db.collection('messages').aggregate([
         { $match: { companyProvider: 'Yourbox', messageType: 'newLead', timeStamp: { $gte: dateFrom, $lte: dateTo } } },
@@ -170,13 +179,28 @@ export async function GET(request: NextRequest) {
       ).limit(20000).toArray(),
     ]);
 
-    // Preencher todos os dias do período com 0
-    const daysMap: Record<string, number> = {};
-    for (let i = days - 1; i >= 0; i--) {
-      const d = new Date(dateTo.getTime() - i * 24 * 60 * 60 * 1000);
-      daysMap[d.toISOString().slice(0, 10)] = 0;
+    // Preencher os baldes do período com 0.
+    // Hoje/Ontem -> 24 horas ("00h".."23h"); restantes -> um por dia.
+    let leadsPerDay: { date: string; count: number }[];
+    if (hourly) {
+      const hoursMap: Record<string, number> = {};
+      for (let h = 0; h < 24; h++) hoursMap[String(h).padStart(2, '0')] = 0;
+      // Hora de Lisboa (lida do instante), robusta a horário de verão/inverno.
+      const hourFmt = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Lisbon', hour: '2-digit', hour12: false, hourCycle: 'h23' });
+      for (const r of leadsPerDayRaw as any[]) {
+        const h = hourFmt.format(new Date(r.timeStamp));
+        if (h in hoursMap) hoursMap[h]++;
+      }
+      leadsPerDay = Object.entries(hoursMap).map(([h, count]) => ({ date: `${h}h`, count }));
+    } else {
+      const daysMap: Record<string, number> = {};
+      for (let i = days - 1; i >= 0; i--) {
+        const d = new Date(dateTo.getTime() - i * 24 * 60 * 60 * 1000);
+        daysMap[d.toISOString().slice(0, 10)] = 0;
+      }
+      for (const r of leadsPerDayRaw as any[]) daysMap[r._id] = r.count;
+      leadsPerDay = Object.entries(daysMap).map(([date, count]) => ({ date, count }));
     }
-    for (const r of leadsPerDayRaw as any[]) daysMap[r._id] = r.count;
 
     const totalRevMonth   = (revenueRaw as any[])[0]?.total ?? 0;
     const avgLeadValue    = (revenueRaw as any[])[0]?.avg ?? 0;
@@ -255,7 +279,8 @@ export async function GET(request: NextRequest) {
         leadsMonth, leadsAllTime, conversionRate: Math.round(conversionRate),
         totalRevMonth, avgLeadValue, growthRate,
       },
-      leadsPerDay: Object.entries(daysMap).map(([date, count]) => ({ date, count })),
+      leadsPerDay,
+      granularity: hourly ? 'hour' : 'day',
       leadsPerSource:  (leadsPerSourceRaw  as any[]).map((r: any) => ({ source: r._id ?? 'desconhecida', count: r.count })),
       leadsPerUrgency: (leadsPerUrgencyRaw as any[]).map((r: any) => ({ urgency: r._id, count: r.count })),
       topRoutes: (topRoutesRaw as any[]).map((r: any) => ({

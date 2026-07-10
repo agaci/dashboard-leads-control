@@ -13,6 +13,7 @@ const TEXT3  = 'var(--yb-subtle)';
 type ReportData = {
   kpis: { leadsMonth: number; leadsAllTime: number; conversionRate: number; totalRevMonth: number; avgLeadValue: number; growthRate: number | null };
   leadsPerDay: { date: string; count: number }[];
+  granularity: 'hour' | 'day';
   leadsPerSource: { source: string; count: number }[];
   leadsPerUrgency: { urgency: string; count: number }[];
   topRoutes: { origem: string; destino: string; count: number; avgPrice: number }[];
@@ -63,24 +64,26 @@ function KPI({ label, value, sub, color, icon }: { label: string; value: string;
   );
 }
 
-function BarChart({ data }: { data: { date: string; count: number }[] }) {
+function BarChart({ data, granularity = 'day' }: { data: { date: string; count: number }[]; granularity?: 'hour' | 'day' }) {
   const max = Math.max(...data.map(d => d.count), 1);
-  const W = 700, H = 120, barW = Math.floor(W / data.length) - 2;
+  const W = 700, H = 120, TOP = 16, barW = Math.floor(W / data.length) - 2;
+  const labelEvery = granularity === 'hour' ? 3 : 5;
 
   return (
-    <svg width="100%" viewBox={`0 0 ${W} ${H + 24}`} style={{ display: 'block' }}>
+    <svg width="100%" viewBox={`0 0 ${W} ${TOP + H + 24}`} style={{ display: 'block' }}>
       {data.map((d, i) => {
         const h = Math.max(2, (d.count / max) * H);
         const x = i * (W / data.length) + 1;
-        const showLabel = i % 5 === 0;
+        const showLabel = i % labelEvery === 0;
+        const label = granularity === 'hour' ? d.date : d.date.slice(5);
         return (
           <g key={d.date}>
-            <rect x={x} y={H - h} width={barW} height={h} rx={2} fill={d.count > 0 ? CYAN : 'rgba(255,255,255,0.06)'} opacity={0.85} />
+            <rect x={x} y={TOP + H - h} width={barW} height={h} rx={2} fill={d.count > 0 ? CYAN : 'rgba(255,255,255,0.06)'} opacity={0.85} />
             {d.count > 0 && (
-              <text x={x + barW / 2} y={H - h - 4} textAnchor="middle" fontSize={9} fill={TEXT2}>{d.count}</text>
+              <text x={x + barW / 2} y={TOP + H - h - 4} textAnchor="middle" fontSize={9} fill={TEXT2}>{d.count}</text>
             )}
             {showLabel && (
-              <text x={x + barW / 2} y={H + 16} textAnchor="middle" fontSize={8} fill={TEXT3}>{d.date.slice(5)}</text>
+              <text x={x + barW / 2} y={TOP + H + 16} textAnchor="middle" fontSize={8} fill={TEXT3}>{label}</text>
             )}
           </g>
         );
@@ -117,6 +120,20 @@ const PERIOD_LABEL: Record<PeriodKey, string> = {
   hoje: 'hoje', ontem: 'ontem',
   '7d': 'últimos 7 dias', '30d': 'últimos 30 dias',
   '90d': 'últimos 90 dias', 'mes': 'este mês',
+};
+
+// Rótulo do card de leads consoante o período seleccionado
+const KPI_LEADS_LABEL: Record<PeriodKey, string> = {
+  hoje: 'Leads hoje', ontem: 'Leads ontem',
+  '7d': 'Leads 7 dias', '30d': 'Leads 30 dias',
+  '90d': 'Leads 90 dias', 'mes': 'Leads este mês',
+};
+
+// Texto de comparação com o período anterior
+const KPI_COMPARE: Record<PeriodKey, string> = {
+  hoje: 'vs ontem', ontem: 'vs dia anterior',
+  '7d': 'vs 7 dias anteriores', '30d': 'vs 30 dias anteriores',
+  '90d': 'vs 90 dias anteriores', 'mes': 'vs mês anterior',
 };
 
 function VariantFunnel({ v, isBest }: { v: VariantFunnelRow; isBest: boolean }) {
@@ -172,6 +189,26 @@ function VariantFunnel({ v, isBest }: { v: VariantFunnelRow; isBest: boolean }) 
   );
 }
 
+// Estatística "atual -> projetado" para o card de maximização
+function ProjStat({ label, current, projected, uplift, pct, highlight }: {
+  label: string; current: number; projected: number; uplift: number; pct: number | null; highlight?: boolean;
+}) {
+  const up = uplift > 0;
+  return (
+    <div style={{ padding: 14, borderRadius: 10, background: highlight ? 'rgba(34,197,94,0.06)' : CARD_INNER, border: `1px solid ${highlight ? 'rgba(34,197,94,0.28)' : BORDER}` }}>
+      <p style={{ fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.05em', color: TEXT3, marginBottom: 8 }}>{label}</p>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+        <span style={{ fontSize: 16, color: TEXT2, fontFamily: 'Space Grotesk, sans-serif' }}>{current}</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={TEXT3} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ alignSelf: 'center' }}><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+        <span style={{ fontSize: 28, fontWeight: 700, color: NAVY, fontFamily: 'Space Grotesk, sans-serif', lineHeight: 1 }}>{projected}</span>
+      </div>
+      <p style={{ fontSize: 12, fontWeight: 700, marginTop: 6, color: up ? '#22c55e' : TEXT3 }}>
+        {up ? `+${uplift}` : uplift === 0 ? 'sem variação' : uplift}{pct != null && uplift !== 0 ? ` (${up ? '+' : ''}${pct}%)` : ''}
+      </p>
+    </div>
+  );
+}
+
 export default function RelatoriosPage() {
   const [data, setData] = useState<ReportData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -201,10 +238,15 @@ export default function RelatoriosPage() {
     ? (fromDate ? `${fromDate}${toDate && toDate !== fromDate ? ` a ${toDate}` : ''}` : 'intervalo')
     : PERIOD_LABEL[period as PeriodKey];
 
-  if (loading) return <div className="p-8 text-sm text-gray-400">A carregar relatório...</div>;
-  if (!data) return <div className="p-8 text-sm text-red-400">Erro ao carregar dados.</div>;
+  // Só mostramos o ecrã cheio de "a carregar" no primeiro carregamento (sem dados).
+  // Ao trocar de período mantemos os dados no lugar e esbatemos enquanto atualiza.
+  if (!data) return (
+    <div className="p-8 text-sm" style={{ color: loading ? TEXT3 : '#f87171' }}>
+      {loading ? 'A carregar relatório...' : 'Erro ao carregar dados.'}
+    </div>
+  );
 
-  const { kpis, leadsPerDay, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
+  const { kpis, leadsPerDay, granularity = 'day', leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 } } = data;
   const dpct = (n: number) => (deviceBreakdown.total > 0 ? Math.round((n / deviceBreakdown.total) * 100) : 0);
   const visitsMaturing = variantFunnel.some((v) => v.conversas > 0 && v.visitToConv == null);
   const visitsSinceLabel = visitsSince ? new Date(visitsSince).toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit', year: 'numeric' }) : null;
@@ -212,19 +254,57 @@ export default function RelatoriosPage() {
   const maxUrgency = Math.max(...leadsPerUrgency.map(u => u.count), 1);
   const botCompletionRate = bot.total > 0 ? Math.round((bot.completed / bot.total) * 100) : 0;
 
+  const compareText = period === 'custom' ? 'vs período anterior' : KPI_COMPARE[period as PeriodKey];
+  const leadsLabel  = period === 'custom' ? 'Leads no período' : KPI_LEADS_LABEL[period as PeriodKey];
   const growthLabel = kpis.growthRate !== null
-    ? `${kpis.growthRate >= 0 ? '+' : ''}${Math.round(kpis.growthRate)}% vs mês anterior`
-    : 'primeiro mês';
+    ? `${kpis.growthRate >= 0 ? '+' : ''}${Math.round(kpis.growthRate)}% ${compareText}`
+    : 'sem período anterior';
+
+  // ── Projeção: e se todo o tráfego seguisse a variante vencedora? ──
+  // Aplica as taxas de passagem da variante vencedora ao tráfego total do período.
+  const winner = variantFunnel.find((v) => v.variante === bestVariant) ?? null;
+  const totVisits    = variantFunnel.reduce((a, v) => a + v.visits, 0);
+  const totConversas = variantFunnel.reduce((a, v) => a + v.conversas, 0);
+  const totLeads     = variantFunnel.reduce((a, v) => a + v.leads, 0);
+
+  type Projection = {
+    basis: 'visit' | 'conv';
+    projInbox: number | null; projLeads: number;
+    upliftInbox: number | null; upliftInboxPct: number | null;
+    upliftLeads: number; upliftLeadsPct: number | null;
+  };
+  let projection: Projection | null = null;
+  if (winner) {
+    const pct = (a: number, b: number) => (b > 0 ? Math.round((a / b) * 100) : null);
+    if (bestMetric === 'visitToLead' && winner.visitToConv != null && winner.visitToLead != null && totVisits > 0) {
+      // Visitas fiáveis: projeta inbox e leads a partir das visitas totais.
+      const projInbox = Math.round(totVisits * winner.visitToConv / 100);
+      const projLeads = Math.round(totVisits * winner.visitToLead / 100);
+      projection = {
+        basis: 'visit', projInbox, projLeads,
+        upliftInbox: projInbox - totConversas, upliftInboxPct: pct(projInbox - totConversas, totConversas),
+        upliftLeads: projLeads - totLeads,      upliftLeadsPct: pct(projLeads - totLeads, totLeads),
+      };
+    } else if (winner.convToLead != null && totConversas > 0) {
+      // Sem visitas fiáveis: melhora só a passagem conversa -> lead (inbox mantém-se).
+      const projLeads = Math.round(totConversas * winner.convToLead / 100);
+      projection = {
+        basis: 'conv', projInbox: null, projLeads,
+        upliftInbox: null, upliftInboxPct: null,
+        upliftLeads: projLeads - totLeads, upliftLeadsPct: pct(projLeads - totLeads, totLeads),
+      };
+    }
+  }
 
   return (
     <div style={{ overflowY: 'auto', height: '100%', background: 'var(--yb-bg)', padding: 24 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto' }}>
+      <div style={{ maxWidth: 900, margin: '0 auto', opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s ease' }}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">
           <div>
             <h1 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 20, color: 'var(--yb-fg)' }}>Relatórios</h1>
-            <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {periodLabel}</p>
+            <p style={{ fontSize: 12, color: TEXT3, marginTop: 2 }}>Dados em tempo real · {periodLabel}{loading ? ' · a atualizar…' : ''}</p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
             {PERIODS.map(p => (
@@ -276,7 +356,7 @@ export default function RelatoriosPage() {
 
         {/* KPIs */}
         <div className="flex gap-3 mb-4 flex-wrap">
-          <KPI label="Leads este mês" value={String(kpis.leadsMonth)} sub={growthLabel} color={CYAN} icon="" />
+          <KPI label={leadsLabel} value={String(kpis.leadsMonth)} sub={growthLabel} color={CYAN} icon="" />
           <KPI label="Total leads" value={String(kpis.leadsAllTime)} sub="desde o início" icon="" />
           <KPI label="Taxa conversão" value={`${kpis.conversionRate}%`} sub="simulações → confirmadas" color={kpis.conversionRate >= 20 ? '#22c55e' : '#f59e0b'} icon="" />
           <KPI label="Receita estimada" value={`€${kpis.totalRevMonth.toFixed(0)}`} sub={`Média: €${kpis.avgLeadValue.toFixed(0)}/lead`} color="#22c55e" icon="" />
@@ -315,8 +395,10 @@ export default function RelatoriosPage() {
 
         {/* Gráfico leads por dia */}
         <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>Leads confirmadas — {periodLabel}</p>
-          <BarChart data={leadsPerDay} />
+          <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 12 }}>
+            Leads confirmadas — {periodLabel}{granularity === 'hour' ? ' · por hora' : ''}
+          </p>
+          <BarChart data={leadsPerDay} granularity={granularity} />
         </div>
 
         {/* Fonte + Urgência */}
@@ -371,6 +453,30 @@ export default function RelatoriosPage() {
             <p style={{ marginTop: 12, fontSize: 12, color: TEXT3 }}>Amostra ainda insuficiente para eleger a vencedora (mínimo 5 conversas por variante).</p>
           ) : null}
         </div>
+
+        {/* Projeção — maximização ao seguir a análise */}
+        {projection && winner && (
+          <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
+            <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 4 }}>Projeção — potencial ao seguir a análise</p>
+            <p style={{ fontSize: 11, color: TEXT3, marginBottom: 14, lineHeight: 1.5 }}>
+              Se todo o tráfego do período ({projection.basis === 'visit' ? `${totVisits} visitas` : `${totConversas} conversas`}) convertesse às taxas da variante vencedora <strong style={{ color: NAVY }}>{VAR_LABEL[bestVariant!] ?? bestVariant}</strong>
+              {projection.basis === 'visit'
+                ? <> (<strong style={{ color: NAVY }}>{winner.visitToConv}%</strong> visita→inbox · <strong style={{ color: NAVY }}>{winner.visitToLead}%</strong> visita→lead):</>
+                : <> (<strong style={{ color: NAVY }}>{winner.convToLead}%</strong> conversa→lead):</>}
+            </p>
+            <div style={{ display: 'grid', gridTemplateColumns: projection.basis === 'visit' ? '1fr 1fr' : '1fr', gap: 12 }}>
+              {projection.basis === 'visit' && projection.projInbox != null && (
+                <ProjStat label="Inbox (conversas)" current={totConversas} projected={projection.projInbox} uplift={projection.upliftInbox ?? 0} pct={projection.upliftInboxPct} />
+              )}
+              <ProjStat label="Leads confirmadas" current={totLeads} projected={projection.projLeads} uplift={projection.upliftLeads} pct={projection.upliftLeadsPct} highlight />
+            </div>
+            <p style={{ marginTop: 12, fontSize: 11, color: TEXT3, lineHeight: 1.5 }}>
+              Estimativa teórica: assume que as taxas da variante vencedora se mantêm ao aplicarem-se a todo o tráfego — serve de tecto potencial, não de garantia.
+              {projection.basis === 'conv' && ' Como as visitas ainda não são fiáveis, projeta-se apenas a passagem conversa→lead (a inbox mantém-se).'}
+              {' '}Quanto maior a amostra, mais fiável a projeção.
+            </p>
+          </div>
+        )}
 
         {/* Performance do bot */}
         <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>

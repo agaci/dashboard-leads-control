@@ -63,6 +63,7 @@ type ConvSummary = {
   contactRequestOpen?: boolean;
   contactRequestChannel?: string | null;
   quizVariante?: string | null;
+  clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[]; serviceRoute?: string | null; serviceAt?: string | null } | null;
 };
 
 type ConvFull = ConvSummary & { history: Message[] };
@@ -130,14 +131,15 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const [selected, setSelected] = useState<ConvFull | null>(null);
   const [confirmDelConv, setConfirmDelConv] = useState(false);
   const [deletingConv, setDeletingConv] = useState(false);
-  const [filter, setFilter] = useState<'active' | 'escalated' | 'contact' | 'closed' | 'all'>('active');
+  const [clientBusy, setClientBusy] = useState(false);
+  const [filter, setFilter] = useState<'active' | 'escalated' | 'contact' | 'clientmatch' | 'closed' | 'all'>('active');
   const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'ontem' | 'semana' | 'custom'>('hoje');
   const [customDate, setCustomDate] = useState('');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [reply, setReply] = useState('');
   const [sending, setSending] = useState(false);
-  const [counts, setCounts] = useState<{ active: number; escalated: number; contact: number; closed: number; all: number }>({ active: 0, escalated: 0, contact: 0, closed: 0, all: 0 });
+  const [counts, setCounts] = useState<{ active: number; escalated: number; contact: number; clientmatch: number; closed: number; all: number }>({ active: 0, escalated: 0, contact: 0, clientmatch: 0, closed: 0, all: 0 });
   const chatEndRef = useRef<HTMLDivElement>(null);
   const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const autoSelectedRef = useRef(false);
@@ -224,6 +226,25 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     setDeletingConv(false);
     setConfirmDelConv(false);
   }, [selected?._id, fetchList]);
+
+  // Sugestão "provável cliente": confirmar (inbox -> lead + cliente) ou dispensar.
+  const clientSuggestion = useCallback(async (id: string, action: 'confirm' | 'dismiss') => {
+    setClientBusy(true);
+    try {
+      const res = await fetch(`/api/conversations/${id}/confirm-client`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      if (res.ok) {
+        setConversations((prev) => prev.map((c) => (c._id === id ? { ...c, clientMatch: null } : c)));
+        if (selected?._id === id) fetchSelected(id);
+        fetchList();
+      } else {
+        alert('Falha ao processar a sugestão.');
+      }
+    } catch { alert('Falha ao processar a sugestão.'); }
+    setClientBusy(false);
+  }, [fetchList, fetchSelected, selected?._id]);
 
   // Polling lista
   useEffect(() => {
@@ -362,12 +383,13 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
         {/* Filtros de estado */}
         <div className="flex flex-wrap gap-1.5 px-5 pb-2">
-          {(['active', 'escalated', 'contact', 'all', 'closed'] as const).map((f) => {
-            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'contact' ? 'Pede contacto' : f === 'closed' ? 'Fechadas' : 'Todas';
+          {(['active', 'escalated', 'contact', 'clientmatch', 'all', 'closed'] as const).map((f) => {
+            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'contact' ? 'Pede contacto' : f === 'clientmatch' ? 'Provável cliente' : f === 'closed' ? 'Fechadas' : 'Todas';
             const count = counts[f];
             const active = filter === f;
             const isEscalated = f === 'escalated';
             const isContact = f === 'contact';
+            const isClientMatch = f === 'clientmatch';
             const contactAlarm = isContact && count > 0; // pedidos por atender -> destacar
             return (
               <button
@@ -375,16 +397,18 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 onClick={() => setFilter(f)}
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   active
-                    ? (isContact ? 'bg-red-600 text-white' : 'bg-cyan text-white')
+                    ? (isContact ? 'bg-red-600 text-white' : isClientMatch ? 'bg-emerald-600 text-white' : 'bg-cyan text-white')
                     : contactAlarm
                       ? 'bg-red-600 text-white animate-pulse'
-                      : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                      : isClientMatch && count > 0
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'bg-secondary text-secondary-foreground hover:bg-muted'
                 }`}
               >
                 {label}
                 {count > 0 && (
                   <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                    active || contactAlarm ? 'bg-white/25 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
+                    active || contactAlarm ? 'bg-white/25 text-white' : isClientMatch ? 'bg-emerald-500 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
                   }`}>
                     {count > 99 ? '99+' : count}
                   </span>
@@ -549,6 +573,13 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       </span>
                     </div>
                   )}
+                  {conv.clientMatch && (
+                    <div className="flex items-center gap-1 mt-1.5">
+                      <span className="rounded-full px-2 py-0.5 text-[10px] font-bold bg-emerald-50 text-emerald-600 border border-emerald-200">
+                        Provável cliente{conv.clientMatch.serviceNr ? ` · nr ${conv.clientMatch.serviceNr}` : ''}
+                      </span>
+                    </div>
+                  )}
                 </button>
               );
             });
@@ -701,6 +732,29 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                   className="ml-auto text-muted-foreground bg-transparent border-none cursor-pointer text-base leading-none hover:text-foreground">
                   ×
                 </button>
+              </div>
+            )}
+
+            {/* Banner "provável cliente" — sugestão de reconciliação */}
+            {selected.clientMatch && (
+              <div className="flex items-center gap-3 flex-wrap px-5 py-2.5 shrink-0 bg-emerald-50 border-b border-emerald-200">
+                <span className="text-[9px] font-extrabold tracking-[0.1em] uppercase bg-emerald-600 text-white px-1.5 py-0.5 rounded shrink-0">Provável cliente</span>
+                <span className="text-xs text-foreground">
+                  Provavelmente passou a cliente na YourBox
+                  {selected.clientMatch.serviceNr ? ` — serviço nr ${selected.clientMatch.serviceNr}` : ''}
+                  {typeof selected.clientMatch.score === 'number' ? ` (${selected.clientMatch.score}%)` : ''}
+                  {selected.clientMatch.matchedOn?.length ? ` · ${selected.clientMatch.matchedOn.join(', ')}` : ''}
+                </span>
+                <div className="ml-auto flex items-center gap-2">
+                  <button disabled={clientBusy} onClick={() => clientSuggestion(selected._id, 'confirm')}
+                    className="px-3 py-1 rounded-lg bg-emerald-600 text-white text-xs font-bold cursor-pointer border-none hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+                    {clientBusy ? '...' : 'Confirmar cliente'}
+                  </button>
+                  <button disabled={clientBusy} onClick={() => clientSuggestion(selected._id, 'dismiss')}
+                    className="px-3 py-1 rounded-lg bg-secondary text-muted-foreground text-xs font-semibold cursor-pointer border-none hover:bg-muted disabled:opacity-50 transition-colors">
+                    Ignorar
+                  </button>
+                </div>
               </div>
             )}
 
