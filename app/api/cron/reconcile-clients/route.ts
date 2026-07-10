@@ -17,8 +17,10 @@ async function handle(req: NextRequest) {
     }
   }
   try {
-    const sinceDays = Number(new URL(req.url).searchParams.get('days') ?? '3') || 3;
-    const result = await reconcileClients({ sinceDays });
+    const url = new URL(req.url);
+    const sinceDays = Number(url.searchParams.get('days') ?? '3') || 3;
+    const debug = url.searchParams.get('debug') === '1';
+    const result = await reconcileClients({ sinceDays, debug });
     return Response.json({ success: true, ...result });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });

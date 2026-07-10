@@ -25,15 +25,17 @@ const norm = {
 
 const SUGGEST_THRESHOLD = 55; // score mínimo para sugerir
 
-export async function reconcileClients(opts?: { sinceDays?: number }) {
+export async function reconcileClients(opts?: { sinceDays?: number; debug?: boolean }) {
   const db = await getDb();
   const since = new Date(Date.now() - (opts?.sinceDays ?? 3) * 24 * 3600 * 1000);
 
   // 1) Serviços YourBox recentes
   const services = await db.collection('services').find(
     { companyProvider: 'Yourbox', timestamp: { $gte: since } },
-    { projection: { clientName: 1, points: 1, parameters: 1, timestamp: 1, nr: 1 } } as any,
+    opts?.debug ? {} : { projection: { clientName: 1, points: 1, parameters: 1, timestamp: 1, nr: 1 } } as any,
   ).limit(500).toArray();
+
+  const debugOut: any = opts?.debug ? { serviceSamples: [], convSamples: [], usersFound: 0 } : null;
 
   // 2) Resolver telemóvel dos clientes (via users, pelo email = clientName)
   const emails = Array.from(new Set(services.map((s: any) => norm.email(s.clientName)).filter(Boolean))) as string[];
@@ -48,6 +50,10 @@ export async function reconcileClients(opts?: { sinceDays?: number }) {
     const em = norm.email(u.emails?.[0]?.address);
     if (em) phoneByEmail[em] = norm.phone(u.profile?.phoneNumber);
   }
+  if (debugOut) {
+    debugOut.usersFound = users.length;
+    debugOut.emailsExtracted = emails.length;
+  }
 
   let suggestions = 0;
 
@@ -61,6 +67,19 @@ export async function reconcileClients(opts?: { sinceDays?: number }) {
     const svcDest = norm.token(pts.filter((p) => p.collectionOrDelivery === 'delivery').at(-1)?.addressLocal);
     const svcAt: Date | null = svc.timestamp ? new Date(svc.timestamp)
       : (svc.parameters?.dataHour ? new Date(svc.parameters.dataHour) : null);
+
+    if (debugOut && debugOut.serviceSamples.length < 6) {
+      const p0 = (svc.points ?? [])[0] ?? {};
+      debugOut.serviceSamples.push({
+        topKeys: Object.keys(svc),
+        clientNameRaw: svc.clientName ?? null,
+        emailNorm: email,
+        phoneResolved: phone,
+        svcOrig, svcDest, svcAt,
+        pointKeys: Object.keys(p0),
+        pointDataKeys: p0.data ? Object.keys(p0.data) : [],
+      });
+    }
 
     // Conversas candidatas (sem cliente ligado, sem sugestão dispensada)
     const or: any[] = [];
@@ -109,5 +128,17 @@ export async function reconcileClients(opts?: { sinceDays?: number }) {
     }
   }
 
-  return { services: services.length, suggestions };
+  if (debugOut) {
+    const convs = await db.collection('conversations').find(
+      { canal: 'web-quiz' },
+      { projection: { 'data.telefone': 1, 'data.email': 1, 'data.origem': 1, 'data.destino': 1, telemovel: 1, createdAt: 1 } } as any,
+    ).sort({ createdAt: -1 }).limit(4).toArray();
+    debugOut.convSamples = (convs as any[]).map((c) => ({
+      telefone: c.data?.telefone ?? null, telefoneNorm: norm.phone(c.data?.telefone) ?? norm.phone(c.telemovel),
+      email: c.data?.email ?? null, telemovel: c.telemovel ?? null,
+      origem: c.data?.origem ?? null, destino: c.data?.destino ?? null,
+    }));
+  }
+
+  return { services: services.length, suggestions, ...(debugOut ? { debug: debugOut } : {}) };
 }
