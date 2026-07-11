@@ -259,6 +259,7 @@
     <a href="#notificacoes">Notificações de Alerta</a>
     <a href="#reengajamento">Reengajamento de Quiz</a>
     <a href="#ab-routing">Distribuição A/B e Agendamento</a>
+    <a href="#variantes">Variantes de Captação</a>
   </div>
   <div class="sidebar-section">
     <div class="sidebar-section-title">Integrações</div>
@@ -1063,6 +1064,120 @@
 
       <div class="callout warn"><div class="callout-icon">!</div><div>O agendamento usa a <strong>hora de Lisboa</strong> (Europe/Lisbon, com ajuste automático para horário de verão). Confirme que os slots estão configurados nesse fuso.</div></div>
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> manhã 9h–12h com 80% chat-demo (para testar tráfego fresco), tarde 14h–20h com 50%/50% entre variantes A e B para teste controlado. Fora destes horários, distribuição base em vigor.</div></div>
+    </div>
+
+    <hr>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VARIANTES DE CAPTAÇÃO -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="variantes"></span>
+    <div class="section">
+      <h2>Variantes de Captação (Landing e Quiz)</h2>
+      <p>Existem várias <strong>variantes</strong> da página de entrada, todas com o mesmo hero; o que muda é a
+      <strong>mecânica do formulário</strong> e, no quiz, a <strong>ordem dos passos</strong>. Servem para testar (A/B) qual
+      capta mais leads. Cada lead/visita traz a sua <code>variante</code> — vê-se nos badges das Leads, no chip do Inbox,
+      no <strong>Funil por variante</strong> e no <strong>drop-off por passo</strong> dos Relatórios.</p>
+
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Regra de ouro do funil:</strong> começar pelo que
+      envolve (rota, carga) e deixar os dados pessoais para depois. Quem chega para pedir um preço não veio dar o telefone.</div></div>
+
+      <h3>Variantes de LANDING (calculadora) — <code>index-a/b/c/d</code></h3>
+      <ul>
+        <li><strong>Site A</strong> — calculadora em 2 passos: mostra o <strong>preço</strong> e depois pede o contacto.</li>
+        <li><strong>Site B</strong> — captura directa num só ecrã, sem obrigar a ver o preço.</li>
+        <li><strong>Site C</strong> — híbrido: fluxo de preço <strong>ou</strong> botão "prefiro falar" que agenda um callback (lead mais fria).</li>
+        <li><strong>Site D</strong> — perfilamento progressivo (pede pouco de cada vez) com opção de callback.</li>
+      </ul>
+
+      <h3>Variantes de QUIZ (funil passo-a-passo) — <code>index-quiz*</code></h3>
+      <p>O quiz guarda cada passo em tempo real (mesmo sem concluir) → alimenta o reengajamento e o funil de visitas→conversas→leads.</p>
+      <ul>
+        <li><strong>Quiz / Quiz B / Quiz 3</strong> — <strong>contacto-primeiro</strong> (nome/telefone/email no início). Simples, mas muita
+        gente sai logo no 1º passo (nos dados, ~21–23% de fuga em "Nome").</li>
+        <li><strong>Quiz 4</strong> — contacto-primeiro <strong>+ atalho "Concluir agora"</strong> que torna carga/dimensões opcionais (lead marcada <code>QUIZ4-RAPIDO</code>).</li>
+        <li><strong>Quiz 5</strong> — <strong>contacto a meio</strong> (rota + carga primeiro, depois contacto). Muito menos abandono inicial; foi a vencedora anterior.</li>
+        <li><strong>Quiz 6</strong> — como a 5, mas <strong>email antes do telefone</strong> (o telefone é o campo de maior fricção) e <strong>urgência cedo</strong> (3º passo, 1 toque). Traz advertência no topo e subtítulo sem promessa de espera.</li>
+        <li><strong>Quiz 6b</strong> — Quiz 6 + <strong>carga inteligente</strong>: volumes por chips (1–5) e peso por faixas com exemplos ("Até 5 kg — ex.: caixa de roupa", … "Não sei"). Ataca o novo muro (o peso, ~28% de fuga).</li>
+        <li><strong>Quiz 6c</strong> — Quiz 6b + <strong>dimensões por presets</strong> (Caixa P/M/G · Palete · Não sei), um toque.</li>
+      </ul>
+
+      <h3>Matriz-resumo</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Variante</th><th>Dinâmica-chave</th><th>Fricção inicial</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Site A</td><td>Preço → contacto</td><td>Média</td><td>Vê preço primeiro</td></tr>
+          <tr><td>Site B</td><td>Captura directa (1 ecrã)</td><td>Baixa</td><td>Contacto sem preço</td></tr>
+          <tr><td>Site C</td><td>Preço + callback</td><td>Média</td><td>Dupla via (callback = frio)</td></tr>
+          <tr><td>Site D</td><td>Progressivo + callback</td><td>Baixa por passo</td><td>Muitos passos leves</td></tr>
+          <tr><td>Quiz / Quiz 3</td><td>Contacto-primeiro</td><td>Alta (muro cedo)</td><td>Base A/B (Quiz 3)</td></tr>
+          <tr><td>Quiz 4</td><td>+ atalho concluir</td><td>Alta</td><td>Tira o muro das dimensões</td></tr>
+          <tr><td>Quiz 5</td><td>Contacto a meio</td><td>Baixa</td><td>Vencedora anterior</td></tr>
+          <tr><td>Quiz 6</td><td>Contacto a meio, email→telefone, urgência cedo</td><td>Baixa</td><td>Base da família 6</td></tr>
+          <tr><td>Quiz 6b</td><td>Quiz 6 + carga inteligente</td><td>Baixa</td><td>Ataca o muro do peso</td></tr>
+          <tr><td>Quiz 6c</td><td>Quiz 6b + dimensões por presets</td><td>Baixa</td><td>Mais recente</td></tr>
+        </tbody>
+      </table>
+      </div>
+
+      <h3>Fluxograma completo</h3>
+      <p>Sequência de cada família, com o <strong>momento do contacto</strong>, os <strong>muros conhecidos</strong> (fuga real medida
+      no drop-off) e a partir de onde o <strong>reengajamento</strong> consegue tocar o visitante.</p>
+
+      <pre style="background:#0f1724;color:#cbd5e1;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:0.78rem;line-height:1.5;overflow-x:auto;">LANDING (calculadora)
+Site A   Rota + serviço -> [PREÇO] -> (contacto) -> LEAD
+Site B   Tudo num ecrã -> submete -> (contacto) -> LEAD
+Site C   5 passos -> preço   ||   "prefiro falar" -> (callback) -> LEAD fria
+Site D   perfil progressivo -> (contacto/callback) -> LEAD</pre>
+
+      <pre style="background:#0f1724;color:#cbd5e1;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:0.78rem;line-height:1.5;overflow-x:auto;">QUIZ / QUIZ B / QUIZ 3  (contacto-primeiro)
+ 1  Nome      ]
+ 2  Telefone  ] (contacto)     [MURO: ~21-23% saem no passo 1]
+ 3  Email     ]  &gt;&gt; reengajável a partir daqui
+ 4  Recolha    5  Entrega    6  Volumes    7  Peso
+ 8  Dimensões  9  Urgência   10 Material   11 Embalagem
+12  Resumo  -> LEAD
+
+QUIZ 4  = base + atalho: com Nome+Contacto+Rota aparece "Concluir agora"
+        -> salta dimensões/material/embalagem -> LEAD (QUIZ4-RAPIDO)</pre>
+
+      <pre style="background:#0f1724;color:#cbd5e1;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:0.78rem;line-height:1.5;overflow-x:auto;">QUIZ 5  (contacto a meio)
+ 1 Recolha  2 Entrega  3 Volumes  4 Peso  [MURO ~28%]
+ 5 Nome ] 6 Telefone ] 7 Email ]  &gt;&gt; reengajável a partir do email
+ 8 Dimensões  9 Urgência  10 Material  11 Embalagem  12 Resumo -> LEAD
+
+QUIZ 6  (email antes do telefone + urgência cedo + advertência no topo)
+ 1 Recolha  2 Entrega  3 Urgência (1 toque)  4 Volumes  5 Peso [MURO]
+ 6 Nome ] 7 Email ] (contacto)  &gt;&gt; reengajável a partir daqui (basta o email)
+ 8 Telefone ]  9 Dimensões  10 Material  11 Embalagem  12 Resumo -> LEAD
+
+QUIZ 6b = Quiz 6, mas Volumes por chips e Peso por FAIXAS  -> desarma o [MURO do peso]
+QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei)</pre>
+
+      <h3>Cobertura do reengajamento</h3>
+      <p>O toque de "quiz abandonado" só consegue contactar quem já deu <strong>nome + email</strong> (ou telefone). Por isso a
+      posição do contacto define a partir de que passo o abandono é recuperável:</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Família</th><th>Contacto captado em</th><th>Reengajável a partir de</th><th>Nota</th></tr></thead>
+        <tbody>
+          <tr><td>Contacto-primeiro (base/B/3/4)</td><td>passos 1–3</td><td>passo 3 (email)</td><td>rede ampla, mas muitos saem no passo 1</td></tr>
+          <tr><td>Contacto-a-meio (Quiz 5)</td><td>passos 5–7</td><td>passo 7 (email)</td><td>menos abandono inicial</td></tr>
+          <tr><td>Contacto-a-meio (Quiz 6/6b/6c)</td><td>passos 6–8</td><td>passo 7 (email)</td><td>email antes do telefone reforça a rede</td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="callout info"><div class="callout-icon">i</div><div>Quem abandona <strong>antes do email</strong> não é reengajável
+      (não há contacto) — é inerente, não é falha. Por isso vale a pena baixar as fugas iniciais (peso por faixas, dimensões por
+      presets) para levar mais gente até ao passo do contacto.</div></div>
+
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Como medir cada teste:</strong> controlo = a variante
+      anterior da cadeia (ex.: 6b para avaliar a 6c). Métrica principal <strong>visita → lead</strong> nos Relatórios; confirmar com o
+      <strong>drop-off por passo</strong> se o muro visado caiu. Não decidir com menos de ~30 leads por variante.</div></div>
+
+      <p style="font-size:0.85rem;color:var(--muted);margin-top:14px;">O guia técnico completo (com prós/contras detalhados e roadmap
+      de novas variantes) vive em <code>MANUAL_VARIANTES.md</code> no repositório.</p>
     </div>
 
     <hr>

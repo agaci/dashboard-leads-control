@@ -368,18 +368,18 @@ export default function DashboardPage() {
           {/* Lista — hidden on mobile when a lead is selected */}
           <div
             style={{
-              width: isMobile ? '100%' : 340,
+              width: isMobile ? '100%' : 460,
               flexShrink: 0,
               display: isMobile && selected ? 'none' : 'flex',
               flexDirection: 'column',
-              borderRight: '1px solid rgba(255,255,255,0.06)',
+              borderRight: '1px solid var(--yb-border)',
               background: 'var(--yb-card)',
               overflow: 'hidden',
             }}
           >
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 16px 10px' }}>
-              <h1 style={{ fontSize: 16, fontWeight: 600, color: 'var(--yb-fg)', margin: 0, letterSpacing: '-0.01em' }}>Leads</h1>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px 20px 12px' }}>
+              <h1 style={{ fontSize: 20, fontWeight: 700, color: 'var(--yb-fg)', margin: 0, letterSpacing: '-0.02em' }}>Leads</h1>
               <button
                 onClick={fetchLeads}
                 title="Actualizar"
@@ -394,9 +394,9 @@ export default function DashboardPage() {
             </div>
 
             {/* Search */}
-            <div style={{ padding: '0 12px 10px' }}>
+            <div style={{ padding: '0 20px 12px' }}>
               <div style={{ position: 'relative' }}>
-                <svg style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: 'var(--yb-subtle)' }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <svg style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', color: 'var(--yb-subtle)' }} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
                 </svg>
                 <input
@@ -405,11 +405,11 @@ export default function DashboardPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   style={{
-                    width: '100%', height: 36, borderRadius: 8,
-                    border: '1px solid rgba(255,255,255,0.08)',
-                    background: 'rgba(255,255,255,0.04)',
-                    paddingLeft: 30, paddingRight: 10,
-                    fontSize: 12, color: 'var(--yb-fg)', outline: 'none',
+                    width: '100%', height: 40, borderRadius: 8,
+                    border: '1px solid var(--yb-border)',
+                    background: 'var(--yb-card-2)',
+                    paddingLeft: 36, paddingRight: 12,
+                    fontSize: 14, color: 'var(--yb-fg)', outline: 'none',
                     boxSizing: 'border-box',
                   }}
                   onFocus={(e) => { (e.target as HTMLInputElement).style.borderColor = 'rgba(0,188,212,0.4)'; }}
@@ -418,8 +418,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            {/* Filters — tipo */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 12px 8px' }}>
+            {/* Filters — tipo (grid p/ linhas equilibradas, sem botao orfao) */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 4, padding: '0 20px 8px' }}>
               {(['all', 'leads', 'sims', 'urgente'] as const).map((f) => {
                 const label = f === 'all' ? 'Todas' : f === 'leads' ? 'AUTO' : f === 'sims' ? 'MANUAL' : 'Urgente';
                 const active = filter === f;
@@ -429,12 +429,12 @@ export default function DashboardPage() {
                     key={f}
                     onClick={() => setFilter(f as any)}
                     style={{
-                      display: 'inline-flex', alignItems: 'center', gap: 5,
-                      padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6, width: '100%',
+                      padding: '4px 8px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       fontSize: 11, fontWeight: 600,
-                      background: active ? 'rgba(0,188,212,0.14)' : 'rgba(255,255,255,0.04)',
-                      color: active ? '#00bcd4' : '#8B9EC9',
-                      boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.07)',
+                      background: active ? 'rgba(0,188,212,0.14)' : 'var(--yb-card-2)',
+                      color: active ? '#00bcd4' : 'var(--yb-muted)',
+                      boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.35)' : 'inset 0 0 0 1px var(--yb-border)',
                       transition: 'all 0.15s',
                     }}
                   >
@@ -456,7 +456,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Filters — data */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 12px 12px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 20px 16px' }}>
               {(['all', 'hoje', 'ontem', 'semana'] as const).map((df) => {
                 const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : df === 'ontem' ? 'Ontem' : 'Semana';
                 const active = dateFilter === df;
@@ -465,11 +465,11 @@ export default function DashboardPage() {
                     key={df}
                     onClick={() => setDateFilter(df)}
                     style={{
-                      padding: '3px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                      padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                       fontSize: 11, fontWeight: 600,
-                      background: active ? 'rgba(0,188,212,0.14)' : 'rgba(255,255,255,0.04)',
-                      color: active ? '#00bcd4' : '#4a6080',
-                      boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                      background: active ? 'rgba(0,188,212,0.14)' : 'var(--yb-card-2)',
+                      color: active ? '#00bcd4' : 'var(--yb-muted)',
+                      boxShadow: active ? 'inset 0 0 0 1px rgba(0,188,212,0.35)' : 'inset 0 0 0 1px var(--yb-border)',
                     }}
                   >
                     {label}
@@ -482,11 +482,11 @@ export default function DashboardPage() {
                   onClick={() => setShowDatePopover((v) => !v)}
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '3px 9px', borderRadius: 6, border: 'none', cursor: 'pointer',
+                    padding: '4px 10px', borderRadius: 6, border: 'none', cursor: 'pointer',
                     fontSize: 11, fontWeight: 600,
-                    background: dateFilter === 'custom' ? 'rgba(0,188,212,0.14)' : 'rgba(255,255,255,0.04)',
-                    color: dateFilter === 'custom' ? '#00bcd4' : '#4a6080',
-                    boxShadow: dateFilter === 'custom' ? 'inset 0 0 0 1px rgba(0,188,212,0.3)' : 'inset 0 0 0 1px rgba(255,255,255,0.06)',
+                    background: dateFilter === 'custom' ? 'rgba(0,188,212,0.14)' : 'var(--yb-card-2)',
+                    color: dateFilter === 'custom' ? '#00bcd4' : 'var(--yb-muted)',
+                    boxShadow: dateFilter === 'custom' ? 'inset 0 0 0 1px rgba(0,188,212,0.35)' : 'inset 0 0 0 1px var(--yb-border)',
                   }}
                 >
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -498,9 +498,9 @@ export default function DashboardPage() {
                   <div
                     ref={datePopoverRef}
                     style={{
-                      position: 'absolute', left: 0, top: 'calc(100% + 6px)', zIndex: 50,
-                      width: 220, borderRadius: 10,
-                      border: '1px solid rgba(255,255,255,0.1)',
+                      position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 50,
+                      width: 220, maxWidth: 'calc(100vw - 24px)', borderRadius: 10,
+                      border: '1px solid var(--yb-border)',
                       background: 'var(--yb-card-2)',
                       boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
                       padding: 14,
@@ -519,7 +519,7 @@ export default function DashboardPage() {
                       }}
                       style={{
                         width: '100%', borderRadius: 7,
-                        border: '1px solid rgba(255,255,255,0.12)',
+                        border: '1px solid var(--yb-border)',
                         background: 'var(--yb-input)',
                         padding: '6px 10px', fontSize: 12,
                         color: 'var(--yb-fg)', outline: 'none',

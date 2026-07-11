@@ -354,7 +354,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   return (
     <div className="flex h-full bg-background">
       {/* ── Lista de conversas ──────────────────────────────── */}
-      <div className={`${isMobile ? 'w-full' : 'w-[500px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
+      <div className={`${isMobile ? 'w-full' : 'w-[460px]'} shrink-0 flex flex-col border-r border-border bg-card${isMobile && selected ? ' hidden' : ''}`}>
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-5 pb-3">
           <h1 className="text-xl font-bold tracking-tight text-foreground">Inbox</h1>
@@ -381,10 +381,10 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
           </div>
         </div>
 
-        {/* Filtros de estado */}
-        <div className="flex flex-wrap gap-1.5 px-5 pb-2">
+        {/* Filtros de estado — grid p/ linhas equilibradas (nunca 1 botao sozinho) */}
+        <div className="grid grid-cols-3 gap-1 px-5 pb-2">
           {(['active', 'escalated', 'contact', 'clientmatch', 'all', 'closed'] as const).map((f) => {
-            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'contact' ? 'Pede contacto' : f === 'clientmatch' ? 'Provável cliente' : f === 'closed' ? 'Fechadas' : 'Todas';
+            const label = f === 'active' ? 'Activas' : f === 'escalated' ? 'Escaladas' : f === 'contact' ? 'Contacto' : f === 'clientmatch' ? 'Prov. cliente' : f === 'closed' ? 'Fechadas' : 'Todas';
             const count = counts[f];
             const active = filter === f;
             const isEscalated = f === 'escalated';
@@ -395,20 +395,22 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
+                className={`flex w-full items-center justify-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-semibold whitespace-nowrap transition-colors ${
                   active
-                    ? (isContact ? 'bg-red-600 text-white' : isClientMatch ? 'bg-emerald-600 text-white' : 'bg-cyan text-white')
+                    ? (isContact ? 'border-red-400 bg-red-500/15 text-red-600'
+                       : isClientMatch ? 'border-emerald-400 bg-emerald-500/15 text-emerald-700'
+                       : 'border-cyan bg-cyan-soft text-cyan')
                     : contactAlarm
-                      ? 'bg-red-600 text-white animate-pulse'
+                      ? 'border-red-300 bg-red-500/10 text-red-600 animate-pulse'
                       : isClientMatch && count > 0
-                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-                        : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-border bg-secondary/50 text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {label}
                 {count > 0 && (
-                  <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold ${
-                    active || contactAlarm ? 'bg-white/25 text-white' : isClientMatch ? 'bg-emerald-500 text-white' : isEscalated ? 'bg-destructive text-white' : 'bg-orange text-white'
+                  <span className={`inline-flex h-4 min-w-4 items-center justify-center rounded px-1 text-[9px] font-bold text-white ${
+                    isContact ? 'bg-red-500' : isClientMatch ? 'bg-emerald-500' : isEscalated ? 'bg-destructive' : f === 'active' ? 'bg-cyan' : 'bg-orange'
                   }`}>
                     {count > 99 ? '99+' : count}
                   </span>
@@ -419,7 +421,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
         </div>
 
         {/* Filtros de data */}
-        <div className="flex flex-wrap gap-1.5 px-5 pb-4">
+        <div className="flex flex-wrap gap-1 px-5 pb-4">
           {(['all', 'hoje', 'ontem', 'semana'] as const).map((df) => {
             const label = df === 'all' ? 'Sempre' : df === 'hoje' ? 'Hoje' : df === 'ontem' ? 'Ontem' : 'Semana';
             const active = dateFilter === df;
@@ -427,8 +429,8 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               <button
                 key={df}
                 onClick={() => setDateFilter(df)}
-                className={`rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                  active ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+                className={`rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                  active ? 'border-brand-purple bg-brand-purple-soft text-brand-purple' : 'border-border bg-secondary/50 text-muted-foreground hover:bg-muted'
                 }`}
               >
                 {label}
@@ -439,8 +441,8 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
           <div className="relative">
             <button
               onClick={() => setShowDatePopover((v) => !v)}
-              className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition-colors ${
-                dateFilter === 'custom' ? 'bg-brand-purple text-white' : 'bg-secondary text-secondary-foreground hover:bg-muted'
+              className={`inline-flex items-center gap-1 rounded-md border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
+                dateFilter === 'custom' ? 'border-brand-purple bg-brand-purple-soft text-brand-purple' : 'border-border bg-secondary/50 text-muted-foreground hover:bg-muted'
               }`}
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -451,7 +453,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
             {showDatePopover && (
               <div
                 ref={datePopoverRef}
-                className="absolute left-0 top-full mt-1.5 z-50 w-64 rounded-xl border border-border bg-card shadow-elevated p-4"
+                className="absolute right-0 top-full mt-1.5 z-50 w-64 max-w-[calc(100vw-24px)] rounded-xl border border-border bg-card shadow-elevated p-4"
               >
                 <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Escolher data</p>
                 <input
