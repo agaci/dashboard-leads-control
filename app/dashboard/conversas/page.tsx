@@ -718,11 +718,11 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
 
             <DeleteDialog
               open={confirmDelConv}
-              kind="conversation"
-              linkedLabel={selected.leadId ? `lead${selected.data?.nome ? ` de ${selected.data.nome}` : ''}` : null}
+              title="Apagar conversa?"
+              options={selected.leadId ? [{ id: 'lead', label: `Apagar também a lead associada${selected.data?.nome ? ` de ${selected.data.nome}` : ''}.`, hint: 'Apagar a conversa não apaga a lead; marque para remover ambas.' }] : []}
               busy={deletingConv}
               error={delConvError}
-              onConfirm={(code, also) => deleteConv(code, also)}
+              onConfirm={(code, checked) => deleteConv(code, !!checked.lead)}
               onCancel={() => { setConfirmDelConv(false); setDelConvError(null); }}
             />
 

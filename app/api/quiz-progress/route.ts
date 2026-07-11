@@ -78,8 +78,9 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const body = raw ? JSON.parse(raw) : {};
-    const { sessionId, event, step, stepIndex, total, label, data, variante, geo } = body as {
+    const { sessionId, visitSid, event, step, stepIndex, total, label, data, variante, geo } = body as {
       sessionId?: string;
+      visitSid?: string;
       event?: 'progress' | 'submit' | 'geo';
       step?: string;
       stepIndex?: number;
@@ -145,6 +146,7 @@ export async function POST(req: NextRequest) {
           step: isSubmit ? 'LEAD_REGISTERED' : 'QUIZ_IN_PROGRESS',
           quizStep: step ?? null,
           ...(variante ? { quizVariante: variante } : {}),
+          ...(visitSid ? { visitSid } : {}),
           ...dataSet,
           updatedAt: now,
           ...(isSubmit ? { closedAt: now } : {}),

@@ -1712,11 +1712,11 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
 
       <DeleteDialog
         open={confirmDel}
-        kind="lead"
-        linkedLabel={currentLead.linkedConvId ? `conversa${nome ? ` de ${nome}` : ''}` : null}
+        title="Apagar lead?"
+        options={currentLead.linkedConvId ? [{ id: 'conversation', label: `Apagar também a conversa associada${nome ? ` de ${nome}` : ''}.`, hint: 'Apagar a lead não apaga a conversa; marque para remover ambas.' }] : []}
         busy={deleting}
         error={delError}
-        onConfirm={(code, also) => handleDelete(code, also)}
+        onConfirm={(code, checked) => handleDelete(code, !!checked.conversation)}
         onCancel={() => { setConfirmDel(false); setDelError(null); }}
       />
 

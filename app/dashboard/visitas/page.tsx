@@ -1,8 +1,10 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { VisitasMap, type VisitPing } from '../VisitasMap';
+import { DeleteDialog } from '../DeleteDialog';
 
 const CYAN = '#00bcd4';
 const NAVY = '#1a2332';
@@ -118,7 +120,12 @@ function IcoDevice({ device, size = 13, color = MUTED }: { device?: string | nul
 
 export default function VisitasPage() {
   const isMobile = useIsMobile();
+  const { data: sessionData } = useSession();
+  const isAdmin = (sessionData?.user as any)?.role === 'administrator';
   const [visits, setVisits] = useState<Visit[]>([]);
+  const [delVisit, setDelVisit] = useState<Visit | null>(null);
+  const [delBusy, setDelBusy] = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
   const [pings, setPings] = useState<VisitPing[]>([]);
   const [range, setRange] = useState<Range>('hoje');
   const [todayCount, setTodayCount] = useState(0);
@@ -137,6 +144,29 @@ export default function VisitasPage() {
     }
     if (fresh.length) setPings((prev) => [...prev, ...fresh].slice(-60));
   }, []);
+
+  // Apagar visita (só admin, com código). Cascata opcional: conversa + lead associadas.
+  const deleteVisit = useCallback(async (code: string, checked: Record<string, boolean>) => {
+    if (!delVisit) return;
+    setDelBusy(true);
+    setDelError(null);
+    try {
+      const res = await fetch(`/api/visit/${encodeURIComponent(delVisit.sessionId)}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, alsoDeleteConversation: !!checked.conversation, alsoDeleteLead: !!checked.lead }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const sid = delVisit.sessionId;
+        setVisits((prev) => prev.filter((v) => v.sessionId !== sid));
+        setDelVisit(null);
+      } else {
+        setDelError(j.error || 'Falha ao apagar.');
+      }
+    } catch { setDelError('Falha ao apagar.'); }
+    setDelBusy(false);
+  }, [delVisit]);
 
   // Carregar a lista da coluna para o intervalo escolhido.
   const loadList = useCallback(async (r: Range) => {
@@ -324,7 +354,21 @@ export default function VisitasPage() {
                         {placeLabel(g)}
                       </strong>
                     </span>
-                    <span style={{ fontSize: 11, color: SUBTLE, flexShrink: 0 }}>{timeAgo(v.firstSeen)}</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                      <span style={{ fontSize: 11, color: SUBTLE }}>{timeAgo(v.firstSeen)}</span>
+                      {isAdmin && (
+                        <span
+                          role="button"
+                          title="Apagar visita"
+                          onClick={(e) => { e.stopPropagation(); setDelError(null); setDelVisit(v); }}
+                          style={{ display: 'inline-flex', cursor: 'pointer', color: '#c0c6d0', padding: 2, borderRadius: 5 }}
+                          onMouseEnter={(e) => { (e.currentTarget as HTMLSpanElement).style.color = '#dc2626'; }}
+                          onMouseLeave={(e) => { (e.currentTarget as HTMLSpanElement).style.color = '#c0c6d0'; }}
+                        >
+                          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                        </span>
+                      )}
+                    </span>
                   </div>
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 5 }}>
@@ -354,6 +398,19 @@ export default function VisitasPage() {
           </div>
         </div>
       </div>
+
+      <DeleteDialog
+        open={!!delVisit}
+        title="Apagar visita?"
+        options={[
+          { id: 'conversation', label: 'Apagar também a conversa (inbox) associada, se existir.' },
+          { id: 'lead', label: 'Apagar também a lead associada, se existir.', hint: 'A ligação visita→conversa só existe em visitas novas (após a unificação do ID).' },
+        ]}
+        busy={delBusy}
+        error={delError}
+        onConfirm={(code, checked) => deleteVisit(code, checked)}
+        onCancel={() => { setDelVisit(null); setDelError(null); }}
+      />
     </div>
   );
 }
