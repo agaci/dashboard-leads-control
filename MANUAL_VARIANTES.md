@@ -6,8 +6,10 @@
 > a **mecânica do formulário** e, no quiz, a **ordem dos passos**.
 >
 > Como se distinguem no dashboard: cada lead/visita traz a `variante`
-> (Site A/B/C/D, Quiz, Quiz 3/4/5) — vês nos badges das Leads, no chip do Inbox e no
-> **Funil por variante** dos Relatórios.
+> (Site A/B/C/D, Quiz, Quiz 3/4/5/6/6b/6c) — vês nos badges das Leads, no chip do Inbox,
+> no **Funil por variante** e no **drop-off por passo** dos Relatórios.
+>
+> Para o mapa visual da sequência de cada variante, ver **§5. Fluxograma completo**.
 
 ---
 
@@ -111,6 +113,36 @@ urgência · material · embalagem · confirmação` (11 passos).
 > prende muito mais visitantes na passagem visita→conversa. Confirma a hipótese de que
 > **contacto-primeiro afasta gente logo à entrada**.
 
+### Quiz 6 — `index-quiz-6`  ·  contacto a meio, **email antes do telefone** + **urgência cedo**
+- **Dinâmica:** evolução da Quiz 5. Ordem: `recolha · entrega · **urgência** · volumes ·
+  peso · **nome · email · telefone** · dimensões · material · embalagem · confirmação`.
+  Duas mudanças face à Quiz 5: (1) o **email vem antes do telefone** — o telefone é o
+  campo de maior fricção, e pedindo email primeiro ("para onde enviamos o orçamento?")
+  captamos contacto mesmo que desistam no telefone; (2) a **urgência sobe para 3º**
+  (1 toque, logo após a rota) para segmentar cedo e dar sensação de progresso. Traz ainda
+  uma **advertência no topo** ("responda a todas as perguntas — mais completo, mais
+  rigoroso é o orçamento") e um subtítulo sem promessa de espera ("tratamos já do seu
+  orçamento").
+- **Prós:** reforça a rede de reengajamento (basta o email para tocar quem desiste); urgência precoce.
+- **Contras:** contacto continua a meio (não no fim).
+
+### Quiz 6b — `index-quiz-6b`  ·  Quiz 6 + **carga inteligente**
+- **Dinâmica:** igual à Quiz 6, mas os passos de carga deixam de ser texto livre:
+  **volumes por chips** (1–5, um toque, + campo para "mais de 5") e **peso por faixas**
+  com exemplos concretos ("Até 5 kg — ex.: caixa de roupa", …, "Não sei — estimamos").
+- **Porquê:** o drop-off por passo mostrou que o **peso** ("peso médio por volume") é o
+  novo muro da família 5/6 (~28% de fuga). As faixas com exemplos e o "Não sei" desarmam-no.
+- **Isola:** 6b vs 6 mede o efeito puro da carga inteligente (ambas email-first).
+
+### Quiz 6c — `index-quiz-6c`  ·  Quiz 6b + **dimensões por presets**
+- **Dinâmica:** igual à Quiz 6b, mas as dimensões (C×L×A) passam a **presets**: "Caixa
+  pequena / média / grande · Palete · Não sei" (um toque). Cada preset guarda um C×L×A
+  representativo, mantendo a precisão do preço (espaço ocupado ≠ peso).
+- **Porquê:** elimina a sensação de "pedir o tamanho outra vez" e a fricção dos 3 campos,
+  coerente com o estilo das outras faixas. As dimensões têm fuga baixa (0–3% nos dados),
+  por isso convertem-se — não se apagam (perder-se-ia a precisão do peso volumétrico).
+- **Isola:** 6c vs 6b mede o efeito das dimensões por presets.
+
 ---
 
 ## 4. Resumo rápido (matriz)
@@ -124,57 +156,151 @@ urgência · material · embalagem · confirmação` (11 passos).
 | Quiz / Quiz 3 | Contacto-primeiro | **Alta** (muro cedo) | Alta se concluir | Base A/B (Quiz 3) |
 | Quiz B | Igual + animação | Alta | Alta | Gamificado |
 | Quiz 4 | + atalho concluir | Alta | Alta (menos carga) | Tira o muro das dimensões |
-| **Quiz 5** | **Contacto a meio** | **Baixa** | Alta | **Recomendada** |
+| Quiz 5 | Contacto a meio | Baixa | Alta | Vencedora anterior |
+| Quiz 6 | Contacto a meio, email→telefone, urgência cedo | Baixa | Alta | Base actual da família 6 |
+| Quiz 6b | Quiz 6 + carga inteligente (chips/faixas) | Baixa | Alta | Ataca o muro do peso |
+| **Quiz 6c** | **Quiz 6b + dimensões por presets** | **Baixa** | Alta | **Mais recente** |
 
 ---
 
-## 5. Que variantes testar a seguir (roadmap de experiências)
+## 5. Fluxograma completo das variantes
 
-Priorizadas por impacto esperado × esforço. Testar **uma variável de cada vez** contra
-a vencedora actual (Quiz 5).
+Sequência de cada variante, com o **momento do contacto**, os **muros conhecidos** (fuga
+real medida no *drop-off por passo* dos Relatórios) e a partir de onde o **reengajamento**
+consegue tocar o visitante.
 
-1. **Quiz 6 — contacto ainda mais tarde + email antes do telefone.**
-   Ordem: rota → carga → **email → (telefone opcional)** → dimensões → resto. O telefone
-   é o campo que mais mata conversão; pedir **email primeiro** e telefone opcional deve
-   captar mais contactos. Enquadrar como "para onde enviamos o orçamento?".
+**Legenda:**
+- `(contacto)` — passo(s) onde se capta nome / email / telefone
+- `[MURO]` — passo com abandono elevado nos dados
+- `>> reengajável` — a partir daqui há contacto suficiente (nome + email) para o toque de quiz abandonado
+- Fim: `-> LEAD` (submeteu) **ou** abandono silencioso (fica "Activa" até fecho manual / expiração 24h)
 
-2. **Quiz 7 — urgência primeiro.**
-   Perguntar a **urgência (1 clique)** logo a seguir à rota, para segmentar cedo e dar
-   sensação de avanço rápido antes de pedir dados.
+### Landing (calculadora) — 1 ecrã ou poucos passos
 
-3. **Quiz 8 — dimensões por presets.**
-   Substituir os 3 campos C×L×A por **"Caixa pequena/média/grande · Palete · Não sei"**
-   (um toque). Ataca directamente o passo que mais abandona.
+```
+Site A   Rota + serviço -> [PREÇO] -> (contacto) -> LEAD
+Site B   Tudo num ecrã -> submete -> (contacto) -> LEAD
+Site C   5 passos -> preço   ||   "prefiro falar" -> (callback) -> LEAD fria
+Site D   perfil progressivo (pouco de cada vez) -> (contacto/callback) -> LEAD
+```
 
-4. **Landing com orçamento instantâneo (mobile-first).**
+### Quiz — família CONTACTO-PRIMEIRO (base / B / 3 / 4)
+
+```
+QUIZ  ·  QUIZ B  ·  QUIZ 3
+ 1  Nome      ]
+ 2  Telefone  ] (contacto)     [MURO: ~21-23% saem logo no passo 1]
+ 3  Email     ]  >> reengajável a partir daqui
+ 4  Recolha
+ 5  Entrega
+ 6  Volumes
+ 7  Peso
+ 8  Dimensões
+ 9  Urgência
+10  Material
+11  Embalagem
+12  Resumo  -> LEAD
+   (Quiz B = igual + animação de caixas;  Quiz 3 = referência limpa)
+
+QUIZ 4  (= base + atalho)
+   Assim que há Nome + Contacto + Rota aparece "Concluir e pedir orçamento agora"
+   -> salta dimensões / material / embalagem -> LEAD marcada QUIZ4-RAPIDO
+```
+
+### Quiz — família CONTACTO-A-MEIO (5 / 6 / 6b / 6c)
+
+```
+QUIZ 5
+ 1  Recolha
+ 2  Entrega
+ 3  Volumes
+ 4  Peso            [MURO: ~28% — "peso médio por volume" é confuso]
+ 5  Nome      ]
+ 6  Telefone  ] (contacto)
+ 7  Email     ]  >> reengajável a partir daqui (precisa do email)
+ 8  Dimensões
+ 9  Urgência
+10  Material
+11  Embalagem
+12  Resumo  -> LEAD
+
+QUIZ 6  (email antes do telefone + urgência cedo + advertência no topo)
+ 1  Recolha
+ 2  Entrega
+ 3  Urgência        (1 toque — segmenta cedo, dá progresso)
+ 4  Volumes
+ 5  Peso            [MURO do peso]
+ 6  Nome      ]
+ 7  Email     ] (contacto)   >> reengajável a partir daqui (basta o email)
+ 8  Telefone  ]
+ 9  Dimensões
+10  Material
+11  Embalagem
+12  Resumo  -> LEAD
+
+QUIZ 6b  (= Quiz 6, mas Volumes por chips 1-5 e Peso por FAIXAS com exemplos)
+   -> desarma o [MURO do peso]
+
+QUIZ 6c  (= Quiz 6b, mas Dimensões por PRESETS: Caixa P/M/G · Palete · Não sei)
+```
+
+### Cobertura do reengajamento por família
+
+| Família | Contacto captado em | Reengajável a partir de | Nota |
+|---|---|---|---|
+| Contacto-primeiro (base/B/3/4) | passos 1–3 | passo 3 (email) | rede ampla, mas muitos saem no passo 1 |
+| Contacto-a-meio (Quiz 5) | passos 5–7 | passo 7 (email) | menos abandono inicial |
+| Contacto-a-meio (Quiz 6/6b/6c) | passos 6–8 | **passo 7 (email)** | email antes do telefone reforça a rede |
+
+> Quem abandona **antes do email** não é reengajável (não há contacto) — é inerente, não é
+> falha. Por isso vale a pena continuar a baixar as fugas iniciais (peso por faixas,
+> dimensões por presets) para levar mais gente até ao passo do contacto.
+
+---
+
+## 6. Que variantes testar a seguir (roadmap de experiências)
+
+Testar **uma variável de cada vez**. A cadeia actual já isola cada mudança:
+**Quiz 6 → 6b** (carga inteligente: volumes/peso) e **6b → 6c** (dimensões por presets).
+
+**[FEITO]** — eram as ideias 1–3 deste roadmap:
+- **Email antes do telefone** → Quiz 6 (o telefone é o campo de maior fricção).
+- **Urgência cedo** → subiu para 3º na família 6 (antes "Quiz 7 — urgência primeiro").
+- **Dimensões por presets** → Quiz 6c; **peso por faixas** → Quiz 6b (antes "Quiz 8").
+
+**Ainda por testar** (por impacto esperado × esforço):
+
+1. **Landing com orçamento instantâneo (mobile-first).**
    73% das visitas são **telemóvel** → uma variante desenhada primeiro para telemóvel,
    com **preço estimado imediato** (rota → preço na hora) e contacto só para confirmar.
 
-5. **Exit-intent / nudge on-page.**
+2. **Exit-intent / nudge on-page.**
    Quem fica parado num passo ou vai sair recebe "Já temos quase tudo — carregue aqui e
    tratamos do resto" que submete com o que existe. Recupera **antes** de sair.
 
-6. **WhatsApp-first.**
+3. **WhatsApp-first.**
    CTA primário "Peça no WhatsApp" que abre conversa com a rota pré-preenchida. Testar
    se o canal preferido reduz fricção (ligado ao fluxo do bot).
 
-7. **Prova social real e dinâmica.**
+4. **Prova social real e dinâmica.**
    Reintroduzir prova social **apenas com dados reais** (ex.: avaliações Google) e num
    **endpoint read-only** (nunca chamar o endpoint de preço para isso — foi o que gerou
    simulações falsas no passado).
 
-8. **Menos passos (compressão).**
+5. **Menos passos (compressão).**
    Juntar volumes+peso num só ecrã, dimensões opcionais → reduzir de 11 para ~7 passos.
    Testar "quiz curto" vs "quiz completo".
 
 ### Como medir cada teste
-- Mesmo período, **Quiz 5 como controlo**.
-- Métrica principal: **visita → lead (funil completo)** nos Relatórios; secundária:
-  conclusão **conversa → lead** e **contactos captados/visita**.
+- Mesmo período, **controlo = a variante anterior da cadeia** (ex.: 6b para avaliar a 6c);
+  face à família anterior, usar a **Quiz 5** como referência histórica.
+- Métrica principal: **visita → lead (funil completo)** nos Relatórios; secundárias:
+  conclusão **conversa → lead**, **contactos captados/visita** e o **drop-off por passo**
+  (confirma se o muro visado — ex.: peso, dimensões — realmente caiu).
 - Amostra mínima antes de concluir (evitar decidir com < ~30 leads por variante).
-- Dar nome próprio a cada nova página (`window.YB_QUIZ_VARIANTE = 'QUIZ6'…`) para
-  aparecer distinta no dashboard.
+- Dar nome próprio a cada nova página (`window.YB_QUIZ_VARIANTE = 'QUIZ6C'…`) e registá-la
+  na rotação (config de variantes) para aparecer distinta no dashboard.
 
 ---
 
-*Actualizado: Julho 2026. Manter em dia à medida que novas variantes entram em rotação.*
+*Actualizado: Julho 2026 — após Quiz 6/6b/6c, advertência no topo, urgência cedo e §5 Fluxograma completo. Manter em dia à medida que novas variantes entram em rotação.*
