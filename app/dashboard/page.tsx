@@ -8,7 +8,7 @@ import ParceirosPage from './parceiros/page';
 import ConversasPage from './conversas/page';
 import VisitasPage from './visitas/page';
 import ContactAlertBanner from './ContactAlertBanner';
-import { ConfirmDialog } from './ConfirmDialog';
+import { DeleteDialog } from './DeleteDialog';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
@@ -113,6 +113,7 @@ type Lead = {
   clientId?: string | null;
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[] } | null;
   convId?: string | null;
+  linkedConvId?: string | null;
 };
 
 const VARIANTE_LABELS: Record<string, string> = {
@@ -1576,16 +1577,24 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
   const [converting, setConverting] = useState(false);
   const [confirmDel, setConfirmDel] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [delError, setDelError] = useState<string | null>(null);
 
-  async function handleDelete() {
+  // Apagar lead (só admin, com código). alsoDeleteConversation: apaga também a conversa
+  // associada no inbox (apagar a lead não a apaga por si só).
+  async function handleDelete(code: string, alsoDeleteConversation: boolean) {
     setDeleting(true);
+    setDelError(null);
     try {
-      const res = await fetch(`/api/leads/${currentLead.id}`, { method: 'DELETE' });
-      if (res.ok) { onDeleted?.(currentLead.id); }
-      else { alert('Sem permissão ou falha ao apagar.'); }
-    } catch { alert('Falha ao apagar.'); }
+      const res = await fetch(`/api/leads/${currentLead.id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, alsoDeleteConversation }),
+      });
+      const j = await res.json().catch(() => ({}));
+      if (res.ok) { onDeleted?.(currentLead.id); setConfirmDel(false); }
+      else { setDelError(j.error || 'Falha ao apagar.'); }
+    } catch { setDelError('Falha ao apagar.'); }
     setDeleting(false);
-    setConfirmDel(false);
   }
 
   // Sugestão "provável cliente" (mesma da conversa no inbox) — confirmar/ignorar aqui.
@@ -1701,13 +1710,14 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
         </div>
       </div>
 
-      <ConfirmDialog
+      <DeleteDialog
         open={confirmDel}
-        title="Apagar lead?"
-        message={`Vai apagar definitivamente a lead de ${nome}. Esta ação é irreversível e remove-a das estatísticas.`}
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDel(false)}
+        kind="lead"
+        linkedLabel={currentLead.linkedConvId ? `conversa${nome ? ` de ${nome}` : ''}` : null}
         busy={deleting}
+        error={delError}
+        onConfirm={(code, also) => handleDelete(code, also)}
+        onCancel={() => { setConfirmDel(false); setDelError(null); }}
       />
 
       {/* Sugestão "provável cliente" (mesma da conversa no inbox) */}

@@ -193,7 +193,7 @@ export async function POST(req: NextRequest) {
           : totalKg ? 'Furgão Classe 2' : null;
         const cargaHtml = totalKg ? `<p><b>Carga:</b> ${d.volumes ?? '?'} volumes · ${totalKg} kg · ${d.material ?? ''} · ${d.embalado ?? ''}</p>` : '';
 
-        await db.collection('messages').insertOne({
+        const ins = await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
           appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
           presentationMessage: 'stick', deletedAfter: 0,
@@ -209,6 +209,8 @@ export async function POST(req: NextRequest) {
             timeStamp: now, converted: true, convertedAt: now, source: 'quiz',
           },
         });
+        // Vincular a conversa à lead criada (link simétrico p/ o fluxo de apagar).
+        await col.updateOne({ quizSessionId: sessionId }, { $set: { leadId: ins.insertedId.toString() } });
       }
     }
 

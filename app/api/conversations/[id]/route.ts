@@ -4,23 +4,42 @@ import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
+import { checkDeleteCode } from '@/lib/deleteGuard';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
 }
 
-// DELETE — apagar uma conversa (só administrador). Hard delete: sai das estatísticas.
-export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+// DELETE — apagar uma conversa (só administrador, com código de servidor).
+// Hard delete: sai das estatísticas. Opcionalmente apaga também a lead associada
+// (body.alsoDeleteLead) — apagar a conversa NÃO apaga a lead por si só.
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions);
   if ((session?.user as any)?.role !== 'administrator') {
     return Response.json({ error: 'Sem permissão' }, { status: 403 });
   }
+  let body: any = {};
+  try { body = await req.json(); } catch { /* corpo vazio */ }
+  const gate = checkDeleteCode(body?.code);
+  if (!gate.ok) return Response.json({ error: gate.error }, { status: 403 });
+
   const { id } = await params;
   const oid = toOid(id);
   if (!oid) return Response.json({ error: 'invalid id' }, { status: 400 });
   const db = await getDb();
+
+  const conv = await db.collection('conversations').findOne({ _id: oid }, { projection: { leadId: 1 } });
   const r = await db.collection('conversations').deleteOne({ _id: oid });
-  return Response.json({ success: true, deleted: r.deletedCount });
+
+  let deletedLead = 0;
+  if (body?.alsoDeleteLead && conv?.leadId) {
+    const leadOid = toOid(String(conv.leadId));
+    if (leadOid) {
+      const lr = await db.collection('messages').deleteOne({ _id: leadOid });
+      deletedLead = lr.deletedCount ?? 0;
+    }
+  }
+  return Response.json({ success: true, deleted: r.deletedCount, deletedLead });
 }
 
 // PATCH — actualizar step ou flags manualmente (BO)

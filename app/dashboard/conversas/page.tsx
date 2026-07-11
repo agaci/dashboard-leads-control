@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import { MiniMap } from '../MiniMap';
-import { ConfirmDialog } from '../ConfirmDialog';
+import { DeleteDialog } from '../DeleteDialog';
 
 const CYAN   = '#00bcd4';
 const NAVY   = '#1a2332';
@@ -63,6 +63,7 @@ type ConvSummary = {
   contactRequestOpen?: boolean;
   contactRequestChannel?: string | null;
   quizVariante?: string | null;
+  leadId?: string;
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[]; serviceRoute?: string | null; serviceAt?: string | null } | null;
 };
 
@@ -131,6 +132,7 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
   const [selected, setSelected] = useState<ConvFull | null>(null);
   const [confirmDelConv, setConfirmDelConv] = useState(false);
   const [deletingConv, setDeletingConv] = useState(false);
+  const [delConvError, setDelConvError] = useState<string | null>(null);
   const [clientBusy, setClientBusy] = useState(false);
   const [filter, setFilter] = useState<'active' | 'escalated' | 'contact' | 'clientmatch' | 'closed' | 'all'>('active');
   const [dateFilter, setDateFilter] = useState<'all' | 'hoje' | 'ontem' | 'semana' | 'custom'>('hoje');
@@ -208,23 +210,30 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     fetchList();
   }, [fetchList]);
 
-  // Apagar conversa (só administrador) — hard delete, sai das estatísticas.
-  const deleteConv = useCallback(async () => {
+  // Apagar conversa (só administrador, com código) — hard delete, sai das estatísticas.
+  // alsoDeleteLead: apaga também a lead associada (apagar a conversa não a apaga sozinha).
+  const deleteConv = useCallback(async (code: string, alsoDeleteLead: boolean) => {
     if (!selected?._id) return;
     setDeletingConv(true);
+    setDelConvError(null);
     try {
-      const res = await fetch(`/api/conversations/${selected._id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/conversations/${selected._id}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, alsoDeleteLead }),
+      });
+      const j = await res.json().catch(() => ({}));
       if (res.ok) {
         const id = selected._id;
         setConversations((prev) => prev.filter((c) => c._id !== id));
         setSelected(null);
+        setConfirmDelConv(false);
         fetchList();
       } else {
-        alert('Sem permissão ou falha ao apagar.');
+        setDelConvError(j.error || 'Falha ao apagar.');
       }
-    } catch { alert('Falha ao apagar.'); }
+    } catch { setDelConvError('Falha ao apagar.'); }
     setDeletingConv(false);
-    setConfirmDelConv(false);
   }, [selected?._id, fetchList]);
 
   // Sugestão "provável cliente": confirmar (inbox -> lead + cliente) ou dispensar.
@@ -707,13 +716,14 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               </div>
             </div>
 
-            <ConfirmDialog
+            <DeleteDialog
               open={confirmDelConv}
-              title="Apagar conversa?"
-              message={`Vai apagar definitivamente esta conversa${selected.data?.nome ? ` de ${selected.data.nome}` : ''}. Esta ação é irreversível e remove-a das estatísticas.`}
-              onConfirm={deleteConv}
-              onCancel={() => setConfirmDelConv(false)}
+              kind="conversation"
+              linkedLabel={selected.leadId ? `lead${selected.data?.nome ? ` de ${selected.data.nome}` : ''}` : null}
               busy={deletingConv}
+              error={delConvError}
+              onConfirm={(code, also) => deleteConv(code, also)}
+              onCancel={() => { setConfirmDelConv(false); setDelConvError(null); }}
             />
 
             {/* Picker de motivo inline */}
