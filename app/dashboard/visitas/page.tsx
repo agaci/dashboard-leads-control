@@ -76,6 +76,7 @@ const VAR_META: Record<string, { label: string; bg: string; fg: string }> = {
   QUIZ5: { label: 'Quiz 5', bg: 'rgba(13,148,136,0.14)', fg: '#0d9488' },
   QUIZ6:  { label: 'Quiz 6',  bg: 'rgba(168,85,247,0.14)', fg: '#a855f7' },
   QUIZ6B: { label: 'Quiz 6b', bg: 'rgba(236,72,153,0.14)', fg: '#ec4899' },
+  QUIZ6C: { label: 'Quiz 6c', bg: 'rgba(6,182,212,0.14)',  fg: '#06b6d4' },
   A: { label: 'Site A', bg: 'rgba(139,92,246,0.14)', fg: '#7c3aed' },
   B: { label: 'Site B', bg: 'rgba(245,158,11,0.14)', fg: '#d97706' },
   C: { label: 'Site C', bg: 'rgba(16,185,129,0.14)', fg: '#059669' },
