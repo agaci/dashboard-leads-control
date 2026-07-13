@@ -279,15 +279,15 @@ export async function GET(request: NextRequest) {
     // é derivada dos próprios dados (moda por índice) — serve qualquer variante.
     const quizConvsRaw = await db.collection('conversations').find(
       { canal: 'web-quiz', createdAt: { $gte: dateFrom, $lte: dateTo } },
-      { projection: { quizVariante: 1, step: 1, 'history.step': 1, 'history.stepIndex': 1 } },
+      { projection: { quizVariante: 1, step: 1, 'history.step': 1, 'history.stepIndex': 1, 'history.timestamp': 1 } },
     ).limit(5000).toArray();
 
-    type VarAgg = { started: number; completed: number; maxIdxs: number[]; nameAt: Record<number, Record<string, number>> };
+    type VarAgg = { started: number; completed: number; maxIdxs: number[]; nameAt: Record<number, Record<string, number>>; durations: Record<number, number[]> };
     const byVar: Record<string, VarAgg> = {};
     for (const c of quizConvsRaw as any[]) {
       const vv = c.quizVariante ? String(c.quizVariante) : null;
       if (!vv || !/^QUIZ/i.test(vv)) continue;
-      const b = (byVar[vv] ??= { started: 0, completed: 0, maxIdxs: [], nameAt: {} });
+      const b = (byVar[vv] ??= { started: 0, completed: 0, maxIdxs: [], nameAt: {}, durations: {} });
       b.started++;
       if (c.step === 'LEAD_REGISTERED') b.completed++;
       let maxIdx = -1;
@@ -299,8 +299,19 @@ export async function GET(request: NextRequest) {
         if (h.step) { (b.nameAt[idx] ??= {})[h.step] = (b.nameAt[idx][h.step] ?? 0) + 1; }
       }
       b.maxIdxs.push(maxIdx);
+      // Tempo por passo: gaps entre eventos consecutivos (ordenados por timestamp).
+      const timed = hist
+        .filter((h: any) => typeof h?.stepIndex === 'number' && h?.timestamp)
+        .map((h: any) => ({ idx: h.stepIndex as number, t: new Date(h.timestamp).getTime() }))
+        .filter((h: any) => !isNaN(h.t))
+        .sort((a: any, b2: any) => a.t - b2.t);
+      for (let k = 1; k < timed.length; k++) {
+        const dt = timed[k].t - timed[k - 1].t;
+        if (dt >= 0 && dt < 30 * 60 * 1000) (b.durations[timed[k].idx] ??= []).push(dt);
+      }
     }
 
+    const DROPOFF_MIN = 30; // amostra mínima p/ os % e o "maior fuga" serem fiáveis
     const dropoff = Object.entries(byVar).map(([variante, b]) => {
       const maxObserved = b.maxIdxs.reduce((m, x) => Math.max(m, x), -1);
       const nameAt = (i: number): string => {
@@ -308,15 +319,22 @@ export async function GET(request: NextRequest) {
         if (!m) return `passo ${i + 1}`;
         return Object.entries(m).sort((a, c) => c[1] - a[1])[0][0];
       };
+      const median = (i: number): number | null => {
+        const arr = b.durations[i];
+        if (!arr || !arr.length) return null;
+        const s = [...arr].sort((a, c) => a - c);
+        const m = Math.floor(s.length / 2);
+        return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+      };
       const reached = (k: number) => b.maxIdxs.filter((x) => x >= k).length;
-      const steps: { index: number; step: string; reached: number; dropped: number; droppedPct: number | null }[] = [];
+      const steps: { index: number; step: string; reached: number; dropped: number; droppedPct: number | null; medianMs: number | null }[] = [];
       for (let k = 0; k <= maxObserved; k++) {
         const r = reached(k);
         const next = k < maxObserved ? reached(k + 1) : b.completed;
         const dropped = Math.max(0, r - next);
-        steps.push({ index: k, step: nameAt(k), reached: r, dropped, droppedPct: r > 0 ? Math.round((dropped / r) * 100) : null });
+        steps.push({ index: k, step: nameAt(k), reached: r, dropped, droppedPct: r > 0 ? Math.round((dropped / r) * 100) : null, medianMs: median(k) });
       }
-      return { variante, started: b.started, completed: b.completed, steps };
+      return { variante, started: b.started, completed: b.completed, reliable: b.started >= DROPOFF_MIN, steps };
     }).filter((d) => d.steps.length > 0).sort((a, b) => b.started - a.started);
 
     return Response.json({

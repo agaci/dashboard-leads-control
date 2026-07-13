@@ -27,8 +27,18 @@ type ReportData = {
   dropoff: DropoffVariant[];
 };
 
-type DropStep = { index: number; step: string; reached: number; dropped: number; droppedPct: number | null };
-type DropoffVariant = { variante: string; started: number; completed: number; steps: DropStep[] };
+type DropStep = { index: number; step: string; reached: number; dropped: number; droppedPct: number | null; medianMs: number | null };
+type DropoffVariant = { variante: string; started: number; completed: number; reliable?: boolean; steps: DropStep[] };
+
+const DROPOFF_MIN = 30; // amostra mínima p/ % e "maior fuga" fiáveis
+function fmtDur(ms: number | null): string {
+  if (ms == null) return '';
+  const s = Math.round(ms / 1000);
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return r ? `${m}m ${r}s` : `${m}m`;
+}
 
 const STEP_DROP_PT: Record<string, string> = {
   nome: 'Nome', telefone: 'Telemóvel', email: 'Email', origem: 'Recolha', destino: 'Entrega',
@@ -225,23 +235,34 @@ function ProjStat({ label, current, projected, uplift, pct, highlight }: {
 // Gráfico de drop-off por passo de uma variante de quiz
 function DropoffChart({ d }: { d: DropoffVariant }) {
   const top = d.started || 1;
-  // Passo com a maior fuga absoluta (o "muro")
-  let killerIdx = -1, killerDrop = 0;
-  d.steps.forEach((s, i) => { if (s.dropped > killerDrop) { killerDrop = s.dropped; killerIdx = i; } });
+  const reliable = d.reliable ?? d.started >= DROPOFF_MIN;
+  // "Maior fuga" (o muro) — só faz sentido crown com amostra suficiente.
+  let killerIdx = -1;
+  if (reliable) {
+    let killerDrop = 0;
+    d.steps.forEach((s, i) => { if (s.dropped > killerDrop) { killerDrop = s.dropped; killerIdx = i; } });
+  }
   return (
     <div>
+      {!reliable && (
+        <div style={{ marginBottom: 12, padding: '8px 11px', borderRadius: 8, background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.28)', fontSize: 11.5, color: TEXT2, lineHeight: 1.5 }}>
+          <strong style={{ color: '#f59e0b' }}>Amostra pequena ({d.started} iniciaram):</strong> os % e o "maior fuga" ainda são
+          ruído — cada saída é ~1 pessoa. Fiável a partir de ~{DROPOFF_MIN}. O nº alcançado e os tempos servem de indicação.
+        </div>
+      )}
       {d.steps.map((s, i) => {
         const w = Math.max(2, (s.reached / top) * 100);
         const isKiller = i === killerIdx && s.dropped > 0;
         return (
-          <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
-            <span style={{ width: 92, textAlign: 'right', fontSize: 11, color: TEXT2, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{STEP_DROP_PT[s.step] ?? s.step}</span>
+          <div key={s.index} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+            <span style={{ width: 84, textAlign: 'right', fontSize: 11, color: TEXT2, flexShrink: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{STEP_DROP_PT[s.step] ?? s.step}</span>
             <div style={{ flex: 1, height: 16, background: 'rgba(255,255,255,0.06)', borderRadius: 4, overflow: 'hidden' }}>
               <div style={{ width: `${w}%`, height: '100%', background: isKiller ? '#ef4444' : CYAN, opacity: 0.85, borderRadius: 4, transition: 'width 0.5s ease' }} />
             </div>
-            <span style={{ width: 30, fontSize: 12, fontWeight: 700, color: NAVY, textAlign: 'right' }}>{s.reached}</span>
-            <span style={{ width: 118, fontSize: 11, fontWeight: 700, color: s.dropped > 0 ? (isKiller ? '#ef4444' : '#f59e0b') : TEXT3 }}>
-              {s.dropped > 0 ? `-${s.dropped}${s.droppedPct != null ? ` (-${s.droppedPct}%)` : ''}${isKiller ? ' · maior fuga' : ''}` : '—'}
+            <span style={{ width: 26, fontSize: 12, fontWeight: 700, color: NAVY, textAlign: 'right' }}>{s.reached}</span>
+            <span style={{ width: 48, fontSize: 10.5, color: TEXT3, textAlign: 'right' }} title="Tempo mediano neste passo">{fmtDur(s.medianMs)}</span>
+            <span style={{ width: 116, fontSize: 11, fontWeight: 700, color: !reliable ? TEXT3 : (s.dropped > 0 ? (isKiller ? '#ef4444' : '#f59e0b') : TEXT3) }}>
+              {s.dropped > 0 ? `-${s.dropped}${reliable && s.droppedPct != null ? ` (-${s.droppedPct}%)` : ''}${isKiller ? ' · maior fuga' : ''}` : '—'}
             </span>
           </div>
         );
@@ -547,7 +568,7 @@ export default function RelatoriosPage() {
               )}
             </div>
             <p style={{ fontSize: 11, color: TEXT3, marginBottom: 14, lineHeight: 1.5 }}>
-              Quantos visitantes alcançaram cada passo de <strong style={{ color: NAVY }}>{VAR_LABEL[selectedDrop.variante] ?? selectedDrop.variante}</strong> e onde caíram. A barra a vermelho é o passo com a maior fuga — o muro a atacar.
+              Quantos visitantes alcançaram cada passo de <strong style={{ color: NAVY }}>{VAR_LABEL[selectedDrop.variante] ?? selectedDrop.variante}</strong>, o <strong>tempo mediano</strong> em cada passo, e onde caíram. A barra a vermelho é o passo com a maior fuga — o muro a atacar.
             </p>
             <DropoffChart d={selectedDrop} />
             <div style={{ marginTop: 12, display: 'flex', gap: 18, flexWrap: 'wrap', fontSize: 12, color: TEXT2 }}>

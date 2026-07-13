@@ -384,7 +384,7 @@ export default function VisitasPage() {
             <span style={{ fontSize: 11, fontWeight: 700, color: SUBTLE }}>{visits.length}</span>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
+          <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: 10 }}>
             {loading && visits.length === 0 && (
               <div style={{ padding: 24, textAlign: 'center', color: SUBTLE, fontSize: 13 }}>A carregar…</div>
             )}
@@ -402,12 +402,13 @@ export default function VisitasPage() {
                 <button key={v.sessionId} onClick={() => replay(v)}
                   style={{
                     width: '100%', textAlign: 'left', display: 'block',
-                    padding: '11px 14px', borderBottom: `1px solid #eef1f5`,
-                    background: '#fff', border: 'none', borderLeft: '3px solid transparent',
-                    cursor: hasGeo ? 'pointer' : 'default', transition: 'background .12s, border-color .12s',
+                    padding: '11px 13px', marginBottom: 8, borderRadius: 12,
+                    background: '#fff', border: `1px solid ${BORDER}`,
+                    boxShadow: '0 1px 2px rgba(16,24,40,0.05)',
+                    cursor: hasGeo ? 'pointer' : 'default', transition: 'background .12s, border-color .12s, box-shadow .12s',
                   }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#f7f9fc'; if (hasGeo) (e.currentTarget as HTMLButtonElement).style.borderLeftColor = CYAN; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = '#fff'; (e.currentTarget as HTMLButtonElement).style.borderLeftColor = 'transparent'; }}
+                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = '#f9fbfe'; if (hasGeo) { el.style.borderColor = 'rgba(0,188,212,0.5)'; el.style.boxShadow = '0 2px 10px rgba(0,188,212,0.12)'; } }}
+                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = '#fff'; el.style.borderColor = BORDER; el.style.boxShadow = '0 1px 2px rgba(16,24,40,0.05)'; }}
                   title={hasGeo ? 'Clique para acender no mapa' : ''}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
