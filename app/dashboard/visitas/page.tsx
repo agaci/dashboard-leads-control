@@ -34,7 +34,54 @@ type Visit = {
   geo?: Geo | null;
   device?: string | null;
   os?: string | null;
+  stage?: Stage;
 };
+
+type Stage = { inbox: boolean; lead: boolean; hasPhone?: boolean; hasEmail?: boolean };
+
+function IcoPhoneSm({ color }: { color: string }) {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="Telemóvel">
+      <rect x="7" y="2" width="10" height="20" rx="2" /><line x1="11" y1="18" x2="13" y2="18" />
+    </svg>
+  );
+}
+function IcoMailSm({ color }: { color: string }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-label="Email">
+      <rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+// Mini-funil por visita: Visita -> Inbox -> Lead. Nós alcançados ficam a cor; os
+// restantes cinza-claro. No nó Inbox, se já há contacto, mostra telemóvel/email.
+function FunnelSteps({ stage }: { stage?: Stage }) {
+  const steps = [
+    { label: 'Visita', on: true, color: CYAN },
+    { label: 'Inbox', on: !!stage?.inbox, color: CYAN },
+    { label: 'Lead', on: !!stage?.lead, color: '#22c55e' },
+  ];
+  return (
+    <div style={{ display: 'inline-flex', alignItems: 'center' }}>
+      {steps.map((s, i) => (
+        <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center' }}>
+          {i > 0 && <span style={{ width: 16, height: 2, borderRadius: 2, background: s.on ? s.color : '#e3e7ee' }} />}
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: s.on ? s.color : '#fff', border: s.on ? 'none' : '1.5px solid #cfd5de' }} />
+            <span style={{ fontSize: 10.5, fontWeight: s.on ? 700 : 500, color: s.on ? s.color : '#aab1bd' }}>{s.label}</span>
+            {s.label === 'Inbox' && s.on && (stage?.hasPhone || stage?.hasEmail) && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 1 }} title="Contacto capturado">
+                {stage?.hasPhone && <IcoPhoneSm color={s.color} />}
+                {stage?.hasEmail && <IcoMailSm color={s.color} />}
+              </span>
+            )}
+          </span>
+        </span>
+      ))}
+    </div>
+  );
+}
 
 const DEVICE_PT: Record<string, string> = { mobile: 'Telemóvel', tablet: 'Tablet', desktop: 'PC' };
 
@@ -218,6 +265,22 @@ export default function VisitasPage() {
     return () => { stop = true; window.clearInterval(id); };
   }, [range, pushPings]);
 
+  // Refresco silencioso da coluna a cada 15s: actualiza o estado do funil (Inbox/Lead)
+  // das visitas já listadas, sem flicker nem re-seed de pins.
+  useEffect(() => {
+    const id = window.setInterval(async () => {
+      try {
+        const res = await fetch(`/api/visit?range=${range}`, { cache: 'no-store' });
+        const data = await res.json();
+        const rows: Visit[] = data.visits || [];
+        setVisits(rows);
+        setTodayCount(data.todayCount ?? 0);
+        seenIds.current = new Set(rows.map((v) => v.sessionId));
+      } catch { /* silencioso */ }
+    }, 15000);
+    return () => window.clearInterval(id);
+  }, [range]);
+
   // Refrescar os rótulos "há X" a cada 20s.
   useEffect(() => {
     const id = window.setInterval(() => setTick((t) => t + 1), 20000);
@@ -391,6 +454,10 @@ export default function VisitasPage() {
                     <IcoDoc />
                     <span style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{v.entryPage || '/'}</span>
                     {g?.ip && <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', color: '#b6bdc9' }}>{g.ip}</span>}
+                  </div>
+
+                  <div style={{ marginTop: 7 }}>
+                    <FunnelSteps stage={v.stage} />
                   </div>
                 </button>
               );

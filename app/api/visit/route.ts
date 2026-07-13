@@ -67,6 +67,28 @@ function shapeVisit(v: any) {
   return { ...rest, device, os };
 }
 
+// Enriquece cada visita com o estado do funil (Visita -> Inbox -> Lead), ligando por
+// `visitSid` (só existe em dados novos). Uma query para todas as visitas do lote.
+async function withStages(db: Awaited<ReturnType<typeof getDb>>, rows: any[]): Promise<any[]> {
+  const sids = rows.map((r) => r.sessionId).filter(Boolean);
+  if (!sids.length) return rows;
+  const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  const convs = await db.collection('conversations')
+    .find({ visitSid: { $in: sids } }, { projection: { visitSid: 1, step: 1, leadId: 1, 'data.telefone': 1, 'data.email': 1 } })
+    .toArray();
+  type St = { inbox: boolean; lead: boolean; hasPhone: boolean; hasEmail: boolean };
+  const map: Record<string, St> = {};
+  for (const c of convs as any[]) {
+    const s = String(c.visitSid);
+    const isLead = c.step === 'LEAD_REGISTERED' || !!c.leadId;
+    const hasPhone = String(c.data?.telefone ?? '').replace(/\D/g, '').length >= 9;
+    const hasEmail = emailRe.test(String(c.data?.email ?? ''));
+    const cur = map[s] ?? { inbox: false, lead: false, hasPhone: false, hasEmail: false };
+    map[s] = { inbox: true, lead: cur.lead || isLead, hasPhone: cur.hasPhone || hasPhone, hasEmail: cur.hasEmail || hasEmail };
+  }
+  return rows.map((r) => ({ ...r, stage: map[r.sessionId] ?? { inbox: false, lead: false, hasPhone: false, hasEmail: false } }));
+}
+
 // Inicio do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).
 function lisbonStartOfTodayUtc(): Date {
   const now = new Date();
@@ -177,7 +199,7 @@ export async function GET(req: NextRequest) {
           .sort({ firstSeen: 1 })
           .limit(100)
           .toArray();
-        return json({ visits: rows.map(shapeVisit) });
+        return json({ visits: await withStages(db, rows.map(shapeVisit)) });
       }
     }
 
@@ -200,7 +222,7 @@ export async function GET(req: NextRequest) {
       col.countDocuments({ firstSeen: { $gte: lisbonStartOfTodayUtc() } }),
     ]);
 
-    return json({ visits: rows.map(shapeVisit), todayCount });
+    return json({ visits: await withStages(db, rows.map(shapeVisit)), todayCount });
   } catch (err: any) {
     return json({ error: err.message }, 500);
   }
