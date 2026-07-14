@@ -246,6 +246,7 @@
     <div class="sidebar-section-title">Módulos</div>
     <a href="#inbox">Inbox — Conversas</a>
     <a href="#quiz-funil">Funil Quiz e Localização</a>
+    <a href="#visitas">Visitas ao Site</a>
     <a href="#leads">Leads</a>
     <a href="#clientes">Clientes</a>
     <a href="#precos">Preços e Motor</a>
@@ -359,9 +360,21 @@
       <h3>Controlos de Som e Voz</h3>
       <p>Na parte inferior da barra lateral há dois controlos importantes:</p>
       <ul>
-        <li><strong>Som</strong> — clique para ciclar entre níveis (mudo, baixo, médio, alto). Clique direito para controlo fino com slider. Toca alertas sonoros para nova lead, escalamento e agregação.</li>
+        <li><strong>Som</strong> — clique para ciclar entre níveis (mudo, baixo, médio, alto). Clique direito para controlo fino com slider e <strong>botões de teste</strong> de cada som. Cada evento tem um <strong>som distinto e distinguível</strong>.</li>
         <li><strong>Voz</strong> — activa notificações por voz (TTS). Clique direito para activar/desactivar por tipo de evento.</li>
       </ul>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Evento</th><th>Som</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Nova visita</strong> (na página de Visitas)</td><td>Toque curto e subtil (visitas são frequentes)</td></tr>
+            <tr><td><strong>Nova inbox</strong> (conversa iniciada)</td><td>Duas notas descendentes, mais quente</td></tr>
+            <tr><td><strong>Nova lead</strong></td><td>Arpejo ascendente (fanfarra de sucesso)</td></tr>
+            <tr><td><strong>Escalamento</strong> / pedido de contacto</td><td>Duplo beep urgente</td></tr>
+            <tr><td><strong>Hipótese de agregação</strong></td><td>Três notas ascendentes (triângulo)</td></tr>
+          </tbody>
+        </table>
+      </div>
 
       <h3>Notificações em tempo real</h3>
       <p>O sistema faz polling automático e exibe notificações no canto superior direito quando:</p>
@@ -440,8 +453,10 @@
         <table>
           <thead><tr><th>Filtro</th><th>Mostra</th></tr></thead>
           <tbody>
-            <tr><td>Ativas</td><td>Conversas com bot a responder + conversas em Chat ao Vivo</td></tr>
+            <tr><td>Activas</td><td>Conversas com bot a responder + conversas em Chat ao Vivo</td></tr>
             <tr><td>Escaladas</td><td>Conversas que requerem atenção humana (bot escalou)</td></tr>
+            <tr><td>Contacto</td><td>Visitantes que pediram para ser contactados (CTA "Contactem-me") e ainda estão por atender — alarme a piscar até serem dispensados</td></tr>
+            <tr><td>Prov. cliente</td><td>Sugestões de <strong>provável cliente</strong>: a conversa foi associada, por telefone/email, a um serviço YourBox existente. Ao confirmar, a conversa passa a lead e regista-se o cliente automaticamente</td></tr>
             <tr><td>Fechadas</td><td>Conversas concluídas ou com lead registada</td></tr>
             <tr><td>Todas</td><td>Todas as conversas sem filtro</td></tr>
           </tbody>
@@ -488,6 +503,30 @@
       <div class="callout info"><div class="callout-icon">i</div><div>A localização por IP é <strong>aproximada</strong> (rótulo "aprox.") — o círculo no mapa indica a margem de erro. A precisa (GPS) só existe quando o visitante a autoriza de livre vontade. Ver implicações de privacidade na Política de Privacidade.</div></div>
 
       <div class="callout tip"><div class="callout-icon">+</div><div>Para acompanhar um visitante <strong>ao vivo</strong>, abra a Inbox no filtro <strong>Activas / Hoje</strong> enquanto ele preenche o quiz — os passos vão surgindo sozinhos.</div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <!-- VISITAS AO SITE -->
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="visitas"></span>
+    <div class="section">
+      <h2>Visitas ao Site</h2>
+      <p>Mostra, <strong>ao vivo</strong>, quem está a entrar no site (qualquer variante da landing/quiz). É captação de 1.ª parte (não é Google Analytics): cada visita acende um ponto no <strong>mapa de Portugal</strong> e entra na coluna à direita — com localização aproximada, origem (directo/Google/…), nº de páginas e aparelho.</p>
+
+      <div class="callout info"><div class="callout-icon">i</div><div>A localização vem do IP (calculada no browser). Pode aparecer só <strong>"Portugal"</strong> (IP móvel/CGNAT resolve apenas ao país) ou <strong>"Localização indisponível"</strong> (pedido bloqueado). O IP é guardado <strong>anonimizado</strong> (último octeto a zero) e as visitas expiram ao fim de <strong>90 dias</strong>.</div></div>
+
+      <h3>Mini-funil por visita</h3>
+      <p>Cada cartão de visita mostra por onde o visitante passou: <strong>Visita → Inbox → Lead</strong>. Os passos alcançados ficam a cor (Lead a verde); os restantes esbatidos.</p>
+      <ul>
+        <li>No nó <strong>Inbox</strong>, se já houver contacto capturado, aparece um ícone de <strong>telemóvel</strong> e/ou <strong>email</strong>.</li>
+        <li><strong>Inbox</strong> e <strong>Lead</strong> alcançados são <strong>clicáveis</strong> — abrem a conversa ou a lead respectiva no seu detalhe; um botão <strong>"Voltar às visitas"</strong> regressa a esta página.</li>
+        <li>Clicar no <strong>corpo</strong> do cartão acende o ponto no mapa; a zona do funil (em baixo) é independente desse clique.</li>
+      </ul>
+      <div class="callout tip"><div class="callout-icon">+</div><div>A ligação visita → conversa só existe em <strong>visitas novas</strong> (o site passou a partilhar o mesmo ID de sessão). Uma visita sem funil = quem só abriu a página e <strong>não iniciou o quiz</strong> — é a maior fuga (visita → conversa).</div></div>
+
+      <h3>Apagar (visita · inbox · lead)</h3>
+      <p>São <strong>três registos independentes</strong> ligados entre si (visita → conversa → lead) — apagar um <strong>não</strong> apaga os outros. O administrador pode apagar cada nível e, opcionalmente, <strong>em cascata</strong> os associados, através de um popup com aviso e caixas de selecção.</p>
+      <div class="callout warn"><div class="callout-icon">!</div><div>Apagar é <strong>irreversível</strong> e <strong>altera as estatísticas do funil</strong> — só deve usar-se para registos de <strong>teste</strong>. Por isso exige um <strong>código de servidor</strong> (variável <code>DELETE_CODE</code> no <code>.env.local</code>). Sem esse código configurado, o apagar fica <strong>desactivado</strong> (protecção de produção).</div></div>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -759,20 +798,25 @@
 
       <h3>Métricas disponíveis</h3>
       <ul>
-        <li>Total de leads por período (dia, semana, mês)</li>
+        <li>Total de leads no período e comparação com o período anterior</li>
         <li>Taxa de conversão (simulação → lead com contacto)</li>
-        <li>Distribuição por tipo de serviço (direto, arrasto, internacional)</li>
-        <li>Distribuição por urgência (1h, 4h, 24h)</li>
-        <li>Valor médio de lead e receita total estimada</li>
-        <li>Conversas por estado (ativas, escaladas, fechadas, lead registada)</li>
-        <li>Leads por canal de origem (site A, site B, WhatsApp)</li>
+        <li>Gráfico de leads confirmadas — por dia, ou <strong>por hora</strong> quando o período é Hoje/Ontem</li>
+        <li>Distribuição por fonte, por urgência (1h, 4h, 24h) e por <strong>dispositivo</strong> (telemóvel/PC/tablet)</li>
+        <li>Valor médio de lead e receita total estimada; top de rotas</li>
+        <li>Performance do bot (conversas por estado, taxa de conclusão, motivos de fecho)</li>
       </ul>
 
-      <h3>Filtros</h3>
+      <h3>Análise de variantes (A/B)</h3>
       <ul>
-        <li>Período: mês e ano específico</li>
-        <li>Canal: todos ou canal específico</li>
-        <li>Tipo de serviço</li>
+        <li><strong>Funil por variante</strong> — visita → conversa → lead e as taxas de passagem; elege a variante mais eficaz.</li>
+        <li><strong>Projeção</strong> — potencial de inbox/leads se todo o tráfego seguisse a variante vencedora (tecto teórico).</li>
+        <li><strong>Drop-off por passo</strong> — onde e em <strong>quanto tempo (mediana)</strong> os visitantes abandonam cada passo do quiz; marca o passo de maior fuga. Com <strong>guarda de amostra</strong>: com menos de ~30 a iniciar, os % e o "maior fuga" ficam esbatidos (evita decidir com ruído).</li>
+      </ul>
+
+      <h3>Filtros de período</h3>
+      <ul>
+        <li><strong>Hoje</strong>, <strong>Ontem</strong>, <strong>7 / 30 / 90 dias</strong>, <strong>Este mês</strong>, ou um <strong>intervalo de datas</strong> personalizado.</li>
+        <li>Ao trocar de período os dados actualizam-se no lugar (sem recarregar a página).</li>
       </ul>
     </div>
 
@@ -1021,11 +1065,12 @@
       <p>O painel de <strong>Routing</strong> (em Perfil → Configurações) permite controlar como o tráfego da landing page é distribuído entre diferentes variantes do formulário de cálculo, e programar essa distribuição por horário.</p>
 
       <h3>Distribuição Manual de Variantes</h3>
-      <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão do formulário. As variantes disponíveis são identificadas por letra (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>).</p>
+      <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão. Inclui as variantes de <strong>landing</strong> (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>) e as de <strong>quiz</strong> (<code>quiz</code>, <code>quiz3</code>, <code>quiz4</code>, <code>quiz5</code>, <code>quiz6</code>, <code>quiz6b</code>, <code>quiz6c</code>). Ver a secção <strong>§Variantes de Captação</strong> para a dinâmica de cada uma.</p>
       <ul>
         <li>A soma das percentagens deve ser exactamente <strong>100%</strong></li>
         <li>Colocar 100% numa variante desactiva as restantes efectivamente</li>
         <li>A distribuição manual está em vigor quando o <strong>Agendamento</strong> está desactivado</li>
+        <li>Se um visitante tiver um cookie de uma variante que passou a <strong>0%</strong>, é reatribuído no acesso seguinte (as mudanças valem de imediato)</li>
       </ul>
 
       <h3>Agendamento de Distribuição por Horário</h3>
