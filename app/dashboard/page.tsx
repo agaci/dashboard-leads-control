@@ -194,6 +194,7 @@ export default function DashboardPage() {
   const [aggToasts, setAggToasts] = useState<(AggHintAlert & { id: number; expiresAt: number })[]>([]);
   const [aggBlink, setAggBlink] = useState(false);
   const [pendingConvId, setPendingConvId] = useState<string | undefined>(undefined);
+  const [cameFromVisitas, setCameFromVisitas] = useState(false);
   const toastCounter = useRef(0);
 
   useNotifications((alert) => {
@@ -245,6 +246,9 @@ export default function DashboardPage() {
       window.history.replaceState(null, '', '/dashboard');
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Esconder o "voltar às visitas" ao sair do inbox/leads.
+  useEffect(() => { if (tab !== 'inbox' && tab !== 'leads') setCameFromVisitas(false); }, [tab]);
 
   function buildDateParams(df: 'all' | 'hoje' | 'ontem' | 'semana' | 'custom'): string {
     if (df === 'all') return '';
@@ -347,6 +351,20 @@ export default function DashboardPage() {
     switchTab('inbox');
     setAggBlink(false);
     setAggToasts([]);
+  }
+
+  // Abrir a conversa/lead de uma visita (a partir da coluna de Visitas), com retorno.
+  function openConvFromVisitas(convId: string) {
+    setPendingConvId(convId);
+    switchTab('inbox');
+    setCameFromVisitas(true);
+  }
+  function openLeadFromVisitas(leadId: string) {
+    setDateFilter('all');
+    switchTab('leads');
+    setCameFromVisitas(true);
+    autoSelectedLeadRef.current = true; // evita o auto-seleccionar sobrepor esta lead
+    fetch(`/api/leads/${leadId}`).then((r) => r.json()).then((d) => { if (d.lead) setSelected(d.lead); }).catch(() => {});
   }
 
   return (
@@ -760,8 +778,19 @@ export default function DashboardPage() {
       {/* visitas → Mapa vivo de visitas ao site */}
       {tab === 'visitas' && (
         <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
-          <VisitasPage />
+          <VisitasPage onOpenConv={openConvFromVisitas} onOpenLead={openLeadFromVisitas} />
         </div>
+      )}
+
+      {/* Voltar às visitas (quando se abriu um detalhe a partir da coluna de Visitas) */}
+      {cameFromVisitas && (tab === 'inbox' || tab === 'leads') && (
+        <button
+          onClick={() => { setCameFromVisitas(false); switchTab('visitas'); }}
+          style={{ position: 'fixed', bottom: 20, left: isMobile ? 16 : 88, zIndex: 5000, display: 'inline-flex', alignItems: 'center', gap: 6, padding: '9px 14px', borderRadius: 22, border: 'none', background: '#00bcd4', color: '#fff', fontWeight: 700, fontSize: 13, cursor: 'pointer', boxShadow: '0 6px 20px rgba(0,188,212,0.4)' }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M12 19l-7-7 7-7" /></svg>
+          Voltar às visitas
+        </button>
       )}
 
       {/* inbox → Conversas/escalações */}

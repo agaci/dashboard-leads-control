@@ -74,19 +74,27 @@ async function withStages(db: Awaited<ReturnType<typeof getDb>>, rows: any[]): P
   if (!sids.length) return rows;
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   const convs = await db.collection('conversations')
-    .find({ visitSid: { $in: sids } }, { projection: { visitSid: 1, step: 1, leadId: 1, 'data.telefone': 1, 'data.email': 1 } })
+    .find({ visitSid: { $in: sids } }, { projection: { _id: 1, visitSid: 1, step: 1, leadId: 1, 'data.telefone': 1, 'data.email': 1 } })
     .toArray();
-  type St = { inbox: boolean; lead: boolean; hasPhone: boolean; hasEmail: boolean };
+  type St = { inbox: boolean; lead: boolean; hasPhone: boolean; hasEmail: boolean; convId?: string; leadId?: string };
+  const empty: St = { inbox: false, lead: false, hasPhone: false, hasEmail: false };
   const map: Record<string, St> = {};
   for (const c of convs as any[]) {
     const s = String(c.visitSid);
     const isLead = c.step === 'LEAD_REGISTERED' || !!c.leadId;
     const hasPhone = String(c.data?.telefone ?? '').replace(/\D/g, '').length >= 9;
     const hasEmail = emailRe.test(String(c.data?.email ?? ''));
-    const cur = map[s] ?? { inbox: false, lead: false, hasPhone: false, hasEmail: false };
-    map[s] = { inbox: true, lead: cur.lead || isLead, hasPhone: cur.hasPhone || hasPhone, hasEmail: cur.hasEmail || hasEmail };
+    const cur = map[s] ?? empty;
+    map[s] = {
+      inbox: true,
+      lead: cur.lead || isLead,
+      hasPhone: cur.hasPhone || hasPhone,
+      hasEmail: cur.hasEmail || hasEmail,
+      convId: cur.convId ?? String(c._id),
+      leadId: cur.leadId ?? (c.leadId ? String(c.leadId) : undefined),
+    };
   }
-  return rows.map((r) => ({ ...r, stage: map[r.sessionId] ?? { inbox: false, lead: false, hasPhone: false, hasEmail: false } }));
+  return rows.map((r) => ({ ...r, stage: map[r.sessionId] ?? empty }));
 }
 
 // Inicio do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).

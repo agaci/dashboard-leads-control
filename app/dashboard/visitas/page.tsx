@@ -37,7 +37,7 @@ type Visit = {
   stage?: Stage;
 };
 
-type Stage = { inbox: boolean; lead: boolean; hasPhone?: boolean; hasEmail?: boolean };
+type Stage = { inbox: boolean; lead: boolean; hasPhone?: boolean; hasEmail?: boolean; convId?: string; leadId?: string };
 
 function IcoPhoneSm({ color }: { color: string }) {
   return (
@@ -56,29 +56,41 @@ function IcoMailSm({ color }: { color: string }) {
 
 // Mini-funil por visita: Visita -> Inbox -> Lead. Nós alcançados ficam a cor; os
 // restantes cinza-claro. No nó Inbox, se já há contacto, mostra telemóvel/email.
-function FunnelSteps({ stage }: { stage?: Stage }) {
-  const steps = [
-    { label: 'Visita', on: true, color: CYAN },
-    { label: 'Inbox', on: !!stage?.inbox, color: CYAN },
-    { label: 'Lead', on: !!stage?.lead, color: '#22c55e' },
+// Inbox/Lead alcançados são clicáveis -> abrem o detalhe respectivo.
+function FunnelSteps({ stage, onOpenConv, onOpenLead }: { stage?: Stage; onOpenConv?: (id: string) => void; onOpenLead?: (id: string) => void }) {
+  const steps: { key: string; label: string; on: boolean; color: string; onClick?: () => void }[] = [
+    { key: 'visita', label: 'Visita', on: true, color: CYAN },
+    { key: 'inbox', label: 'Inbox', on: !!stage?.inbox, color: CYAN, onClick: stage?.inbox && stage?.convId && onOpenConv ? () => onOpenConv(stage.convId!) : undefined },
+    { key: 'lead', label: 'Lead', on: !!stage?.lead, color: '#22c55e', onClick: stage?.lead && stage?.leadId && onOpenLead ? () => onOpenLead(stage.leadId!) : undefined },
   ];
   return (
     <div style={{ display: 'inline-flex', alignItems: 'center' }}>
-      {steps.map((s, i) => (
-        <span key={s.label} style={{ display: 'inline-flex', alignItems: 'center' }}>
-          {i > 0 && <span style={{ width: 16, height: 2, borderRadius: 2, background: s.on ? s.color : '#e3e7ee' }} />}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: s.on ? s.color : '#fff', border: s.on ? 'none' : '1.5px solid #cfd5de' }} />
-            <span style={{ fontSize: 10.5, fontWeight: s.on ? 700 : 500, color: s.on ? s.color : '#aab1bd' }}>{s.label}</span>
-            {s.label === 'Inbox' && s.on && (stage?.hasPhone || stage?.hasEmail) && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 1 }} title="Contacto capturado">
-                {stage?.hasPhone && <IcoPhoneSm color={s.color} />}
-                {stage?.hasEmail && <IcoMailSm color={s.color} />}
-              </span>
-            )}
+      {steps.map((s, i) => {
+        const clickable = !!s.onClick;
+        return (
+          <span key={s.key} style={{ display: 'inline-flex', alignItems: 'center' }}>
+            {i > 0 && <span style={{ width: 16, height: 2, borderRadius: 2, background: s.on ? s.color : '#e3e7ee' }} />}
+            <span
+              onClick={clickable ? (e) => { e.stopPropagation(); s.onClick!(); } : undefined}
+              role={clickable ? 'button' : undefined}
+              title={clickable ? (s.key === 'inbox' ? 'Abrir conversa' : 'Abrir lead') : undefined}
+              style={{ display: 'inline-flex', alignItems: 'center', gap: 4, cursor: clickable ? 'pointer' : 'default', padding: clickable ? '2px 5px' : 0, borderRadius: 6, background: clickable ? `${s.color}14` : 'transparent' }}
+            >
+              <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: s.on ? s.color : '#fff', border: s.on ? 'none' : '1.5px solid #cfd5de' }} />
+              <span style={{ fontSize: 10.5, fontWeight: s.on ? 700 : 500, color: s.on ? s.color : '#aab1bd' }}>{s.label}</span>
+              {s.key === 'inbox' && s.on && (stage?.hasPhone || stage?.hasEmail) && (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, marginLeft: 1 }} title="Contacto capturado">
+                  {stage?.hasPhone && <IcoPhoneSm color={s.color} />}
+                  {stage?.hasEmail && <IcoMailSm color={s.color} />}
+                </span>
+              )}
+              {clickable && (
+                <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke={s.color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ marginLeft: 1 }}><path d="M9 18l6-6-6-6" /></svg>
+              )}
+            </span>
           </span>
-        </span>
-      ))}
+        );
+      })}
     </div>
   );
 }
@@ -165,10 +177,14 @@ function IcoDevice({ device, size = 13, color = MUTED }: { device?: string | nul
   return <svg {...p}><rect x="2" y="3.5" width="20" height="13" rx="2" /><line x1="8" y1="20.5" x2="16" y2="20.5" /><line x1="12" y1="16.5" x2="12" y2="20.5" /></svg>;
 }
 
-export default function VisitasPage() {
+export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (id: string) => void; onOpenLead?: (id: string) => void } = {}) {
   const isMobile = useIsMobile();
   const { data: sessionData } = useSession();
   const isAdmin = (sessionData?.user as any)?.role === 'administrator';
+  // Abrir o detalhe da conversa/lead. Em tab usa os callbacks do dashboard; em rota
+  // autónoma (/dashboard/visitas) recorre ao deep-link por URL.
+  const openConv = onOpenConv ?? ((id: string) => { window.location.href = `/dashboard?conv=${id}`; });
+  const openLead = onOpenLead ?? ((id: string) => { window.location.href = `/dashboard?lead=${id}`; });
   const [visits, setVisits] = useState<Visit[]>([]);
   const [delVisit, setDelVisit] = useState<Visit | null>(null);
   const [delBusy, setDelBusy] = useState(false);
@@ -399,7 +415,7 @@ export default function VisitasPage() {
               const g = v.geo;
               const hasGeo = !!(g && typeof g.lat === 'number' && typeof g.lng === 'number');
               return (
-                <button key={v.sessionId} onClick={() => replay(v)}
+                <div key={v.sessionId} role="button" onClick={hasGeo ? () => replay(v) : undefined}
                   style={{
                     width: '100%', textAlign: 'left', display: 'block',
                     padding: '11px 13px', marginBottom: 8, borderRadius: 12,
@@ -407,8 +423,8 @@ export default function VisitasPage() {
                     boxShadow: '0 1px 2px rgba(16,24,40,0.05)',
                     cursor: hasGeo ? 'pointer' : 'default', transition: 'background .12s, border-color .12s, box-shadow .12s',
                   }}
-                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = '#f9fbfe'; if (hasGeo) { el.style.borderColor = 'rgba(0,188,212,0.5)'; el.style.boxShadow = '0 2px 10px rgba(0,188,212,0.12)'; } }}
-                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLButtonElement; el.style.background = '#fff'; el.style.borderColor = BORDER; el.style.boxShadow = '0 1px 2px rgba(16,24,40,0.05)'; }}
+                  onMouseEnter={(e) => { const el = e.currentTarget as HTMLDivElement; el.style.background = '#f9fbfe'; if (hasGeo) { el.style.borderColor = 'rgba(0,188,212,0.5)'; el.style.boxShadow = '0 2px 10px rgba(0,188,212,0.12)'; } }}
+                  onMouseLeave={(e) => { const el = e.currentTarget as HTMLDivElement; el.style.background = '#fff'; el.style.borderColor = BORDER; el.style.boxShadow = '0 1px 2px rgba(16,24,40,0.05)'; }}
                   title={hasGeo ? 'Clique para acender no mapa' : ''}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 4 }}>
@@ -457,10 +473,14 @@ export default function VisitasPage() {
                     {g?.ip && <span style={{ marginLeft: 'auto', fontVariantNumeric: 'tabular-nums', color: '#b6bdc9' }}>{g.ip}</span>}
                   </div>
 
-                  <div style={{ marginTop: 7 }}>
-                    <FunnelSteps stage={v.stage} />
+                  {/* Zona independente do funil — clicar aqui não acende o mapa */}
+                  <div
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ marginTop: 9, paddingTop: 8, borderTop: '1px solid #eef1f5' }}
+                  >
+                    <FunnelSteps stage={v.stage} onOpenConv={openConv} onOpenLead={openLead} />
                   </div>
-                </button>
+                </div>
               );
             })}
           </div>
