@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useCallback } from 'react';
-import { playLeadSound, playEscalationSound, playAggSound, playLiveChatSound } from './soundManager';
+import { playLeadSound, playInboxSound, playEscalationSound, playAggSound, playLiveChatSound } from './soundManager';
 import { speakEscalation, speakLead, speakAgg, speakLiveChat, speakNewBotConv, speakAggEscalation } from './ttsManager';
 
 export type AggHintAlert = {
@@ -58,7 +58,7 @@ export function useNotifications(
 
       if ((data.newBotConvs ?? 0) > 0) {
         queue.push(() => {
-          playLeadSound();
+          playInboxSound();
           speakNewBotConv();
           onAlertRef.current({ type: 'new_conv' });
         });

@@ -54,7 +54,7 @@ function note(
   osc.stop(ac.currentTime + startOffset + dur + 0.02);
 }
 
-// ── Nova lead — arpejo ascendente C5-E5-G5-C6 (alegre, positivo) ─────────────
+// ── Nova lead — arpejo ascendente C5-E5-G5-C6 (alegre, "fanfarra de sucesso") ─
 export function playLeadSound() {
   const ac = ctx();
   if (!ac) return;
@@ -63,6 +63,28 @@ export function playLeadSound() {
   const vol = v * 0.18;
   const seq: [number, number][] = [[523, 0], [659, 0.1], [784, 0.2], [1047, 0.31]];
   seq.forEach(([freq, t]) => note(ac, freq, t, 0.38, vol, 'sine'));
+}
+
+// ── Nova inbox (conversa iniciada) — 2 notas DESCENDENTES G5→C5, triângulo ────
+//    (mais quente/mole que a lead, só 2 notas e a descer: "alguém chegou")
+export function playInboxSound() {
+  const ac = ctx();
+  if (!ac) return;
+  const v = getVolume();
+  if (v === 0) return;
+  const vol = v * 0.19;
+  [[784, 0], [523, 0.13]].forEach(([freq, t]) => note(ac, freq, t, 0.30, vol, 'triangle'));
+}
+
+// ── Nova visita ao site — 1 "tick" curto e suave (visitas são frequentes) ─────
+//    volume mais baixo e 1 só nota alta: distingue-se sem incomodar.
+export function playVisitSound() {
+  const ac = ctx();
+  if (!ac) return;
+  const v = getVolume();
+  if (v === 0) return;
+  const vol = v * 0.11;
+  note(ac, 1245, 0, 0.09, vol, 'sine');
 }
 
 // ── Escalamento — duplo beep urgente (atenção imediata) ───────────────────────

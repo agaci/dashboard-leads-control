@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { playVisitSound } from '@/lib/soundManager';
 import { useIsMobile } from '@/lib/useIsMobile';
 import { VisitasMap, type VisitPing } from '../VisitasMap';
 import { DeleteDialog } from '../DeleteDialog';
@@ -267,6 +268,7 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
           const novos = rows.filter((v) => !seenIds.current.has(v.sessionId));
           novos.forEach((v) => seenIds.current.add(v.sessionId));
           if (novos.length) {
+            playVisitSound(); // um toque suave por lote de visitas novas
             // só junto à coluna se o intervalo actual inclui "hoje/agora"
             if (range === 'hoje' || range === 'tudo' || range === 'semana') {
               setVisits((prev) => [...novos.reverse(), ...prev]);

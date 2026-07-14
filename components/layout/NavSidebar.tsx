@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getVolume, setVolume, playLeadSound, playEscalationSound, playAggSound } from '@/lib/soundManager';
+import { getVolume, setVolume, playLeadSound, playInboxSound, playVisitSound, playEscalationSound, playAggSound } from '@/lib/soundManager';
 import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager';
 
 export type NavTab =
@@ -285,6 +285,8 @@ function SoundButton() {
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8, gap: 4 }}>
             {[
+              { label: 'Visita', fn: playVisitSound },
+              { label: 'Inbox', fn: playInboxSound },
               { label: 'Lead', fn: playLeadSound },
               { label: 'Urgente', fn: playEscalationSound },
               { label: 'Agreg.', fn: playAggSound },
