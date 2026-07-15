@@ -4,18 +4,6 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>YourBox — Pedir orçamento</title>
-<script>
-  // Config do widget: variante vem do embed (?v=), modo widget (não posta p/ weby antigo),
-  // ordem de passos = fluxo 6c (urgência cedo, carga inteligente, dimensões por presets).
-  (function () {
-    var p = new URLSearchParams(location.search);
-    window.YB_QUIZ_VARIANTE = p.get('v') || 'WIDGET';
-    window.YB_QUIZ_WIDGET = true;
-    window.YB_QUIZ_STEPS = ['origem', 'destino', 'urgencia', 'volumes', 'peso',
-                            'nome', 'email', 'telefone',
-                            'dimensoes', 'material', 'embalado', 'review'];
-  })();
-</script>
 <style>
   :root { --green:#bed62f; --dark:#1a1a1a; --border:#e2e8f0; --muted:#64748b; }
   * { box-sizing: border-box; }
@@ -242,6 +230,51 @@
     </div>
   </div>
 
-  <script src="widget-quiz.js"></script>
+  <script>
+  // Bootstrap do widget-quiz. A variante vem do embed (?v=):
+  //  - "WIDGET" (ou uma variante concreta) -> fluxo fixo dessa variante.
+  //  - "AB" -> sorteia uma variante de quiz pela distribuição do dashboard (sticky por
+  //            sessão). No widget o estilo dos inputs é sempre o recomendado; a variável
+  //            de A/B é a ORDEM dos passos.
+  (function () {
+    var p = new URLSearchParams(location.search);
+    var v = p.get('v') || 'WIDGET';
+    window.YB_QUIZ_WIDGET = true;
+
+    var C6 = ['origem', 'destino', 'urgencia', 'volumes', 'peso', 'nome', 'email', 'telefone', 'dimensoes', 'material', 'embalado', 'review'];
+    var ORDERS = {
+      WIDGET: C6, QUIZ6C: C6, QUIZ6B: C6, QUIZ6: C6,
+      QUIZ5: ['origem', 'destino', 'volumes', 'peso', 'nome', 'telefone', 'email', 'dimensoes', 'urgencia', 'material', 'embalado', 'review'],
+    };
+
+    function loadEngine() { var s = document.createElement('script'); s.src = 'widget-quiz.js'; document.body.appendChild(s); }
+    function start(tag) {
+      window.YB_QUIZ_VARIANTE = ORDERS[tag] ? tag : 'WIDGET';
+      window.YB_QUIZ_STEPS = ORDERS[tag] || ORDERS.WIDGET;
+      loadEngine();
+    }
+    function pickByWeight(variants) {
+      var map = { quiz5: 'QUIZ5', quiz6: 'QUIZ6', quiz6b: 'QUIZ6B', quiz6c: 'QUIZ6C' };
+      var pool = (variants || []).map(function (x) { return { tag: map[x.key], w: (+x.weight) || 0 }; }).filter(function (x) { return x.tag && x.w > 0; });
+      var total = pool.reduce(function (a, x) { return a + x.w; }, 0);
+      if (!total) return 'WIDGET';
+      var r = Math.random() * total, c = 0;
+      for (var i = 0; i < pool.length; i++) { c += pool[i].w; if (r <= c) return pool[i].tag; }
+      return pool[pool.length - 1].tag;
+    }
+
+    if (v === 'AB') {
+      var sticky = null; try { sticky = sessionStorage.getItem('yb_widget_var'); } catch (e) {}
+      if (sticky && ORDERS[sticky]) { start(sticky); return; }
+      fetch('/api/variant-config').then(function (r) { return r.json(); }).then(function (d) {
+        var tag = pickByWeight(d && d.variants);
+        try { sessionStorage.setItem('yb_widget_var', tag); } catch (e) {}
+        start(tag);
+      }).catch(function () { start('WIDGET'); });
+    } else {
+      start(v);
+    }
+  })();
+  </script>
 </body>
 </html>

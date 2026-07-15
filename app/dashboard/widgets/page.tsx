@@ -27,13 +27,10 @@ type WidgetClient = {
   createdAt: string;
 };
 
-// Variantes de quiz disponíveis para o modo "Formulário" (etiqueta de tracking).
+// Opções do modo "Formulário": fluxo fixo recomendado, ou rotação A/B pela distribuição.
 const QUIZ_VARIANTS: { value: string; label: string }[] = [
-  { value: 'WIDGET', label: 'Widget (genérica)' },
-  { value: 'QUIZ6C', label: 'Quiz 6c' },
-  { value: 'QUIZ6B', label: 'Quiz 6b' },
-  { value: 'QUIZ6', label: 'Quiz 6' },
-  { value: 'QUIZ5', label: 'Quiz 5' },
+  { value: 'WIDGET', label: 'Widget — fluxo recomendado (fixo)' },
+  { value: 'AB', label: 'Rotação A/B — distribuição do dashboard' },
 ];
 
 const EMPTY_FORM = {
@@ -235,7 +232,7 @@ export default function WidgetsPage() {
                   </p>
                   <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0 }}>
                     {c.mode === 'quiz'
-                      ? <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Formulário</strong> ({c.variante ?? 'WIDGET'})</>
+                      ? <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Formulário</strong> ({c.variante === 'AB' ? 'Rotação A/B' : (c.variante ?? 'WIDGET')})</>
                       : <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Assistente</strong> · Bot: {c.botName}</>}
                     {' '}&bull; Origens: {(c.allowedOrigins ?? ['*']).join(', ')}
                   </p>
@@ -427,10 +424,13 @@ export default function WidgetsPage() {
 
               {form.mode === 'quiz' ? (
                 <div>
-                  <label style={labelStyle}>Variante do formulário (etiqueta de tracking)</label>
+                  <label style={labelStyle}>Variante do formulário</label>
                   <select style={inputStyle} value={form.variante} onChange={e => setForm(f => ({ ...f, variante: e.target.value }))}>
                     {QUIZ_VARIANTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
                   </select>
+                  <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '6px 0 0' }}>
+                    <strong>Fixo</strong>: todos vêem o mesmo formulário (etiqueta <code>WIDGET</code>). <strong>Rotação A/B</strong>: cada visitante recebe uma variante sorteada pelos pesos da <em>Distribuição de Variantes</em> (sticky por sessão) — no widget varia a <strong>ordem</strong> dos passos.
+                  </p>
                 </div>
               ) : (
                 <div>
