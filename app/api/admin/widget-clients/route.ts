@@ -24,7 +24,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, primaryColor, darkColor, logoUrl, whatsappNumber, botName, allowedOrigins, webhookUrl } = body;
+    const { name, primaryColor, darkColor, logoUrl, whatsappNumber, botName, allowedOrigins, webhookUrl, mode, variante } = body;
     if (!name?.trim()) return Response.json({ error: 'Nome obrigatório' }, { status: 400 });
 
     const clientId = generateClientId();
@@ -44,6 +44,8 @@ export async function POST(req: NextRequest) {
       botName:        botName        ?? 'Assistente',
       allowedOrigins: allowedOrigins ?? ['*'],
       webhookUrl:     webhookUrl     ?? null,
+      mode:           mode === 'quiz' ? 'quiz' : 'bot', // default: bot (comportamento actual)
+      variante:       variante       ?? null,
       active:         true,
       createdAt:      now,
       updatedAt:      now,

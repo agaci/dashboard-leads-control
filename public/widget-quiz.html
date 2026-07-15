@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>YourBox — Pedir orçamento</title>
+<script>
+  // Config do widget: variante vem do embed (?v=), modo widget (não posta p/ weby antigo),
+  // ordem de passos = fluxo 6c (urgência cedo, carga inteligente, dimensões por presets).
+  (function () {
+    var p = new URLSearchParams(location.search);
+    window.YB_QUIZ_VARIANTE = p.get('v') || 'WIDGET';
+    window.YB_QUIZ_WIDGET = true;
+    window.YB_QUIZ_STEPS = ['origem', 'destino', 'urgencia', 'volumes', 'peso',
+                            'nome', 'email', 'telefone',
+                            'dimensoes', 'material', 'embalado', 'review'];
+  })();
+</script>
+<style>
+  :root { --green:#bed62f; --dark:#1a1a1a; --border:#e2e8f0; --muted:#64748b; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: transparent; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: var(--dark); }
+  .pricing-form { max-width: 460px; margin: 0 auto; background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 20px; }
+  .form-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 2px; }
+  .form-subtitle { font-size: 0.82rem; color: var(--muted); margin: 0 0 14px; }
+  .quiz-advertencia { display: flex; align-items: flex-start; gap: 8px; background: rgba(190,214,47,0.14); border: 1px solid rgba(190,214,47,0.5); border-radius: 10px; padding: 9px 11px; margin: 0 0 14px; font-size: 12.5px; line-height: 1.45; color: #4a5514; }
+
+  .quiz-progress-track { height: 6px; background: #eef1f5; border-radius: 4px; overflow: hidden; }
+  .quiz-progress-fill { height: 100%; width: 0; background: var(--green); border-radius: 4px; transition: width 0.35s ease; }
+  .quiz-step-count { font-size: 11px; color: var(--muted); font-weight: 700; margin: 8px 0 12px; }
+
+  .quiz-viewport { position: relative; }
+  .quiz-card { display: none; }
+  .quiz-card.active { display: block; animation: qfade 0.25s ease; }
+  @keyframes qfade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  .quiz-q-num { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--green); filter: brightness(0.7); margin-bottom: 4px; }
+  .quiz-q-title { font-size: 1.15rem; font-weight: 800; margin: 0 0 4px; }
+  .quiz-q-help { font-size: 0.85rem; color: var(--muted); margin: 0 0 12px; }
+
+  .form-input { width: 100%; height: 46px; border: 1.5px solid var(--border); border-radius: 12px; padding: 0 14px; font-size: 15px; outline: none; background: #fff; color: var(--dark); }
+  select.form-input { height: 46px; }
+  .form-input:focus { border-color: var(--green); }
+  .quiz-err { color: #dc2626; font-size: 12.5px; font-weight: 600; margin-top: 6px; min-height: 1px; }
+
+  .quiz-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+  .quiz-choices-2 { }
+  .quiz-choices-3 { }
+  .quiz-choice { flex: 1 1 150px; min-width: 130px; display: inline-flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; background: #fff; border: 1.5px solid var(--border); border-radius: 12px; padding: 12px 14px; cursor: pointer; font-family: inherit; color: var(--dark); transition: border-color 0.15s, background 0.15s; }
+  .quiz-choice:hover { border-color: var(--green); background: rgba(190,214,47,0.08); }
+  .quiz-choice.selected { border-color: var(--green); background: rgba(190,214,47,0.16); }
+  .qc-title { font-size: 14px; font-weight: 700; }
+  .qc-sub { font-size: 11.5px; color: var(--muted); }
+
+  .quiz-summary { list-style: none; margin: 0 0 14px; padding: 0; border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .quiz-summary li { display: flex; justify-content: space-between; gap: 10px; padding: 8px 12px; font-size: 13px; border-bottom: 1px solid #f1f4f8; }
+  .quiz-summary li:last-child { border-bottom: none; }
+  .qs-k { color: var(--muted); font-weight: 600; }
+  .qs-v { font-weight: 700; text-align: right; }
+
+  .btn-calculate { width: 100%; height: 48px; border: none; border-radius: 12px; background: var(--green); color: var(--dark); font-weight: 800; font-size: 0.98rem; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: filter 0.15s; }
+  .btn-calculate:hover { filter: brightness(0.95); }
+  .btn-calculate:disabled { opacity: 0.6; cursor: default; }
+  .quiz-secure { font-size: 11px; color: var(--muted); text-align: center; margin: 10px 0 0; }
+
+  .quiz-controls { display: flex; gap: 8px; margin-top: 16px; }
+  .quiz-back { display: none; height: 44px; padding: 0 16px; border: 1.5px solid var(--border); background: #fff; border-radius: 12px; color: var(--muted); font-weight: 700; cursor: pointer; font-family: inherit; }
+  .quiz-back.show { display: inline-flex; align-items: center; }
+  .quiz-next { flex: 1; height: 44px; }
+
+  .success-screen { display: none; text-align: center; padding: 10px 0; }
+  .success-screen.active { display: block; animation: qfade 0.3s ease; }
+  .success-icon { width: 64px; height: 64px; border-radius: 50%; background: var(--green); color: #fff; font-size: 32px; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; }
+</style>
+</head>
+<body>
+  <div class="pricing-form" id="form">
+    <h2 class="form-title">Solicitar Orçamento</h2>
+    <p class="form-subtitle">Preencha os dados e tratamos já do seu orçamento</p>
+    <p class="quiz-advertencia">Responda a <strong>todas as perguntas</strong> — quanto mais completa a informação, mais rigoroso é o seu orçamento.</p>
+
+    <div class="quiz-flow" id="quizFlow">
+      <div class="quiz-progress-track"><div class="quiz-progress-fill" id="quizProgressFill"></div></div>
+      <div class="quiz-step-count">Pergunta <span id="quizStepNow">1</span> de <span id="quizStepTotal">11</span></div>
+
+      <div class="quiz-viewport" id="quizViewport">
+
+        <div class="quiz-card active" data-step="nome">
+          <div class="quiz-q-num">Comecemos</div>
+          <h3 class="quiz-q-title">Como se chama?</h3>
+          <p class="quiz-q-help">Para sabermos com quem estamos a falar.</p>
+          <input type="text" class="form-input" id="nome" placeholder="Nome completo" autocomplete="name">
+          <div class="quiz-err" id="qerr-nome"></div>
+        </div>
+
+        <div class="quiz-card" data-step="telefone">
+          <div class="quiz-q-num">Contacto</div>
+          <h3 class="quiz-q-title">O seu telemóvel</h3>
+          <p class="quiz-q-help">Para confirmarmos os detalhes da recolha.</p>
+          <input type="tel" class="form-input" id="telefone" placeholder="9XX XXX XXX" autocomplete="tel" inputmode="numeric">
+          <div class="quiz-err" id="qerr-telefone"></div>
+        </div>
+
+        <div class="quiz-card" data-step="email">
+          <div class="quiz-q-num">Contacto</div>
+          <h3 class="quiz-q-title">O seu email</h3>
+          <p class="quiz-q-help">Enviamos a confirmação do pedido.</p>
+          <input type="email" class="form-input" id="email" placeholder="nome@email.com" autocomplete="email" inputmode="email">
+          <div class="quiz-err" id="qerr-email"></div>
+        </div>
+
+        <div class="quiz-card" data-step="origem">
+          <div class="quiz-q-num">Rota</div>
+          <h3 class="quiz-q-title">Local de recolha</h3>
+          <p class="quiz-q-help">Onde levantamos a sua encomenda?</p>
+          <input type="text" class="form-input" id="origem" placeholder="Morada ou localidade de recolha" autocomplete="off">
+          <div class="quiz-err" id="qerr-origem"></div>
+        </div>
+
+        <div class="quiz-card" data-step="destino">
+          <div class="quiz-q-num">Rota</div>
+          <h3 class="quiz-q-title">Local de entrega</h3>
+          <p class="quiz-q-help">Onde entregamos a sua encomenda?</p>
+          <input type="text" class="form-input" id="destino" placeholder="Morada ou localidade de entrega" autocomplete="off">
+          <div class="quiz-err" id="qerr-destino"></div>
+        </div>
+
+        <div class="quiz-card" data-step="volumes">
+          <div class="quiz-q-num">Carga</div>
+          <h3 class="quiz-q-title">Quantos volumes?</h3>
+          <p class="quiz-q-help">Caixas, paletes ou unidades. Toque no número.</p>
+          <div class="quiz-choices">
+            <button type="button" class="quiz-choice" data-choice="volumes" data-value="1" style="flex:0 0 auto;min-width:58px;padding:14px 16px;font-size:19px;font-weight:800;align-items:center;">1</button>
+            <button type="button" class="quiz-choice" data-choice="volumes" data-value="2" style="flex:0 0 auto;min-width:58px;padding:14px 16px;font-size:19px;font-weight:800;align-items:center;">2</button>
+            <button type="button" class="quiz-choice" data-choice="volumes" data-value="3" style="flex:0 0 auto;min-width:58px;padding:14px 16px;font-size:19px;font-weight:800;align-items:center;">3</button>
+            <button type="button" class="quiz-choice" data-choice="volumes" data-value="4" style="flex:0 0 auto;min-width:58px;padding:14px 16px;font-size:19px;font-weight:800;align-items:center;">4</button>
+            <button type="button" class="quiz-choice" data-choice="volumes" data-value="5" style="flex:0 0 auto;min-width:58px;padding:14px 16px;font-size:19px;font-weight:800;align-items:center;">5</button>
+          </div>
+          <div style="margin-top:14px;">
+            <label for="quizVolumes" style="display:block;font-size:13px;color:var(--muted);margin-bottom:6px;">Mais de 5? Escreva o número:</label>
+            <input type="number" class="form-input" id="quizVolumes" placeholder="Ex: 8" min="1" max="99" step="1" inputmode="numeric">
+          </div>
+          <div class="quiz-err" id="qerr-volumes"></div>
+        </div>
+
+        <div class="quiz-card" data-step="peso">
+          <div class="quiz-q-num">Carga</div>
+          <h3 class="quiz-q-title">Quanto pesa cada volume?</h3>
+          <p class="quiz-q-help">Escolha a faixa aproximada — confirmamos depois consigo.</p>
+          <div class="quiz-choices">
+            <button type="button" class="quiz-choice" data-choice="peso" data-value="5"><span class="qc-title">Até 5 kg</span><span class="qc-sub">ex.: caixa de roupa/documentos</span></button>
+            <button type="button" class="quiz-choice" data-choice="peso" data-value="10"><span class="qc-title">5 a 15 kg</span><span class="qc-sub">ex.: eletrodoméstico pequeno</span></button>
+            <button type="button" class="quiz-choice" data-choice="peso" data-value="22"><span class="qc-title">15 a 30 kg</span><span class="qc-sub">ex.: mala grande / TV</span></button>
+            <button type="button" class="quiz-choice" data-choice="peso" data-value="40"><span class="qc-title">Mais de 30 kg</span><span class="qc-sub">ex.: móvel / palete leve</span></button>
+            <button type="button" class="quiz-choice" data-choice="peso" data-value="10"><span class="qc-title">Não sei</span><span class="qc-sub">estimamos e confirmamos</span></button>
+          </div>
+          <div class="quiz-err" id="qerr-peso"></div>
+        </div>
+
+        <div class="quiz-card" data-step="dimensoes">
+          <div class="quiz-q-num">Carga</div>
+          <h3 class="quiz-q-title">Tamanho de cada volume</h3>
+          <p class="quiz-q-help">Para o espaço ocupado (diferente do peso). Escolha o mais próximo.</p>
+          <div class="quiz-choices">
+            <button type="button" class="quiz-choice" data-dims="P"><span class="qc-title">Caixa pequena</span><span class="qc-sub">até ~40 cm</span></button>
+            <button type="button" class="quiz-choice" data-dims="M"><span class="qc-title">Caixa média</span><span class="qc-sub">~50 a 60 cm</span></button>
+            <button type="button" class="quiz-choice" data-dims="G"><span class="qc-title">Caixa grande</span><span class="qc-sub">~80 a 100 cm</span></button>
+            <button type="button" class="quiz-choice" data-dims="PALETE"><span class="qc-title">Palete</span><span class="qc-sub">120 x 80 cm</span></button>
+            <button type="button" class="quiz-choice" data-dims="NAOSEI"><span class="qc-title">Não sei</span><span class="qc-sub">estimamos e confirmamos</span></button>
+          </div>
+          <div class="quiz-err" id="qerr-dimensoes"></div>
+        </div>
+
+        <div class="quiz-card" data-step="urgencia">
+          <div class="quiz-q-num">Serviço</div>
+          <h3 class="quiz-q-title">Qual a urgência?</h3>
+          <p class="quiz-q-help">Escolha a janela de entrega que precisa.</p>
+          <div class="quiz-choices quiz-choices-3">
+            <button type="button" class="quiz-choice" data-choice="urgencia" data-value="Imediata"><span class="qc-title">Imediata</span><span class="qc-sub">cerca de 1 hora</span></button>
+            <button type="button" class="quiz-choice" data-choice="urgencia" data-value="Proprio dia"><span class="qc-title">Próprio dia</span><span class="qc-sub">até 4 horas</span></button>
+            <button type="button" class="quiz-choice" data-choice="urgencia" data-value="24H"><span class="qc-title">24 horas</span><span class="qc-sub">dia seguinte</span></button>
+          </div>
+          <div class="quiz-err" id="qerr-urgencia"></div>
+        </div>
+
+        <div class="quiz-card" data-step="material">
+          <div class="quiz-q-num">Carga</div>
+          <h3 class="quiz-q-title">O que vamos transportar?</h3>
+          <p class="quiz-q-help">Escolha o tipo de material mais próximo.</p>
+          <select class="form-input" id="quizMaterial">
+            <option value="" disabled selected>Selecione o tipo de material</option>
+            <option value="Documentos / Envelopes">Documentos / Envelopes</option>
+            <option value="Eletronica / Informatica">Eletrónica / Informática</option>
+            <option value="Eletrodomesticos">Eletrodomésticos</option>
+            <option value="Pecas automoveis">Peças automóveis</option>
+            <option value="Material medico / Farmaceutico">Material médico / Farmacêutico</option>
+            <option value="Produtos alimentares (nao pereciveis)">Produtos alimentares (não perecíveis)</option>
+            <option value="Vestuario / Calcado / Texteis">Vestuário / Calçado / Têxteis</option>
+            <option value="Mobiliario / Decoracao">Mobiliário / Decoração</option>
+            <option value="Material de construcao">Material de construção</option>
+            <option value="Ferramentas / Equipamento industrial">Ferramentas / Equipamento industrial</option>
+            <option value="Vidro / Ceramica (fragil)">Vidro / Cerâmica (frágil)</option>
+            <option value="Outro">Outro</option>
+          </select>
+          <div class="quiz-err" id="qerr-material"></div>
+        </div>
+
+        <div class="quiz-card" data-step="embalado">
+          <div class="quiz-q-num">Carga</div>
+          <h3 class="quiz-q-title">A carga está embalada?</h3>
+          <p class="quiz-q-help">Ajuda-nos a preparar o transporte adequado.</p>
+          <div class="quiz-choices quiz-choices-2">
+            <button type="button" class="quiz-choice" data-choice="embalado" data-value="Embalado"><span class="qc-title">Embalado</span><span class="qc-sub">pronto a transportar</span></button>
+            <button type="button" class="quiz-choice" data-choice="embalado" data-value="Nao embalado"><span class="qc-title">Não embalado</span><span class="qc-sub">sem embalagem</span></button>
+          </div>
+          <div class="quiz-err" id="qerr-embalado"></div>
+        </div>
+
+        <div class="quiz-card" data-step="review">
+          <div class="quiz-q-num">Quase lá</div>
+          <h3 class="quiz-q-title">Confirme o seu pedido</h3>
+          <p class="quiz-q-help">Reveja os dados antes de enviar. Entraremos em contacto consigo.</p>
+          <ul class="quiz-summary" id="quizSummary"></ul>
+          <button class="btn-calculate" id="quizSubmit" type="button" onclick="ybQuiz.submit()">Solicitar Orçamento Gratuito</button>
+          <p class="quiz-secure">Os seus dados estão protegidos. Não partilhamos informações com terceiros.</p>
+        </div>
+
+      </div>
+
+      <div class="quiz-controls" id="quizControls">
+        <button type="button" class="quiz-back" id="quizBack" onclick="ybQuiz.back()">Voltar</button>
+        <button type="button" class="quiz-next btn-calculate" id="quizNext" onclick="ybQuiz.next()">Continuar</button>
+      </div>
+    </div>
+
+    <div class="success-screen" id="successScreen">
+      <div class="success-icon">&#10004;</div>
+      <h3 style="font-size:1.4rem;margin:0 0 6px;">Pedido Recebido!</h3>
+      <p style="color:var(--muted);margin:0;">Obrigado <strong id="confirmedName"></strong>! A nossa equipa vai tratar já do seu orçamento.
+        <span style="display:block;margin-top:10px;">Enviámos confirmação para <strong id="confirmedEmail"></strong></span>
+      </p>
+    </div>
+  </div>
+
+  <script src="widget-quiz.js"></script>
+</body>
+</html>

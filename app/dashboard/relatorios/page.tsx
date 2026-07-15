@@ -61,8 +61,9 @@ const VAR_COLOR: Record<string, [string, string]> = {
   QUIZ6:  ['rgba(168,85,247,0.16)', '#a855f7'],
   QUIZ6B: ['rgba(236,72,153,0.16)', '#ec4899'],
   QUIZ6C: ['rgba(6,182,212,0.16)', '#06b6d4'],
+  WIDGET: ['rgba(234,179,8,0.16)', '#eab308'],
 };
-const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5', QUIZ6: 'Quiz 6', QUIZ6B: 'Quiz 6b', QUIZ6C: 'Quiz 6c' };
+const VAR_LABEL: Record<string, string> = { QUIZ: 'Quiz', QUIZ3: 'Quiz 3', QUIZ4: 'Quiz 4', QUIZ5: 'Quiz 5', QUIZ6: 'Quiz 6', QUIZ6B: 'Quiz 6b', QUIZ6C: 'Quiz 6c', WIDGET: 'Widget' };
 
 const STEP_PT: Record<string, string> = {
   COLLECTING_ORIGEM: 'A recolher origem', COLLECTING_DESTINO: 'A recolher destino',

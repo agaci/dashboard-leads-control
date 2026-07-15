@@ -32,6 +32,8 @@ export async function GET(
         whatsappNumber: doc.whatsappNumber ?? null,
         botName:        doc.botName        ?? 'Assistente',
         webhookUrl:     doc.webhookUrl     ?? null,
+        mode:           doc.mode           ?? 'bot',   // 'bot' | 'quiz' (default: bot)
+        variante:       doc.variante       ?? 'WIDGET',
       },
     }, {
       headers: { 'Access-Control-Allow-Origin': '*' },

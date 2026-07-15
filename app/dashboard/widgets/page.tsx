@@ -21,14 +21,26 @@ type WidgetClient = {
   botName: string;
   allowedOrigins: string[];
   webhookUrl: string | null;
+  mode?: 'bot' | 'quiz';
+  variante?: string | null;
   active: boolean;
   createdAt: string;
 };
+
+// Variantes de quiz disponíveis para o modo "Formulário" (etiqueta de tracking).
+const QUIZ_VARIANTS: { value: string; label: string }[] = [
+  { value: 'WIDGET', label: 'Widget (genérica)' },
+  { value: 'QUIZ6C', label: 'Quiz 6c' },
+  { value: 'QUIZ6B', label: 'Quiz 6b' },
+  { value: 'QUIZ6', label: 'Quiz 6' },
+  { value: 'QUIZ5', label: 'Quiz 5' },
+];
 
 const EMPTY_FORM = {
   name: '', primaryColor: '#bed62f', darkColor: '#1a1a1a',
   logoUrl: '', whatsappNumber: '', botName: 'Assistente',
   allowedOrigins: '*', webhookUrl: '',
+  mode: 'bot' as 'bot' | 'quiz', variante: 'WIDGET',
 };
 
 function copyToClipboard(text: string) {
@@ -101,6 +113,8 @@ export default function WidgetsPage() {
       botName:        c.botName,
       allowedOrigins: (c.allowedOrigins ?? ['*']).join(', '),
       webhookUrl:     c.webhookUrl ?? '',
+      mode:           (c.mode === 'quiz' ? 'quiz' : 'bot') as 'bot' | 'quiz',
+      variante:       c.variante ?? 'WIDGET',
     });
     setShowForm(true);
   }
@@ -119,6 +133,8 @@ export default function WidgetsPage() {
         botName:        form.botName.trim() || 'Assistente',
         allowedOrigins: origins.length ? origins : ['*'],
         webhookUrl:     form.webhookUrl.trim() || null,
+        mode:           form.mode === 'quiz' ? 'quiz' : 'bot',
+        variante:       form.mode === 'quiz' ? (form.variante || 'WIDGET') : null,
       };
       if (editId) {
         await fetch('/api/admin/widget-clients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _id: editId, ...body }) });
@@ -218,7 +234,10 @@ export default function WidgetsPage() {
                     ID: <strong style={{ color: 'var(--yb-muted)' }}>{c.clientId}</strong>
                   </p>
                   <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0 }}>
-                    Bot: {c.botName} &bull; Origens: {(c.allowedOrigins ?? ['*']).join(', ')}
+                    {c.mode === 'quiz'
+                      ? <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Formulário</strong> ({c.variante ?? 'WIDGET'})</>
+                      : <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Assistente</strong> · Bot: {c.botName}</>}
+                    {' '}&bull; Origens: {(c.allowedOrigins ?? ['*']).join(', ')}
                   </p>
                 </div>
 
@@ -386,9 +405,39 @@ export default function WidgetsPage() {
               </div>
 
               <div>
-                <label style={labelStyle}>Nome do bot</label>
-                <input style={inputStyle} value={form.botName} onChange={e => setForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistente" />
+                <label style={labelStyle}>Modo do widget</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {([['bot', 'Assistente (bot)'], ['quiz', 'Formulário (variante)']] as const).map(([val, lbl]) => {
+                    const on = form.mode === val;
+                    return (
+                      <button key={val} type="button" onClick={() => setForm(f => ({ ...f, mode: val }))}
+                        style={{ flex: 1, padding: '9px 10px', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700,
+                          border: `1.5px solid ${on ? 'var(--yb-cyan, #00bcd4)' : BORDER}`,
+                          background: on ? 'rgba(0,188,212,0.12)' : 'var(--yb-input)',
+                          color: on ? 'var(--yb-cyan, #00bcd4)' : 'var(--yb-muted)' }}>
+                        {lbl}
+                      </button>
+                    );
+                  })}
+                </div>
+                <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '6px 0 0' }}>
+                  <strong>Assistente</strong>: chat com o bot (comportamento actual). <strong>Formulário</strong>: quiz passo-a-passo com tracking, drop-off e reengajamento — sem o cliente mudar o código.
+                </p>
               </div>
+
+              {form.mode === 'quiz' ? (
+                <div>
+                  <label style={labelStyle}>Variante do formulário (etiqueta de tracking)</label>
+                  <select style={inputStyle} value={form.variante} onChange={e => setForm(f => ({ ...f, variante: e.target.value }))}>
+                    {QUIZ_VARIANTS.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                  </select>
+                </div>
+              ) : (
+                <div>
+                  <label style={labelStyle}>Nome do bot</label>
+                  <input style={inputStyle} value={form.botName} onChange={e => setForm(f => ({ ...f, botName: e.target.value }))} placeholder="Assistente" />
+                </div>
+              )}
 
               <div>
                 <label style={labelStyle}>Número WhatsApp (internacional, sem +)</label>

@@ -569,6 +569,14 @@
         var res  = await fetch(API_BASE + '/api/widget-config/' + encodeURIComponent(_clientId));
         var data = await res.json();
         if (!data.success || !data.config) { showError(); return; }
+        // Modo "quiz" (formulário/variante): redireciona para o widget de quiz.
+        // Default é 'bot' -> clientes actuais nunca entram aqui (comportamento intacto).
+        if (data.config.mode === 'quiz') {
+          var q = 'clientId=' + encodeURIComponent(_clientId) + (_ref ? '&ref=' + encodeURIComponent(_ref) : '')
+                + '&v=' + encodeURIComponent(data.config.variante || 'WIDGET');
+          window.location.replace('widget-quiz.html?' + q);
+          return;
+        }
         applyConfig(data.config);
         document.getElementById('ybLoadingOverlay').classList.add('hidden');
         document.getElementById('ybMain').style.display = 'block';
