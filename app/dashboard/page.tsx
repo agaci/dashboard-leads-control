@@ -2596,6 +2596,11 @@ type VariantItem = { key: string; label: string; desc: string; file: string; wei
 
 const EMPTY_VARIANT: VariantItem = { key: '', label: '', desc: '', file: '', weight: 0 };
 
+type AdvRec = {
+  computedAt: string; windowDays: number; weights: Record<string, number>;
+  detail: { key: string; visits: number; effectiveLeads: number; effRate: number; pBest: number; recommendedPct: number }[];
+};
+
 function VariantPanel() {
   const [variants, setVariants] = useState<VariantItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -2604,13 +2609,45 @@ function VariantPanel() {
   const [error, setError] = useState('');
   const [showAdd, setShowAdd] = useState(false);
   const [newItem, setNewItem] = useState<VariantItem>(EMPTY_VARIANT);
+  const [rec, setRec] = useState<AdvRec | null>(null);
+  const [recBusy, setRecBusy] = useState(false);
 
   useEffect(() => {
     fetch('/api/variant-config')
       .then((r) => r.json())
       .then((d) => setVariants(d.variants ?? []))
       .finally(() => setLoading(false));
+    fetch('/api/autobalance/recommendation')
+      .then((r) => r.json())
+      .then((d) => setRec(d.recommendation ?? null))
+      .catch(() => {});
   }, []);
+
+  async function recalcRec() {
+    setRecBusy(true);
+    try {
+      const res = await fetch('/api/autobalance/recommendation', { method: 'POST' });
+      const d = await res.json();
+      if (d.recommendation) setRec(d.recommendation);
+      else if (d.skipped) setError('Conselheiro: ' + d.skipped);
+    } catch { /* silencioso */ }
+    setRecBusy(false);
+  }
+
+  async function applyRec() {
+    if (!rec) return;
+    const next = variants.map((v) => (rec.weights[v.key] != null ? { ...v, weight: rec.weights[v.key] } : v));
+    setVariants(next);
+    const t = next.reduce((s, v) => s + (v.weight || 0), 0);
+    if (t !== 100) { setError(`Recomendação soma ${t}% — ajuste manualmente antes de guardar.`); return; }
+    setError(''); setSaving(true);
+    try {
+      const res = await fetch('/api/variant-config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ variants: next }) });
+      const d = await res.json();
+      if (!res.ok || !d.success) setError(d.error ?? 'Erro ao guardar'); else { setSaved(true); setTimeout(() => setSaved(false), 2000); }
+    } catch { setError('Erro de rede ao aplicar'); }
+    finally { setSaving(false); }
+  }
 
   const total = variants.reduce((s, v) => s + (v.weight || 0), 0);
 
@@ -2664,6 +2701,48 @@ function VariantPanel() {
       <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 16 }}>
         Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.
       </p>
+
+      {/* Conselheiro do balanceador (Fase B) — recomenda, não aplica */}
+      <div style={{ ...cardS, border: '1px solid rgba(0,188,212,0.4)', background: 'rgba(0,188,212,0.06)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', marginBottom: rec?.detail?.length ? 10 : 0 }}>
+          <strong style={{ fontSize: 13, color: NAVY }}>
+            Recomendação do balanceador
+            {rec && <span style={{ fontWeight: 500, color: 'var(--yb-muted)' }}>{' '}· janela {rec.windowDays}d · {new Date(rec.computedAt).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</span>}
+          </strong>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button onClick={recalcRec} disabled={recBusy}
+              style={{ fontSize: 12, fontWeight: 700, padding: '5px 10px', borderRadius: 7, cursor: 'pointer', border: `1px solid ${BORDER}`, background: 'var(--yb-input)', color: 'var(--yb-muted)' }}>
+              {recBusy ? 'A calcular…' : 'Recalcular'}
+            </button>
+            {rec?.detail?.length ? (
+              <button onClick={applyRec} disabled={saving}
+                style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', borderRadius: 7, cursor: 'pointer', border: 'none', background: CYAN, color: '#fff' }}>
+                Aplicar
+              </button>
+            ) : null}
+          </div>
+        </div>
+        {rec?.detail?.length ? (
+          <>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {rec.detail.map((d) => (
+                <div key={d.key} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12 }}>
+                  <span style={{ width: 66, fontWeight: 800, color: NAVY }}>{d.key}</span>
+                  <span style={{ width: 46, textAlign: 'right', fontWeight: 800, color: CYAN }}>{d.recommendedPct}%</span>
+                  <span style={{ color: 'var(--yb-muted)' }}>efetiva <strong style={{ color: NAVY }}>{d.effRate}%</strong> · {d.visits} vis · P(melhor) <strong style={{ color: NAVY }}>{d.pBest}%</strong></span>
+                </div>
+              ))}
+            </div>
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '9px 0 0' }}>
+              Sugestão (não aplicada). "Aplicar" copia estes pesos e guarda. Otimiza <strong>leads efetivas/visita</strong> (só visitas de Portugal). Amostra pequena → mantém a explorar.
+            </p>
+          </>
+        ) : (
+          <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '8px 0 0' }}>
+            Sem recomendação ainda — clique <strong>Recalcular</strong> (precisa de ≥2 variantes de quiz activas com dados). Otimiza leads efetivas/visita (só PT), sem aplicar nada.
+          </p>
+        )}
+      </div>
 
       {variants.map((v, idx) => (
         <div key={v.key} style={cardS}>
