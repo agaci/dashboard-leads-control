@@ -14,6 +14,7 @@ type ReportData = {
   kpis: { leadsMonth: number; leadsAllTime: number; conversionRate: number; totalRevMonth: number; avgLeadValue: number; growthRate: number | null };
   leadsPerDay: { date: string; count: number }[];
   granularity: 'hour' | 'day';
+  metricFilterPT?: boolean;
   leadsPerSource: { source: string; count: number }[];
   leadsPerUrgency: { urgency: string; count: number }[];
   topRoutes: { origem: string; destino: string; count: number; avgPrice: number }[];
@@ -310,7 +311,7 @@ export default function RelatoriosPage() {
     </div>
   );
 
-  const { kpis, leadsPerDay, granularity = 'day', leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 }, dropoff = [] } = data;
+  const { kpis, leadsPerDay, granularity = 'day', metricFilterPT = false, leadsPerSource, leadsPerUrgency, topRoutes, bot, closeReasons, variantFunnel = [], bestVariant = null, bestMetric = null, visitsSince = null, deviceBreakdown = { mobile: 0, tablet: 0, desktop: 0, total: 0 }, dropoff = [] } = data;
   // Drop-off: variante selecionada (a escolhida, senão a vencedora, senão a primeira)
   const selectedDrop = dropoff.find((x) => x.variante === dropVar)
     ?? dropoff.find((x) => x.variante === bestVariant)
@@ -487,7 +488,10 @@ export default function RelatoriosPage() {
         {/* Funil por variante */}
         <div style={{ background: CARD_BG, borderRadius: 12, border: `1px solid ${BORDER}`, padding: '16px 18px', marginBottom: 14 }}>
           <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 4 }}>Funil por variante — entrada → inbox → lead</p>
-          <p style={{ fontSize: 11, color: TEXT3, marginBottom: variantFunnel.length && visitsMaturing ? 10 : 14 }}>Visitas ao site → conversas iniciadas → leads concluídas, e as taxas de passagem.</p>
+          <p style={{ fontSize: 11, color: TEXT3, marginBottom: variantFunnel.length && visitsMaturing ? 10 : 14 }}>
+            Visitas ao site → conversas iniciadas → leads concluídas, e as taxas de passagem.
+            {metricFilterPT && <> Métrica sobre <strong style={{ color: TEXT2 }}>visitas de Portugal</strong> (exclui tráfego estrangeiro/curioso).</>}
+          </p>
 
           {variantFunnel.length > 0 && visitsMaturing && (
             <div style={{ marginBottom: 14, padding: '9px 12px', borderRadius: 8, background: 'rgba(245,158,11,0.09)', border: '1px solid rgba(245,158,11,0.28)', fontSize: 11.5, color: TEXT2, lineHeight: 1.5 }}>

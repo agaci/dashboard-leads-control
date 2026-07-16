@@ -67,6 +67,15 @@ export async function GET(request: NextRequest) {
 
     const db = await getDb();
 
+    // ── Higiene de dados (config; ver VARIANTES_AUTOBALANCE.md §7.5) ──────────
+    // Por defeito, a métrica do funil por variante conta só visitas de Portugal
+    // (o tráfego estrangeiro/noturno é curioso/bot e não converte -> falseia as taxas).
+    const cfgDoc = await db.collection('routingConfig').findOne(
+      { _id: 'yourbox_main' as any }, { projection: { autobalance: 1 } },
+    );
+    const filterPT: boolean = (cfgDoc as any)?.autobalance?.filterPortugalOnly ?? true;
+    const visitPT = filterPT ? { 'geo.country': 'Portugal' } : {};
+
     const [
       leadsMonth, leadsAllTime, simsMonth,
       leadsPerDayRaw, leadsPerSourceRaw, leadsPerUrgencyRaw,
@@ -153,9 +162,9 @@ export async function GET(request: NextRequest) {
         { $sort: { count: -1 } },
       ]).toArray(),
       // ── Funil por variante: entrada (visita) -> inbox (conversa) -> lead ──
-      // Visitas por variante (colecção visits)
+      // Visitas por variante (colecção visits). Higiene: só Portugal (config).
       db.collection('visits').aggregate([
-        { $match: { firstSeen: { $gte: dateFrom, $lte: dateTo } } },
+        { $match: { firstSeen: { $gte: dateFrom, $lte: dateTo }, ...visitPT } },
         { $group: { _id: '$variante', count: { $sum: 1 } } },
       ]).toArray(),
       // Conversas de quiz iniciadas por variante (inbox)
@@ -346,6 +355,7 @@ export async function GET(request: NextRequest) {
       },
       leadsPerDay,
       granularity: hourly ? 'hour' : 'day',
+      metricFilterPT: filterPT,
       dropoff,
       leadsPerSource:  (leadsPerSourceRaw  as any[]).map((r: any) => ({ source: r._id ?? 'desconhecida', count: r.count })),
       leadsPerUrgency: (leadsPerUrgencyRaw as any[]).map((r: any) => ({ urgency: r._id, count: r.count })),
