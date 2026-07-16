@@ -259,7 +259,7 @@
     <a href="#aparencia">Aparência (Tema)</a>
     <a href="#notificacoes">Notificações de Alerta</a>
     <a href="#reengajamento">Reengajamento de Quiz</a>
-    <a href="#ab-routing">Distribuição A/B e Agendamento</a>
+    <a href="#ab-routing">Distribuição A/B, Agendamento e Automático</a>
     <a href="#variantes">Variantes de Captação</a>
   </div>
   <div class="sidebar-section">
@@ -282,7 +282,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.5</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.6</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -1061,23 +1061,37 @@
     <!-- ══════════════════════════════════════════════════════════════════════ -->
     <span class="section-anchor" id="ab-routing"></span>
     <div class="section">
-      <h2>Distribuição A/B e Agendamento</h2>
-      <p>O painel de <strong>Routing</strong> (em Perfil → Configurações) permite controlar como o tráfego da landing page é distribuído entre diferentes variantes do formulário de cálculo, e programar essa distribuição por horário.</p>
+      <h2>Distribuição A/B, Agendamento e Automático</h2>
+      <p>O painel de <strong>Routing</strong> (em Perfil → Configurações) permite controlar como o tráfego da landing page é distribuído entre diferentes variantes do formulário de cálculo. Há <strong>três formas</strong> de definir os pesos e <strong>só uma manda de cada vez</strong>.</p>
+
+      <h3>Modo de distribuição (selector exclusivo)</h3>
+      <p>No topo do painel escolhe-se o <strong>modo</strong>. Activar um <strong>desliga automaticamente os outros</strong> — nunca há dois em vigor ao mesmo tempo.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modo</th><th>Quem define os pesos</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Manual</strong></td><td>Você, no painel de percentagens.</td><td>Controlo total; testes pontuais.</td></tr>
+            <tr><td><strong>Agendamento</strong></td><td>Slots por faixa horária.</td><td>Distribuições diferentes ao longo do dia.</td></tr>
+            <tr><td><strong>Automático</strong></td><td>O balanceador inteligente (bandit).</td><td>Deixar o sistema optimizar sozinho para leads.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout tip"><div class="callout-icon">+</div><div>O selector é a <strong>fonte única de verdade</strong>: quando se escolhe "Agendamento", o antigo interruptor on/off do agendamento passa a ser ligado por aqui; escolher "Manual" ou "Automático" desliga-o. Clientes antigos ficam iguais (arrancam em Manual).</div></div>
 
       <h3>Distribuição Manual de Variantes</h3>
       <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão. Inclui as variantes de <strong>landing</strong> (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>) e as de <strong>quiz</strong> (<code>quiz</code>, <code>quiz3</code>, <code>quiz4</code>, <code>quiz5</code>, <code>quiz6</code>, <code>quiz6b</code>, <code>quiz6c</code>). Ver a secção <strong>§Variantes de Captação</strong> para a dinâmica de cada uma.</p>
       <ul>
         <li>A soma das percentagens deve ser exactamente <strong>100%</strong></li>
         <li>Colocar 100% numa variante desactiva as restantes efectivamente</li>
-        <li>A distribuição manual está em vigor quando o <strong>Agendamento</strong> está desactivado</li>
+        <li>Estes pesos estão em vigor quando o <strong>Modo</strong> é <strong>Manual</strong>. Em <strong>Automático</strong> são a base que o balanceador reescreve; em <strong>Agendamento</strong> só valem fora dos slots.</li>
         <li>Se um visitante tiver um cookie de uma variante que passou a <strong>0%</strong>, é reatribuído no acesso seguinte (as mudanças valem de imediato)</li>
       </ul>
 
       <h3>Agendamento de Distribuição por Horário</h3>
       <p>O painel <strong>Agendamento de Distribuição</strong> permite definir percentagens diferentes para cada faixa horária do dia. Quando activo, o sistema muda automaticamente a distribuição à hora programada, sem intervenção manual.</p>
 
-      <h4>Toggle global de agendamento</h4>
-      <p>O toggle <strong>Agendamento activo / desactivado</strong> controla se o sistema usa os slots programados ou a distribuição manual do painel acima. Quando desactivado, a distribuição manual fica em vigor independentemente dos slots existentes.</p>
+      <h4>Activar o agendamento</h4>
+      <p>O agendamento fica em vigor quando o <strong>Modo de distribuição</strong> (no topo) está em <strong>Agendamento</strong>. O painel mostra o estado — <span class="badge badge-green">Agendamento a mandar</span> ou "Agendamento inativo" — e, quando inativo, um botão <strong>Usar agendamento</strong> que muda o modo directamente. Já não há um interruptor separado: a activação é sempre pelo selector de modo (para nunca haver dois modos em conflito).</p>
 
       <h4>Criar e gerir slots</h4>
       <div class="steps">
@@ -1109,6 +1123,47 @@
 
       <div class="callout warn"><div class="callout-icon">!</div><div>O agendamento usa a <strong>hora de Lisboa</strong> (Europe/Lisbon, com ajuste automático para horário de verão). Confirme que os slots estão configurados nesse fuso.</div></div>
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Exemplo de uso:</strong> manhã 9h–12h com 80% chat-demo (para testar tráfego fresco), tarde 14h–20h com 50%/50% entre variantes A e B para teste controlado. Fora destes horários, distribuição base em vigor.</div></div>
+
+      <h3>Distribuição Automática — Balanceador Inteligente</h3>
+      <p>No modo <strong>Automático</strong>, um motor estatístico (bandit de <strong>Thompson Sampling</strong>) analisa o desempenho de cada variante de quiz e propõe os pesos que maximizam a captação. É o mesmo cálculo que corre 1×/dia por tarefa automática e que se pode disparar à mão no botão <strong>Recalcular</strong>.</p>
+
+      <h4>A métrica — "leads efetivas" (não é só quem fecha)</h4>
+      <p>Uma visita que <strong>deixa contacto</strong> (telemóvel/email) mas ainda não virou lead <strong>vale</strong> — é pipeline morno recuperável pelo reengajamento. Por isso o balanceador não conta só leads fechadas:</p>
+      <pre style="background:#0f1724;color:#cbd5e1;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:0.8rem;line-height:1.5;overflow-x:auto;">leads_efetivas = leads
+               + 0.35 x (inbox com TELEMÓVEL, sem lead)
+               + 0.20 x (inbox só com EMAIL, sem lead)</pre>
+      <ul>
+        <li>Optimiza <strong>leads efetivas por visita</strong> — não o número bruto de leads.</li>
+        <li>Conta apenas <strong>visitas de Portugal</strong> (higiene de dados: o tráfego estrangeiro/curioso infla as visitas sem converter e falsearia as taxas).</li>
+        <li>Janela de análise: últimos <strong>14 dias</strong>. Os pesos 0.35 / 0.20 e a janela são configuráveis.</li>
+      </ul>
+
+      <h4>Como ler a recomendação</h4>
+      <p>O cartão <strong>Recomendação do balanceador</strong> mostra, por variante: a <strong>% recomendada</strong>, a <strong>taxa efetiva</strong>, o nº de <strong>visitas</strong> e o <strong>P(melhor)</strong> — a probabilidade de ser realmente a melhor. É esta última que traduz a <strong>confiança</strong>: uma variante com muitas leads mas amostra pequena/taxa apertada pode ter P(melhor) baixo e não ser coroada.</p>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Porque é inteligente:</strong> com amostras pequenas as variantes "empatam" e o motor mantém-nas todas a explorar (não decide com 3-4 leads). À medida que os dados crescem, aperta os pesos na vencedora e vai <strong>podando</strong> as fracas até um piso mínimo (5%). Se só uma se provar, converge para ela.</div></div>
+
+      <h4>Só aconselhar vs. Aplicar sozinho</h4>
+      <p>Dentro do Automático há um sub-modo:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Sub-modo</th><th>Comportamento</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Só aconselhar</strong> <span class="badge">predefinido</span></td><td>Mostra a sugestão; <strong>não mexe</strong> nos pesos. Aplica-se com o botão <strong>Aplicar</strong> (copia os pesos e guarda) quando concordar.</td></tr>
+            <tr><td><strong>Aplicar sozinho</strong></td><td>O motor <strong>escreve</strong> os pesos em cada passagem, sem intervenção.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Guarda-costas do "Aplicar sozinho"</h4>
+      <ul>
+        <li><strong>Movimento gradual</strong> — cada peso aproxima-se do alvo no máximo <strong>10 pontos percentuais por dia</strong>. Nunca há saltos bruscos.</li>
+        <li><strong>Piso e tecto</strong> — nenhuma variante activa cai abaixo de 5% nem passa de 85% de uma vez.</li>
+        <li><strong>Não invade</strong> — só actua se as variantes em rotação detêm 100% do peso; se houver outra variante com peso, faz pausa e explica.</li>
+        <li><strong>Registo</strong> — cada aplicação fica gravada (de/para, quando, motivo).</li>
+        <li><strong>Voltar atrás</strong> — mudar o Modo para <strong>Manual</strong> a qualquer momento fixa os pesos e desliga o automatismo.</li>
+      </ul>
+
+      <div class="callout warn"><div class="callout-icon">!</div><div>Comece sempre em <strong>Só aconselhar</strong>. Ganhe confiança a ver a recomendação alguns dias e só depois passe a <strong>Aplicar sozinho</strong>. Enquanto o Modo estiver em <strong>Manual</strong>, a tarefa diária apenas actualiza a recomendação — <strong>nunca</strong> altera a distribuição real.</div></div>
     </div>
 
     <hr>
@@ -1474,7 +1529,7 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.5 — Junho 2026</span>
+      <span>YourBox Dashboard — Manual v1.6 — Julho 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>
