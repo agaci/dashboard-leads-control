@@ -11,9 +11,33 @@ export type Recommendation = {
   detail: { key: string; visits: number; effectiveLeads: number; effRate: number; pBest: number; recommendedPct: number }[];
 };
 
+// Movimento gradual: aproxima cada peso do alvo no máximo `maxDelta` p.p., depois
+// re-normaliza a inteiros que somam `mass` (maior resto). Guarda-costas anti-saltos.
+function gradualWeights(
+  current: Record<string, number>, target: Record<string, number>, mass: number, maxDelta: number,
+): Record<string, number> {
+  const keys = Object.keys(target);
+  const moved: Record<string, number> = {};
+  for (const k of keys) {
+    const cur = current[k] ?? 0;
+    const tgt = target[k] ?? 0;
+    const d = Math.max(-maxDelta, Math.min(maxDelta, tgt - cur));
+    moved[k] = Math.max(0, cur + d);
+  }
+  const sum = keys.reduce((a, k) => a + moved[k], 0) || 1;
+  const parts = keys.map((k) => { const v = (moved[k] / sum) * mass; return { k, v, f: Math.floor(v) }; });
+  let s = parts.reduce((a, p) => a + p.f, 0);
+  parts.sort((a, b) => (b.v - b.f) - (a.v - a.f));
+  let i = 0;
+  while (s < mass && parts.length) { parts[i % parts.length].f++; s++; i++; }
+  const res: Record<string, number> = {};
+  for (const p of parts) res[p.k] = p.f;
+  return res;
+}
+
 // Calcula os pesos recomendados pelo bandit (Thompson sobre leads_efetivas/visita, só
 // visitas PT) e guarda em routingConfig.autobalance.recommendation. NÃO aplica os pesos.
-export async function computeRecommendation(db: Awaited<ReturnType<typeof getDb>>): Promise<{ recommendation?: Recommendation; skipped?: string }> {
+export async function computeRecommendation(db: Awaited<ReturnType<typeof getDb>>): Promise<{ recommendation?: Recommendation; skipped?: string; applied?: Record<string, number> }> {
   const cfg: any = await db.collection(COL).findOne({ _id: DOC as any });
   const ab = cfg?.autobalance ?? {};
   const windowDays = ab.windowDays ?? 14;
@@ -83,6 +107,42 @@ export async function computeRecommendation(db: Awaited<ReturnType<typeof getDb>
     { $set: { 'autobalance.recommendation': recommendation, updatedAt: new Date() } },
     { upsert: true },
   );
+
+  // Auto-aplicar? Só quando o modo de distribuição é 'auto' E o sub-modo é 'auto'.
+  // Guarda-costas: só se as variantes activas detêm todo o peso (não mexer noutras),
+  // movimento gradual limitado a maxDeltaPerDay, e registo do que mudou.
+  const mode = cfg?.distributionMode ?? (cfg?.variantSchedulesActive ? 'schedule' : 'manual');
+  const apply = ab.apply === 'auto' ? 'auto' : 'advisor';
+  if (mode === 'auto' && apply === 'auto') {
+    const armKeys = new Set(arms.map((a) => a.key));
+    const otherWithWeight = variants.filter((v) => !armKeys.has(v.key) && (v.weight ?? 0) > 0);
+    if (otherWithWeight.length) {
+      return { recommendation, skipped: 'auto-aplicar ignorado: há variantes fora da rotação com peso (fixe-as a 0)' };
+    }
+    const mass = arms.reduce((a, v) => a + (variants.find((x) => x.key === v.key)?.weight ?? 0), 0);
+    if (mass !== 100) return { recommendation, skipped: 'auto-aplicar ignorado: pesos das variantes activas não somam 100' };
+
+    const maxDelta = typeof ab.maxDeltaPerDay === 'number' ? ab.maxDeltaPerDay : 10;
+    const current: Record<string, number> = {};
+    for (const a of arms) current[a.key] = variants.find((x) => x.key === a.key)?.weight ?? 0;
+    const nextW = gradualWeights(current, weights, 100, maxDelta);
+
+    const changed = arms.some((a) => (current[a.key] ?? 0) !== (nextW[a.key] ?? 0));
+    if (changed) {
+      const nextVariants = variants.map((v) => (nextW[v.key] != null ? { ...v, weight: nextW[v.key] } : v));
+      await db.collection(COL).updateOne(
+        { _id: DOC as any },
+        { $set: {
+          variants: nextVariants,
+          'autobalance.lastApplied': { at: new Date(), from: current, to: nextW, maxDelta, reason: 'bandit (auto)' },
+          updatedAt: new Date(),
+        } },
+        { upsert: true },
+      );
+      return { recommendation, applied: nextW };
+    }
+    return { recommendation, skipped: 'auto-aplicar: pesos já estão no alvo' };
+  }
 
   return { recommendation };
 }

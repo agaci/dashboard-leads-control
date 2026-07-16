@@ -859,8 +859,7 @@ export default function DashboardPage() {
           <div style={{ maxWidth: 600 }}>
             <RoutingPanel />
             <div style={{ marginTop: 32 }}>
-              <VariantPanel />
-              <VariantSchedulePanel />
+              <DistributionSection />
             </div>
           </div>
         </div>
@@ -1500,8 +1499,7 @@ function ConfigPage() {
           <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>Configuração do Bot</h3>
           <RoutingPanel />
           <div style={{ height: 1, background: BORDER, margin: '32px 0' }} />
-          <VariantPanel />
-          <VariantSchedulePanel />
+          <DistributionSection />
           <div style={{ height: 1, background: BORDER, margin: '32px 0' }} />
           <DepotPanel />
         </>
@@ -2601,7 +2599,88 @@ type AdvRec = {
   detail: { key: string; visits: number; effectiveLeads: number; effRate: number; pBest: number; recommendedPct: number }[];
 };
 
-function VariantPanel() {
+type DistMode = 'manual' | 'schedule' | 'auto';
+
+const MODE_INFO: Record<DistMode, { label: string; desc: string }> = {
+  manual: { label: 'Manual', desc: 'Você define os pesos à mão no painel de percentagens.' },
+  schedule: { label: 'Agendamento', desc: 'Os pesos mudam por faixa horária (slots definidos abaixo).' },
+  auto: { label: 'Automático', desc: 'O balanceador (bandit) recomenda — e, em modo "aplicar sozinho", escreve os pesos.' },
+};
+
+// Governa as 3 formas de distribuir (exclusão mútua). Fonte de verdade: /api/variant-config/mode.
+function DistributionSection() {
+  const [mode, setMode] = useState<DistMode | null>(null);
+  const [apply, setApply] = useState<'advisor' | 'auto'>('advisor');
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/variant-config/mode').then((r) => r.json())
+      .then((d) => { setMode(d.mode ?? 'manual'); setApply(d.apply ?? 'advisor'); })
+      .catch(() => setMode('manual'));
+  }, []);
+
+  async function changeMode(m: DistMode) {
+    if (m === mode || busy) return;
+    setBusy(true);
+    const prev = mode;
+    setMode(m); // optimista
+    try {
+      const res = await fetch('/api/variant-config/mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: m }),
+      });
+      const d = await res.json();
+      if (!res.ok) { setMode(prev); } else { setMode(d.mode); setApply(d.apply ?? apply); }
+    } catch { setMode(prev); }
+    finally { setBusy(false); }
+  }
+
+  async function changeApply(a: 'advisor' | 'auto') {
+    if (a === apply || busy) return;
+    setBusy(true);
+    const prev = apply;
+    setApply(a);
+    try {
+      const res = await fetch('/api/variant-config/mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ mode: 'auto', apply: a }),
+      });
+      if (!res.ok) setApply(prev);
+    } catch { setApply(prev); }
+    finally { setBusy(false); }
+  }
+
+  if (mode === null) return null;
+
+  return (
+    <div>
+      {/* Selector de modo — exclusivo */}
+      <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: '0 0 4px' }}>Modo de distribuição</h2>
+      <p style={{ fontSize: 13, color: 'var(--yb-muted)', margin: '0 0 12px' }}>
+        Só um manda de cada vez. Escolher um desliga os outros automaticamente.
+      </p>
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        {(Object.keys(MODE_INFO) as DistMode[]).map((m) => {
+          const on = mode === m;
+          return (
+            <button key={m} onClick={() => changeMode(m)} disabled={busy}
+              style={{ flex: '1 1 150px', textAlign: 'left', padding: '11px 13px', borderRadius: 10, cursor: busy ? 'default' : 'pointer',
+                border: `2px solid ${on ? CYAN : BORDER}`, background: on ? 'rgba(0,188,212,0.08)' : 'var(--yb-card)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                <span style={{ width: 13, height: 13, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? CYAN : 'var(--yb-border)'}`, background: on ? CYAN : 'transparent', boxShadow: on ? `inset 0 0 0 2px var(--yb-card)` : 'none' }} />
+                <strong style={{ fontSize: 13.5, color: on ? CYAN : 'var(--yb-fg)' }}>{MODE_INFO[m].label}</strong>
+              </div>
+              <span style={{ fontSize: 11, color: 'var(--yb-subtle)', lineHeight: 1.35, display: 'block' }}>{MODE_INFO[m].desc}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <VariantPanel mode={mode} apply={apply} onChangeApply={changeApply} />
+      <VariantSchedulePanel mode={mode} onActivate={() => changeMode('schedule')} />
+    </div>
+  );
+}
+
+function VariantPanel({ mode = 'manual', apply = 'advisor', onChangeApply }: { mode?: DistMode; apply?: 'advisor' | 'auto'; onChangeApply?: (a: 'advisor' | 'auto') => void }) {
   const [variants, setVariants] = useState<VariantItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -2694,12 +2773,21 @@ function VariantPanel() {
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 4 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between', marginBottom: 4, flexWrap: 'wrap' }}>
         <h2 style={{ fontFamily: 'Space Grotesk, sans-serif', fontWeight: 700, fontSize: 18, color: NAVY, margin: 0 }}>Distribuição de Variantes A/B</h2>
-        <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#22c55e' : '#f87171' }}>Total: {total}%</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {mode === 'manual'
+            ? <span style={{ fontSize: 11, fontWeight: 800, background: 'rgba(34,197,94,0.15)', color: '#22c55e', padding: '3px 9px', borderRadius: 20 }}>A MANDAR</span>
+            : <span style={{ fontSize: 11, fontWeight: 700, background: 'var(--yb-card-2)', color: 'var(--yb-subtle)', padding: '3px 9px', borderRadius: 20 }}>{mode === 'auto' ? 'Base (auto escreve aqui)' : 'Inativo — agendamento manda'}</span>}
+          <span style={{ fontSize: 13, fontWeight: 700, color: total === 100 ? '#22c55e' : '#f87171' }}>Total: {total}%</span>
+        </div>
       </div>
       <p style={{ fontSize: 13, color: 'var(--yb-muted)', marginBottom: 16 }}>
-        Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.
+        {mode === 'manual'
+          ? 'Controle em tempo real a percentagem de visitantes que vê cada versão da landing page. A soma deve ser exactamente 100%.'
+          : mode === 'auto'
+            ? 'No modo Automático, o balanceador escreve estes pesos. Pode editar/guardar à mão a qualquer momento — a próxima passagem do balanceador (se em "auto") volta a ajustar.'
+            : 'O agendamento está a mandar. Estes pesos base só se aplicam fora dos slots horários definidos abaixo.'}
       </p>
 
       {/* Conselheiro do balanceador (Fase B) — recomenda, não aplica */}
@@ -2722,6 +2810,26 @@ function VariantPanel() {
             ) : null}
           </div>
         </div>
+        {mode === 'auto' && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '2px 0 12px', flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: NAVY }}>Aplicação:</span>
+            <div style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+              {(['advisor', 'auto'] as const).map((a) => (
+                <button key={a} onClick={() => onChangeApply?.(a)}
+                  style={{ fontSize: 12, fontWeight: 700, padding: '5px 12px', cursor: 'pointer', border: 'none',
+                    background: apply === a ? (a === 'auto' ? CYAN : NAVY) : 'var(--yb-input)',
+                    color: apply === a ? '#fff' : 'var(--yb-muted)' }}>
+                  {a === 'advisor' ? 'Só aconselhar' : 'Aplicar sozinho'}
+                </button>
+              ))}
+            </div>
+            <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>
+              {apply === 'auto'
+                ? 'O balanceador escreve os pesos a cada passagem (movimento gradual, guarda-costas activos).'
+                : 'Só mostra a sugestão — aplica com o botão "Aplicar".'}
+            </span>
+          </div>
+        )}
         {rec?.detail?.length ? (
           <>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
@@ -2863,10 +2971,10 @@ function newSlotId() {
   return Math.random().toString(36).slice(2, 9);
 }
 
-function VariantSchedulePanel() {
+function VariantSchedulePanel({ mode = 'schedule', onActivate }: { mode?: DistMode; onActivate?: () => void }) {
+  const active = mode === 'schedule'; // exclusão mútua: derivado do modo de distribuição
   const [variantKeys, setVariantKeys] = useState<string[]>([]);
   const [schedules, setSchedules] = useState<VariantSchedule[]>([]);
-  const [active, setActive] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -2891,7 +2999,6 @@ function VariantSchedulePanel() {
     ]).then(([varData, schData]) => {
       setVariantKeys((varData.variants ?? []).map((v: { key: string }) => v.key));
       setSchedules(schData.schedules ?? []);
-      setActive(schData.active ?? false);
     }).finally(() => setLoading(false));
   }, []);
 
@@ -2965,27 +3072,24 @@ function VariantSchedulePanel() {
         Define percentagens automáticas por faixa horária. Quando activo, a distribuição muda sozinha à hora programada (propagação máx. 60s).
       </p>
 
-      {/* Toggle activar */}
-      <div style={{ ...cardS, display: 'flex', alignItems: 'center', gap: 14 }}>
-        <button
-          onClick={() => setActive((v) => !v)}
-          style={{
-            width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', position: 'relative',
-            background: active ? CYAN : 'var(--yb-border)', transition: 'background 0.2s', flexShrink: 0,
-          }}>
-          <span style={{
-            position: 'absolute', top: 3, left: active ? 22 : 3, width: 18, height: 18,
-            borderRadius: '50%', background: '#fff', transition: 'left 0.2s',
-          }} />
-        </button>
+      {/* Estado do agendamento — derivado do Modo de distribuição (exclusão mútua) */}
+      <div style={{ ...cardS, display: 'flex', alignItems: 'center', gap: 14, justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--yb-fg)' }}>
-            {active ? 'Agendamento activo' : 'Agendamento desactivado'}
+          <span style={{ fontSize: 13, fontWeight: 700, color: active ? '#22c55e' : 'var(--yb-fg)' }}>
+            {active ? 'Agendamento a mandar' : 'Agendamento inativo'}
           </span>
           <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '2px 0 0' }}>
-            {active ? 'Os pesos são definidos automaticamente pela hora de Lisboa.' : 'A distribuição manual (painel acima) está em vigor.'}
+            {active
+              ? 'Os pesos são definidos automaticamente pela hora de Lisboa (fora dos slots usa a distribuição base).'
+              : 'Configure os slots aqui; para os pôr a mandar, escolha "Agendamento" no Modo de distribuição, acima.'}
           </p>
         </div>
+        {!active && onActivate && (
+          <button onClick={onActivate}
+            style={{ fontSize: 12, fontWeight: 700, padding: '7px 14px', borderRadius: 8, cursor: 'pointer', border: 'none', background: CYAN, color: '#fff', flexShrink: 0 }}>
+            Usar agendamento
+          </button>
+        )}
       </div>
 
       {/* Lista de slots */}
