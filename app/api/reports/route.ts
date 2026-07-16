@@ -73,15 +73,19 @@ export async function GET(request: NextRequest) {
     const cfgDoc = await db.collection('routingConfig').findOne(
       { _id: 'yourbox_main' as any }, { projection: { autobalance: 1 } },
     );
-    const filterPT: boolean = (cfgDoc as any)?.autobalance?.filterPortugalOnly ?? true;
+    const ab = (cfgDoc as any)?.autobalance ?? {};
+    const filterPT: boolean = ab.filterPortugalOnly ?? true;
     const visitPT = filterPT ? { 'geo.country': 'Portugal' } : {};
+    // Leads efetivas: valor de um contacto capturado sem lead (ver §7.6). Calibrável.
+    const alpha: number = typeof ab.alpha === 'number' ? ab.alpha : 0.35; // telemóvel
+    const beta: number  = typeof ab.beta  === 'number' ? ab.beta  : 0.20; // só email
 
     const [
       leadsMonth, leadsAllTime, simsMonth,
       leadsPerDayRaw, leadsPerSourceRaw, leadsPerUrgencyRaw,
       topRoutesRaw, revenueRaw, prevPeriodLeads,
       convStats, botStepStats, closeReasonsRaw,
-      visitsByVarRaw, quizConvByVarRaw, quizLeadByVarRaw, visitsSinceRaw, deviceRaw,
+      visitsByVarRaw, quizConvByVarRaw, quizLeadByVarRaw, quizContactRaw, visitsSinceRaw, deviceRaw,
     ] = await Promise.all([
       // Leads confirmadas no período
       db.collection('messages').countDocuments({
@@ -177,6 +181,12 @@ export async function GET(request: NextRequest) {
         { $match: { canal: 'web-quiz', step: 'LEAD_REGISTERED', createdAt: { $gte: dateFrom, $lte: dateTo } } },
         { $group: { _id: '$quizVariante', count: { $sum: 1 } } },
       ]).toArray(),
+      // Conversas de quiz (para contar contacto captado SEM lead -> leads efetivas).
+      // Mongo 3.0 nao tem $strLenCP/$regex em agregacao -> contamos em JS.
+      db.collection('conversations').find(
+        { canal: 'web-quiz', createdAt: { $gte: dateFrom, $lte: dateTo } },
+        { projection: { quizVariante: 1, step: 1, 'data.telefone': 1, 'data.email': 1 } },
+      ).limit(5000).toArray(),
       // Data da 1a visita registada (desde quando ha dados de visitas)
       db.collection('visits').aggregate([
         { $group: { _id: null, min: { $min: '$firstSeen' } } },
@@ -229,6 +239,20 @@ export async function GET(request: NextRequest) {
     const leadByVar: Record<string, number> = {};
     for (const r of quizLeadByVarRaw as any[]) if (r._id) leadByVar[String(r._id)] = r.count;
 
+    // Contacto captado SEM lead, por variante (telemóvel vs só email) — leads efetivas.
+    const emailReV = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const contactByVar: Record<string, { phone: number; emailOnly: number }> = {};
+    for (const c of quizContactRaw as any[]) {
+      if (c.step === 'LEAD_REGISTERED') continue; // já é lead, não conta como "captado sem lead"
+      const v = c.quizVariante ? String(c.quizVariante) : null;
+      if (!v) continue;
+      const hasPhone = String(c.data?.telefone ?? '').replace(/\D/g, '').length >= 9;
+      const hasEmail = emailReV.test(String(c.data?.email ?? ''));
+      const b = (contactByVar[v] ??= { phone: 0, emailOnly: 0 });
+      if (hasPhone) b.phone++;
+      else if (hasEmail) b.emailOnly++;
+    }
+
     // Só variantes do quiz (o funil visita->inbox->lead aplica-se a estas).
     const quizKeys = Array.from(new Set([
       ...Object.keys(convByVar), ...Object.keys(leadByVar), ...Object.keys(visitsByVar),
@@ -241,13 +265,17 @@ export async function GET(request: NextRequest) {
       // Nao pode haver menos visitas do que conversas: se acontecer, a recolha de
       // visitas ainda esta incompleta -> nao mostrar taxas baseadas em visitas.
       const visitsReliable = visits >= conversas && visits > 0;
+      const cap = contactByVar[k] ?? { phone: 0, emailOnly: 0 };
+      const effectiveLeads = Math.round((leads + alpha * cap.phone + beta * cap.emailOnly) * 10) / 10;
       return {
         variante: k,
         visits, conversas, leads,
+        capturedPhone: cap.phone, capturedEmailOnly: cap.emailOnly, effectiveLeads,
         visitsReliable,
         visitToConv: visitsReliable ? Math.round((conversas / visits) * 1000) / 10 : null,
         convToLead:  conversas > 0 ? Math.round((leads / conversas) * 1000) / 10 : null,
         visitToLead: visitsReliable ? Math.round((leads / visits) * 1000) / 10 : null,
+        visitToEff:  visitsReliable ? Math.round((effectiveLeads / visits) * 1000) / 10 : null,
       };
     }).sort((a, b) => b.leads - a.leads);
 

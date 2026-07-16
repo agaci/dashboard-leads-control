@@ -50,8 +50,10 @@ const STEP_DROP_PT: Record<string, string> = {
 type VariantFunnelRow = {
   variante: string;
   visits: number; conversas: number; leads: number;
+  capturedPhone?: number; capturedEmailOnly?: number; effectiveLeads?: number;
   visitsReliable: boolean;
   visitToConv: number | null; convToLead: number | null; visitToLead: number | null;
+  visitToEff?: number | null;
 };
 
 const VAR_COLOR: Record<string, [string, string]> = {
@@ -210,6 +212,18 @@ function VariantFunnel({ v, isBest }: { v: VariantFunnelRow; isBest: boolean }) 
           </Fragment>
         ))}
       </div>
+
+      {/* Leads efetivas — leads + contactos captados sem lead (recuperáveis) ponderados */}
+      {((v.capturedPhone ?? 0) + (v.capturedEmailOnly ?? 0) > 0 || (v.effectiveLeads ?? 0) > v.leads) && (
+        <div style={{ marginTop: 10, paddingTop: 9, borderTop: `1px solid ${BORDER}`, display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: TEXT3, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Leads efetivas</span>
+          <strong style={{ fontSize: 15, color: '#22c55e', fontFamily: 'Space Grotesk, sans-serif' }}>{v.effectiveLeads}</strong>
+          {v.visitToEff != null && <span style={{ fontSize: 12, color: TEXT2 }}>· visita→efetiva <strong style={{ color: NAVY }}>{v.visitToEff}%</strong></span>}
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: TEXT3 }}>
+            + contactos sem lead: {v.capturedPhone ?? 0} tel · {v.capturedEmailOnly ?? 0} email
+          </span>
+        </div>
+      )}
     </div>
   );
 }
@@ -490,6 +504,7 @@ export default function RelatoriosPage() {
           <p style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: TEXT3, marginBottom: 4 }}>Funil por variante — entrada → inbox → lead</p>
           <p style={{ fontSize: 11, color: TEXT3, marginBottom: variantFunnel.length && visitsMaturing ? 10 : 14 }}>
             Visitas ao site → conversas iniciadas → leads concluídas, e as taxas de passagem.
+            {' '}<strong style={{ color: TEXT2 }}>Leads efetivas</strong> = leads + contactos captados sem lead (recuperáveis por telemóvel/email), ponderados.
             {metricFilterPT && <> Métrica sobre <strong style={{ color: TEXT2 }}>visitas de Portugal</strong> (exclui tráfego estrangeiro/curioso).</>}
           </p>
 
