@@ -648,6 +648,24 @@ export default function NavSidebar({
             <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
           </svg>
         </a>
+        <a
+          href="/dashboard/atribuicao"
+          title="Atribuição Google Ads — cobertura de gclid e exportação de conversões"
+          style={{
+            width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 7, textDecoration: 'none',
+            color: 'var(--yb-subtle)',
+            transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-muted)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-subtle)'; }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
+            <line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/>
+            <line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/>
+          </svg>
+        </a>
       </div>
     </nav>
   );

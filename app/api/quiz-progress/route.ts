@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
+import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
 // "conversa" na colecção conversations, para aparecer na vista de Conversas do
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const body = raw ? JSON.parse(raw) : {};
-    const { sessionId, visitSid, event, step, stepIndex, total, label, data, variante, geo } = body as {
+    const { sessionId, visitSid, event, step, stepIndex, total, label, data, variante, geo, attr } = body as {
       sessionId?: string;
       visitSid?: string;
       event?: 'progress' | 'submit' | 'geo';
@@ -89,6 +90,7 @@ export async function POST(req: NextRequest) {
       data?: Record<string, any>;
       variante?: string;
       geo?: { lat?: number; lng?: number; address?: string; field?: string; source?: string; city?: string; region?: string; country?: string };
+      attr?: unknown;
     };
 
     if (!sessionId || typeof sessionId !== 'string') {
@@ -137,6 +139,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Atribuição de campanha do cookie `yb_attr`. Vem em todos os eventos de progresso,
+    // por isso continua presente mesmo que o visitante recarregue a página a meio.
+    const attribution = normalizeAttribution(attr);
+
     await col.updateOne(
       { quizSessionId: sessionId },
       {
@@ -147,6 +153,7 @@ export async function POST(req: NextRequest) {
           quizStep: step ?? null,
           ...(variante ? { quizVariante: variante } : {}),
           ...(visitSid ? { visitSid } : {}),
+          ...(attribution ? { attribution } : {}),
           ...dataSet,
           updatedAt: now,
           ...(isSubmit ? { closedAt: now } : {}),
@@ -195,6 +202,10 @@ export async function POST(req: NextRequest) {
           : totalKg ? 'Furgão Classe 2' : null;
         const cargaHtml = totalKg ? `<p><b>Carga:</b> ${d.volumes ?? '?'} volumes · ${totalKg} kg · ${d.material ?? ''} · ${d.embalado ?? ''}</p>` : '';
 
+        // Atribuição publicitária: a do submit, ou a que já ficou na conversa nos
+        // passos anteriores. Sem gclid a lead cria-se na mesma — só não é exportável.
+        const leadAttr = attribution ?? convDoc.attribution ?? null;
+
         const ins = await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
           appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
@@ -202,6 +213,7 @@ export async function POST(req: NextRequest) {
           message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone ?? ''}</p><p>${d.nome ?? ''}</p>${d.email ? `<p>${d.email}</p>` : ''}<p>${d.origem ?? ''} → ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urg ?? '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
           companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
           timeStamp: now, closed: false, closedAt: null, reply: [],
+          ...(leadAttr ? { attribution: leadAttr, conversionSync: newConversionSync() } : {}),
           leadData: {
             origem: d.origem, destino: d.destino,
             urgencia: urg, serviceType, viatura, weightKg: totalKg,

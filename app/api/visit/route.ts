@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
+import { normalizeAttribution } from '@/lib/attribution';
 
 // Regista visitas ao site (aberturas de qualquer variante da landing / quiz), enviadas
 // por navigator.sendBeacon a partir do site (site_YB/assets/js/yourbox-visit.js).
@@ -115,6 +116,8 @@ async function ensureIndexes(db: Awaited<ReturnType<typeof getDb>>) {
     await db.collection('visits').createIndex({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 });
     await db.collection('visits').createIndex({ firstSeen: -1 });
     await db.collection('visits').createIndex({ sessionId: 1 }, { unique: true });
+    // Atribuição: esparso porque só uma minoria das visitas vem de campanha paga.
+    await db.collection('visits').createIndex({ 'attribution.gclid': 1 }, { sparse: true });
   } catch { /* indices ja existem */ }
 }
 
@@ -127,13 +130,14 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const b = raw ? JSON.parse(raw) : {};
-    const { sessionId, page, referrer, variante, ua, geo } = b as {
+    const { sessionId, page, referrer, variante, ua, geo, attr } = b as {
       sessionId?: string;
       page?: string;
       referrer?: string | null;
       variante?: string | null;
       ua?: string | null;
       geo?: { ip?: string; city?: string; region?: string; country?: string; lat?: number; lng?: number } | null;
+      attr?: unknown;
     };
     if (!sessionId || typeof sessionId !== 'string') return json({ error: 'sessionId em falta' }, 400);
 
@@ -154,6 +158,11 @@ export async function POST(req: NextRequest) {
       };
     }
 
+    // Atribuição de campanha (gclid/wbraid/gbraid + utm) vinda do cookie `yb_attr`.
+    // Ausente na esmagadora maioria das visitas (tráfego directo/orgânico) — isso é
+    // normal e nunca impede o registo da visita.
+    const attribution = normalizeAttribution(attr);
+
     await db.collection('visits').updateOne(
       { sessionId },
       {
@@ -170,6 +179,7 @@ export async function POST(req: NextRequest) {
           ...(page ? { lastPage: page } : {}),
           ...(ua ? { ua, device: deviceFromUA(ua), os: osFromUA(ua) } : {}),
           ...geoSet,
+          ...(attribution ? { attribution } : {}),
         },
         $inc: { pageViews: 1 },
       },

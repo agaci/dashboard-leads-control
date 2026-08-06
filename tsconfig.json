@@ -30,5 +30,10 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    // Testes corridos por `npm test` com o strip-types do Node, que exige a
+    // extensao .ts explicita nos imports — algo que o tsc rejeita aqui.
+    "**/*.test.ts"
+  ]
 }
