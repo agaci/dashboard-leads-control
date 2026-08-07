@@ -45,6 +45,12 @@ const INDEXES = [
     porque: 'listar o que falta exportar, por data',
   },
   {
+    col: 'conversations',
+    spec: { canal: 1, 'conversionSync.status': 1, updatedAt: -1 },
+    opts: { background: true, name: 'canal_conversionSync_updatedAt' },
+    porque: 'seleccionar leads efectivas (quiz abandonado com contacto)',
+  },
+  {
     col: 'attributions',
     spec: { phone: 1, createdAt: -1 },
     opts: { background: true, name: 'phone_createdAt' },

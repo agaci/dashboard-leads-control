@@ -89,6 +89,53 @@ exportação casa-a com a lead por telemóvel + janela temporal.
 | `components/layout/NavSidebar.tsx` | +1 link para o painel |
 | `scripts/migrate-attribution.mjs` | **novo** — índices |
 
+## Envio automático — Programação do Google Ads
+
+Não é preciso Google Ads API, nem developer token, nem OAuth. O Google Ads vai
+buscar o CSV a um URL HTTPS, sozinho, todos os dias.
+
+**URL a configurar** em Objetivos > Carregamentos > Programações:
+
+```
+https://leads.comgo.pt/api/conversions/export?token=<CONVERSIONS_TOKEN>&mark=uploaded
+```
+
+`mark=uploaded` é **obrigatório** aqui. Sem ele as conversões ficam em `exported`,
+voltam a sair no dia seguinte, e o Google conta as mesmas conversões todos os dias.
+
+O token viaja na query string porque o Google Ads não envia cabeçalhos HTTP. É a
+única razão — no uso manual continua a valer o `Authorization: Bearer`.
+
+Sobre tempo real: não existe, nem pela API. As conversões offline são processadas
+em lote e a estratégia de lances reavalia poucas vezes por dia. Entre enviar de
+hora a hora ou uma vez por dia o algoritmo comporta-se igual.
+
+## Leads efectivas
+
+Visitantes que não concluíram o quiz mas deixaram nome e contacto. São contactados
+pela equipa como qualquer outra lead e fecham na mesma proporção — o Google é que
+nunca soube delas. Vivem em `conversations` (sem `leadId`), não em `messages`.
+
+São ~80 por mês sobre ~376 completas: **mais 21% de sinal**.
+
+Valores reportados (`lib/conversions/values.ts`) — escala de qualidade, não receita:
+
+| Tipo | Valor |
+|---|---|
+| Lead completa | 1,00 € |
+| Quiz abandonado com telefone | 0,50 € |
+| Quiz abandonado só com email | 0,30 € |
+
+O preço cotado à lead **não** é usado como valor de conversão: é uma cotação, não
+uma venda, e enviá-lo ensinaria o algoritmo a perseguir orçamentos grandes em vez
+de negócio fechado.
+
+Com "Maximizar Conversões" o Google ignora o valor hoje. Fica registado para que,
+com histórico suficiente, se possa passar a "Maximizar valor de conversões" sem
+reenviar nada.
+
+`?efetivas=0` exclui-as, para comparar o efeito.
+
 ## Instalação
 
 ### 1. FTP para yourbox.com.pt
@@ -136,7 +183,14 @@ como 'pending' porque `{ $ne: 'uploaded' }` também corresponde a campo ausente.
 
 ```
 GOOGLE_ADS_CONVERSION_NAME=Lead Yourbox   # tem de ser o nome EXACTO no Google Ads
-CONVERSIONS_TOKEN=<segredo>               # permite exportar por Bearer, sem sessão
+CONVERSIONS_TOKEN=<segredo>               # obrigatório para a Programação do Google
+```
+
+O `CONVERSIONS_TOKEN` é obrigatório se quiseres o envio automático — sem ele o
+endpoint só responde a sessões do dashboard. Gerar um novo:
+
+```
+node -e "console.log(require('crypto').randomBytes(24).toString('base64url'))"
 ```
 
 ## Verificação

@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { selectExportableLeads } from '@/lib/conversions/selectLeads';
+import { selectEffectiveConversions } from '@/lib/conversions/selectEffective';
 
 // Números do painel de atribuição (app/dashboard/atribuicao).
 //
@@ -28,11 +29,13 @@ export async function GET(req: NextRequest) {
       timeStamp: { $gte: from, $lte: to },
     };
 
-    const [totalLeads, exportable, wbraid, gbraid, visitAgg, syncAgg] = await Promise.all([
+    const [totalLeads, exportable, wbraid, gbraid, efetivas, visitAgg, syncAgg] = await Promise.all([
       db.collection('messages').countDocuments(leadFilter),
       selectExportableLeads(db, { from, to, kind: 'gclid' }),
       selectExportableLeads(db, { from, to, kind: 'wbraid' }),
       selectExportableLeads(db, { from, to, kind: 'gbraid' }),
+      // Quizzes abandonados com contacto: conversões que o Google nunca soube que existiam.
+      selectEffectiveConversions(db, { from, to, kind: 'gclid' }),
 
       // De onde vem realmente o tráfego, segundo o que o próprio site capturou.
       db.collection('visits').aggregate([
@@ -87,6 +90,12 @@ export async function GET(req: NextRequest) {
         gclid: exportable.length,
         wbraid: wbraid.length,
         gbraid: gbraid.length,
+      },
+      efetivas: {
+        total: efetivas.length,
+        telefone: efetivas.filter((e) => e.kind === 'parcial_telefone').length,
+        email: efetivas.filter((e) => e.kind === 'parcial_email').length,
+        pendentes: efetivas.filter((e) => e.syncStatus === 'pending').length,
       },
       sync,
       pendentes: exportable.filter((r) => r.syncStatus === 'pending').length,

@@ -1,6 +1,7 @@
 import type { Db } from 'mongodb';
 import { normalizePhone, type ConversionSyncStatus } from '@/lib/attribution';
 import type { ClickIdKind } from '@/lib/conversions/csv';
+import { CONVERSION_VALUE } from '@/lib/conversions/values';
 
 // ============================================================================
 // Selecção das leads exportáveis para o Google Ads.
@@ -31,7 +32,10 @@ export type SelectedLead = {
   clickIdKind: ClickIdKind;
   clickedAt: Date | null;
   conversionTime: Date;
+  /** Valor reportado ao Google — escala de qualidade, não receita. */
   value: number;
+  /** Preço cotado à lead, só para diagnóstico no painel. */
+  quotedPrice: number;
   variante: string | null;
   utmSource: string | null;
   phone: string | null;
@@ -49,10 +53,15 @@ export type SelectOptions = {
   limit?: number;
 };
 
+/**
+ * Preço cotado à lead. Já não vai para o Google como valor de conversão — ver
+ * lib/conversions/values.ts — mas continua a ser lido para diagnóstico no painel.
+ *
+ * Discriminação explícita por serviceType: `partnerFinalPrice` e `priceWithDiscount`
+ * podem estar ambos preenchidos quando a lead mudou de serviço a meio da conversa,
+ * e o `??` entre os dois daria o preço errado.
+ */
 function leadPrice(leadData: any): number {
-  // Discriminação explícita por serviceType — `partnerFinalPrice` e
-  // `priceWithDiscount` podem estar ambos preenchidos quando a lead mudou de
-  // serviço a meio da conversa, e o `??` entre os dois daria o preço errado.
   const raw = leadData?.serviceType === 'arrasto'
     ? leadData?.partnerFinalPrice
     : leadData?.priceWithDiscount;
@@ -171,7 +180,8 @@ export async function selectExportableLeads(db: Db, opts: SelectOptions = {}): P
       clickIdKind: kind,
       clickedAt: clickedAt && !isNaN(clickedAt.getTime()) ? clickedAt : null,
       conversionTime,
-      value: leadPrice(l.leadData),
+      value: CONVERSION_VALUE.lead,
+      quotedPrice: leadPrice(l.leadData),
       variante: l.variante ?? null,
       utmSource: attr?.utm?.source ?? null,
       phone,

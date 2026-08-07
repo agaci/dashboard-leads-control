@@ -20,6 +20,7 @@ type Stats = {
   periodo: { days: number; from: string; to: string };
   leads: { total: number; comClickId: number; semClickId: number; cobertura: number; reconciliadas: number };
   porTipo: { gclid: number; wbraid: number; gbraid: number };
+  efetivas: { total: number; telefone: number; email: number; pendentes: number };
   sync: Record<string, number>;
   pendentes: number;
   fontes: { source: string; visitas: number; comClickId: number }[];
@@ -142,9 +143,29 @@ export default function AtribuicaoPage() {
                    hint={data.leads.reconciliadas ? `${data.leads.reconciliadas} por reconciliação` : 'todas directas'} />
               <Kpi label="Leads sem identificador" value={String(data.leads.semClickId)}
                    hint="orgânico, directo ou captura falhada" />
-              <Kpi label="Pendentes de exportação" value={String(data.pendentes)} accent={data.pendentes > 0 ? '#ffc107' : undefined}
-                   hint="ainda não saíram num CSV" />
+              <Kpi
+                label="Leads efectivas"
+                value={`+${data.efetivas?.total ?? 0}`}
+                accent="#a78bfa"
+                hint={`${data.efetivas?.telefone ?? 0} c/ telefone · ${data.efetivas?.email ?? 0} c/ email`}
+              />
             </div>
+
+            <Card style={{ marginBottom: 14, borderColor: 'rgba(167,139,250,0.35)' }}>
+              <p style={{ margin: '0 0 6px', fontSize: 12, fontWeight: 700 }}>
+                Leads efectivas — quiz abandonado com contacto
+              </p>
+              <p style={{ margin: 0, fontSize: 11, color: TEXT2, lineHeight: 1.6, maxWidth: 780 }}>
+                Visitantes que não concluíram o quiz mas deixaram nome e contacto. São
+                contactados pela equipa como qualquer outra lead e fecham na mesma proporção,
+                mas o Google Ads nunca soube que existiam. Entram na exportação com valor mais
+                baixo — 0,50 € com telefone, 0,30 € só com email, contra 1,00 € de uma lead
+                completa — para o algoritmo saber que valem menos sem as ignorar.
+                {' '}<strong style={{ color: NAVY }}>
+                  {data.efetivas?.pendentes ?? 0} por enviar.
+                </strong>
+              </p>
+            </Card>
 
             <Card style={{ marginBottom: 14 }}>
               <p style={{ margin: '0 0 10px', fontSize: 12, fontWeight: 700 }}>Descarregar CSV do período</p>
