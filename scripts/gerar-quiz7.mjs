@@ -41,20 +41,52 @@ const FUNDO_NOVO = `<!-- Fundo: mapa nocturno com a rota YourBox -->
                 <source srcset="assets/images/hero-map-1024.webp?v=20260807" type="image/webp">
                 <img src="assets/images/city_map_with_lime_green_rout.png" alt="" loading="eager" decoding="async" fetchpriority="high">
             </picture>
+            <span class="hero-route-glow"></span>
         </div>`;
 
 const CSS_ANTIGO = /\.hero-space-bg \{[^}]*\}\s*\.hero-space-bg iframe \{[^}]*\}/;
 const CSS_NOVO = `.hero-map-bg { position: absolute; inset: 0; pointer-events: none; z-index: 0; }
-    .hero-map-bg picture, .hero-map-bg img { display: block; width: 100%; height: 100%; }
+    .hero-map-bg picture { position: absolute; inset: 0; display: block; }
     /* A imagem e quadrada (1024x1024) e o hero e largo: o cover corta em cima e em
        baixo e mantem o centro, que e por onde passa a rota. */
-    .hero-map-bg img { object-fit: cover; object-position: center; }
+    .hero-map-bg img { width: 100%; height: 100%; display: block; object-fit: cover; object-position: center; }
     /* O texto do hero tem de ganhar ao mapa: veu escuro por cima, mais denso do lado
        do conteudo. Sem isto o titulo perde contraste sobre a rota clara. */
-    .hero-map-bg::after { content: ''; position: absolute; inset: 0;
+    .hero-map-bg::after { content: ''; position: absolute; inset: 0; z-index: 1;
       background: linear-gradient(100deg, rgba(8,20,34,0.92) 0%, rgba(8,20,34,0.72) 45%, rgba(8,20,34,0.35) 100%); }
     @media (max-width: 768px) { .hero-map-bg::after { background: rgba(8,20,34,0.80); } }
-    @media (prefers-reduced-motion: reduce) { .hero-map-bg img { animation: none; } }`;
+
+    /* Brilho a percorrer a rota.
+       A imagem e raster — os pixels nao se animam. O truque e mascarar esta camada
+       com a silhueta da rota (extraida da propria imagem por
+       scripts/extrair-mascara-rota.mjs) e fazer correr um gradiente por dentro: so
+       se ve onde a rota existe. Fica POR CIMA do veu escuro, senao ficava apagado.
+       O mask-size/position acompanham o object-fit da imagem, para alinharem. */
+    .hero-route-glow { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
+      -webkit-mask-image: url(assets/images/hero-map-rota-mask.png?v=20260807);
+              mask-image: url(assets/images/hero-map-rota-mask.png?v=20260807);
+      -webkit-mask-size: cover;      mask-size: cover;
+      -webkit-mask-position: center; mask-position: center;
+      -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+      mix-blend-mode: screen; }
+    /* O brilho e um filho a deslizar com transform, nao um background-position
+       animado: transform corre na GPU e nao obriga a repintar a cada frame, o que
+       importa com 78% do trafego em telemovel. */
+    .hero-route-glow::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%;
+      background: linear-gradient(90deg,
+        rgba(234,255,168,0) 0%, rgba(234,255,168,0.20) 35%,
+        rgba(255,255,255,0.95) 50%,
+        rgba(234,255,168,0.20) 65%, rgba(234,255,168,0) 100%);
+      will-change: transform;
+      animation: yb-rota-brilho 5.5s linear infinite; }
+    @keyframes yb-rota-brilho {
+      from { transform: translateX(-110%); }
+      to   { transform: translateX(375%); }
+    }
+    /* Quem pediu menos movimento ao sistema fica com a rota parada, sem perder o hero. */
+    @media (prefers-reduced-motion: reduce) {
+      .hero-route-glow::before { animation: none; transform: none; width: 100%; opacity: 0.25; }
+    }`;
 
 function trocar(src, re, novo, etiqueta, ficheiro) {
   if (!re.test(src)) throw new Error(`[${ficheiro}] não encontrei: ${etiqueta}`);
