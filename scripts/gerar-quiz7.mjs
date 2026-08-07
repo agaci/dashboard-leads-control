@@ -47,8 +47,9 @@ const FUNDO_ANTIGO = /<!-- Animacao espacial do hero \(ficheiro autonomo embutid
 const FUNDO_NOVO = `<!-- Fundo: mapa nocturno com a rota YourBox -->
         <div class="hero-map-bg" aria-hidden="true">
             <picture>
-                <source media="(max-width: 768px)" srcset="assets/images/hero-map-640.webp?v=20260807" type="image/webp">
-                <source srcset="assets/images/hero-map-1024.webp?v=20260807" type="image/webp">
+                <source media="(max-width: 768px)" srcset="assets/images/hero-map-640.webp?v=20260807b" type="image/webp">
+                <source media="(max-width: 1440px)" srcset="assets/images/hero-map-1024.webp?v=20260807b" type="image/webp">
+                <source srcset="assets/images/hero-map-1920.webp?v=20260807b" type="image/webp">
                 <img src="assets/images/city_map_with_lime_green_rout.png" alt="" loading="eager" decoding="async" fetchpriority="high">
             </picture>
             <span class="hero-route-glow"></span>
@@ -79,15 +80,26 @@ const CSS_NOVO = `.hero-map-bg { position: absolute; inset: 0; pointer-events: n
       -webkit-mask-size: cover;      mask-size: cover;
       -webkit-mask-position: center; mask-position: center;
       -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
-      mix-blend-mode: screen; }
-    /* O brilho e um filho a deslizar com transform, nao um background-position
+      mix-blend-mode: screen;
+      /* Verde ténue permanente: reacende a rota que o veu escuro apaga do lado do
+         titulo. Sem isto o clarao aparecia e desaparecia sobre uma linha invisivel. */
+      background: rgba(190,214,47,0.22); }
+    /* O clarao e um filho a deslizar com transform, nao um background-position
        animado: transform corre na GPU e nao obriga a repintar a cada frame, o que
-       importa com 78% do trafego em telemovel. */
-    .hero-route-glow::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 38%;
+       importa com 78% do trafego em telemovel.
+       O gradiente tem nucleo branco estreito e queda longa em verde — e isso que
+       faz parecer luz a irradiar, em vez de uma fita clara a passar. */
+    .hero-route-glow::before { content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 30%;
       background: linear-gradient(90deg,
-        rgba(234,255,168,0) 0%, rgba(234,255,168,0.20) 35%,
-        rgba(255,255,255,0.95) 50%,
-        rgba(234,255,168,0.20) 65%, rgba(234,255,168,0) 100%);
+        rgba(190,214,47,0) 0%,
+        rgba(190,214,47,0.12) 22%,
+        rgba(214,240,110,0.38) 38%,
+        rgba(240,255,200,0.78) 46%,
+        rgba(255,255,255,1) 50%,
+        rgba(240,255,200,0.78) 54%,
+        rgba(214,240,110,0.38) 62%,
+        rgba(190,214,47,0.12) 78%,
+        rgba(190,214,47,0) 100%);
       will-change: transform;
       animation: yb-rota-brilho 5.5s linear infinite; }
     @keyframes yb-rota-brilho {

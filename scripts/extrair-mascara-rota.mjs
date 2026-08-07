@@ -24,16 +24,29 @@ const { data, info } = await sharp(ORIGEM)
 
 const { width, height, channels } = info;
 
-// Verde YourBox: ~#bed62f (R 190, G 214, B 47). O critério é relativo, não exacto,
-// para apanhar as bordas suavizadas da linha sem apanhar o azul do mapa.
-function eRota(r, g, b) {
-  return g > 110 && g > b + 55 && g >= r - 30 && b < 150;
+// Verde YourBox: ~#bed62f (R 190, G 214, B 47).
+//
+// O alpha é CONTÍNUO, não binário. Um limiar seco dava-lhe bordas em escada, e o
+// brilho por cima ficava com ar recortado — que era a queixa. Aqui a opacidade
+// acompanha o quanto o pixel puxa ao verde, por isso as bordas suavizadas da linha
+// (o anti-aliasing do desenho original) tornam-se bordas suavizadas na máscara, e
+// o clarão ganha um halo natural em vez de um corte.
+function verdura(r, g, b) {
+  if (g < 90) return 0;                 // escuro de mais para ser rota
+  const contraste = g - Math.max(b, r * 0.75);
+  if (contraste <= 10) return 0;        // azul do mapa
+  // 10 -> transparente, 95 -> opaco. Suave o suficiente para dar meio-tom sem
+  // apanhar o brilho ténue das ruas.
+  const t = Math.min(1, (contraste - 10) / 85);
+  // Curva suave (smoothstep): evita o degrau que uma rampa linear deixa a meio.
+  return t * t * (3 - 2 * t);
 }
 
 const alpha = Buffer.alloc(width * height);
 let n = 0;
 for (let i = 0, p = 0; i < data.length; i += channels, p++) {
-  if (eRota(data[i], data[i + 1], data[i + 2])) { alpha[p] = 255; n++; }
+  const v = verdura(data[i], data[i + 1], data[i + 2]);
+  if (v > 0) { alpha[p] = Math.round(v * 255); if (v > 0.4) n++; }
 }
 
 console.log(`\npixels da rota: ${n} de ${width * height}  (${(n / (width * height) * 100).toFixed(2)}%)`);
@@ -43,18 +56,26 @@ if (n < 500) {
 }
 
 // PNG branco com a rota no canal alpha: é o que `mask-image` espera.
-await sharp({
-  create: { width, height, channels: 4, background: { r: 255, g: 255, b: 255, alpha: 0 } },
-})
-  .composite([{
-    input: await sharp(Buffer.alloc(width * height * 3, 255), {
-      raw: { width, height, channels: 3 },
-    }).joinChannel(alpha, { raw: { width, height, channels: 1 } }).png().toBuffer(),
-    blend: 'over',
-  }])
-  // Desfoque mínimo: suaviza os serrilhados da detecção sem engordar a linha.
-  .blur(0.6)
-  .png({ compressionLevel: 9, palette: false })
+// Construído directamente em RGBA — sem `composite`, que no mesmo pipeline colide
+// com o `resize` (o canvas encolhe antes de a camada ser sobreposta).
+const rgba = Buffer.alloc(width * height * 4);
+for (let p = 0; p < width * height; p++) {
+  rgba[p * 4] = 255;
+  rgba[p * 4 + 1] = 255;
+  rgba[p * 4 + 2] = 255;
+  rgba[p * 4 + 3] = alpha[p];
+}
+
+await sharp(rgba, { raw: { width, height, channels: 4 } })
+  // Desfoque generoso: o clarão deve transbordar ligeiramente da linha, como luz
+  // a irradiar. Um valor baixo mantinha o brilho preso dentro do traço e dava-lhe
+  // o aspecto de fita, não de luz.
+  .blur(1.8)
+  // Metade da resolução. A máscara vai embutida no HTML em base64, e já está
+  // desfocada — a 512 não se distingue da versão a 1024, e poupa dois terços dos
+  // bytes que o visitante descarrega antes de a página pintar.
+  .resize({ width: 512, kernel: 'lanczos3' })
+  .png({ compressionLevel: 9, effort: 10 })
   .toFile(DESTINO);
 
 console.log(`${DESTINO.split('/').pop()}  ${Math.round(statSync(DESTINO).size / 1024)} KB\n`);
