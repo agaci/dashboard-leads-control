@@ -15,6 +15,18 @@ const DEFAULT_VARIANTS = [
 
 export type VariantItem = { key: string; label: string; desc: string; file: string; weight: number };
 
+/**
+ * Como a variante é escolhida para cada visitante novo.
+ *
+ * 'random'   — sorteio por peso. O comportamento de sempre; correcto em média,
+ *              com desvio de ~±19% num dia e ~±5% em duas semanas.
+ * 'circular' — round-robin: as variantes rodam por ordem e a distribuição fica
+ *              exacta. Nota: só actua em visitantes NOVOS. Quem já tem o cookie
+ *              `variant` volta sempre à mesma variante, e é daí que vem a maior
+ *              parte do desequilíbrio visível nos relatórios.
+ */
+export type VariantRotation = 'random' | 'circular';
+
 export type VariantSchedule = {
   id: string;
   label: string;
@@ -43,9 +55,14 @@ export async function GET() {
       }
     }
 
-    return Response.json({ variants });
+    // Como as variantes são distribuídas: 'random' (sorteio por peso, sempre o
+    // comportamento por omissão) ou 'circular' (round-robin). Lido pelo
+    // site_YB/variants-config.php; ausente = 'random'.
+    const rotation: VariantRotation = (doc as any)?.variantRotation === 'circular' ? 'circular' : 'random';
+
+    return Response.json({ variants, rotation });
   } catch {
-    return Response.json({ variants: DEFAULT_VARIANTS });
+    return Response.json({ variants: DEFAULT_VARIANTS, rotation: 'random' });
   }
 }
 

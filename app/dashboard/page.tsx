@@ -2611,13 +2611,28 @@ const MODE_INFO: Record<DistMode, { label: string; desc: string }> = {
 function DistributionSection() {
   const [mode, setMode] = useState<DistMode | null>(null);
   const [apply, setApply] = useState<'advisor' | 'auto'>('advisor');
+  const [rotation, setRotation] = useState<'random' | 'circular'>('random');
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     fetch('/api/variant-config/mode').then((r) => r.json())
-      .then((d) => { setMode(d.mode ?? 'manual'); setApply(d.apply ?? 'advisor'); })
+      .then((d) => { setMode(d.mode ?? 'manual'); setApply(d.apply ?? 'advisor'); setRotation(d.rotation ?? 'random'); })
       .catch(() => setMode('manual'));
   }, []);
+
+  async function changeRotation(r: 'random' | 'circular') {
+    if (r === rotation || busy) return;
+    setBusy(true);
+    const prev = rotation;
+    setRotation(r); // optimista
+    try {
+      const res = await fetch('/api/variant-config/mode', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rotation: r }),
+      });
+      if (!res.ok) setRotation(prev);
+    } catch { setRotation(prev); }
+    finally { setBusy(false); }
+  }
 
   async function changeMode(m: DistMode) {
     if (m === mode || busy) return;
@@ -2672,6 +2687,42 @@ function DistributionSection() {
             </button>
           );
         })}
+      </div>
+
+      {/* Como se sorteia — independente de quem define os pesos acima */}
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 10, padding: '12px 14px', marginBottom: 24, background: 'var(--yb-card)' }}>
+        <h3 style={{ fontSize: 13.5, fontWeight: 700, color: NAVY, margin: '0 0 3px' }}>Forma de sorteio</h3>
+        <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '0 0 10px', lineHeight: 1.45 }}>
+          Como cada visitante <strong>novo</strong> recebe uma variante. Não altera os pesos —
+          altera a maneira de os cumprir.
+        </p>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          {([
+            ['random', 'Aleatório', 'Sorteio por peso. Cumpre as percentagens em média, com desvio de ~5% em duas semanas.'],
+            ['circular', 'Circular', 'As variantes rodam por ordem. Distribuição exacta, sem desvio.'],
+          ] as const).map(([key, label, desc]) => {
+            const on = rotation === key;
+            return (
+              <button key={key} onClick={() => changeRotation(key)} disabled={busy}
+                style={{ flex: '1 1 220px', textAlign: 'left', padding: '10px 12px', borderRadius: 9, cursor: busy ? 'default' : 'pointer',
+                  border: `2px solid ${on ? CYAN : BORDER}`, background: on ? 'rgba(0,188,212,0.08)' : 'var(--yb-input)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                  <span style={{ width: 12, height: 12, borderRadius: '50%', flexShrink: 0, border: `2px solid ${on ? CYAN : 'var(--yb-border)'}`, background: on ? CYAN : 'transparent', boxShadow: on ? 'inset 0 0 0 2px var(--yb-card)' : 'none' }} />
+                  <strong style={{ fontSize: 12.5, color: on ? CYAN : 'var(--yb-fg)' }}>{label}</strong>
+                </div>
+                <span style={{ fontSize: 10.5, color: 'var(--yb-subtle)', lineHeight: 1.35, display: 'block' }}>{desc}</span>
+              </button>
+            );
+          })}
+        </div>
+        {rotation === 'circular' && (
+          <p style={{ fontSize: 10.5, color: 'var(--yb-subtle)', margin: '10px 0 0', lineHeight: 1.5 }}>
+            A rotação só actua em visitantes <strong>novos</strong>. Quem já tem cookie de variante
+            volta sempre à mesma — e é daí que vem a maior parte do desequilíbrio nos relatórios,
+            não do sorteio. Se o site não conseguir rodar (ficheiro ocupado, por exemplo), essa
+            visita cai no sorteio aleatório sem falhar.
+          </p>
+        )}
       </div>
 
       <VariantPanel mode={mode} apply={apply} onChangeApply={changeApply} />

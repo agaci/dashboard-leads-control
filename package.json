@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --experimental-strip-types --test \"lib/**/*.test.ts\" scripts/test-yb-attr.mjs"
+    "test": "node --experimental-strip-types --test \"lib/**/*.test.ts\" scripts/test-yb-attr.mjs scripts/test-yb-rotation.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.90.0",
