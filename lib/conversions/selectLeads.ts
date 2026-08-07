@@ -65,6 +65,21 @@ function pickClickId(attr: any, kind: ClickIdKind): string | null {
   return typeof v === 'string' && v.trim() ? v.trim() : null;
 }
 
+/**
+ * O Google envia com frequência gclid E gbraid no mesmo URL (visto nos dados reais:
+ * `?gad_source=1&gad_campaignid=...&gbraid=...&gclid=...`). Como exportamos um
+ * ficheiro por tipo de identificador, uma lead com ambos sairia em dois ficheiros e
+ * o Google contaria a conversão duas vezes.
+ *
+ * Regra: havendo gclid, é o gclid que manda. Os identificadores de iOS só entram
+ * quando não há gclid nenhum — que é precisamente o caso para que existem.
+ */
+function belongsToFile(attr: any, kind: ClickIdKind): boolean {
+  if (!pickClickId(attr, kind)) return false;
+  if (kind === 'gclid') return true;
+  return !pickClickId(attr, 'gclid');
+}
+
 export async function selectExportableLeads(db: Db, opts: SelectOptions = {}): Promise<SelectedLead[]> {
   const kind = opts.kind ?? 'gclid';
   const limit = Math.min(opts.limit ?? 5000, 20000);
@@ -99,7 +114,7 @@ export async function selectExportableLeads(db: Db, opts: SelectOptions = {}): P
     .toArray();
 
   // ── Reconciliação: quem não tem atribuição própria pode ter um beacon nosso ──
-  const needMatch = leads.filter((l: any) => !pickClickId(l.attribution, kind));
+  const needMatch = leads.filter((l: any) => !belongsToFile(l.attribution, kind));
   const phones = Array.from(
     new Set(needMatch.map((l: any) => normalizePhone(l.leadData?.telefone)).filter(Boolean)),
   ) as string[];
@@ -127,10 +142,14 @@ export async function selectExportableLeads(db: Db, opts: SelectOptions = {}): P
     let attr = l.attribution ?? null;
     let matchedBy: 'direct' | 'reconciled' = 'direct';
 
-    if (!pickClickId(attr, kind)) {
+    if (!belongsToFile(attr, kind)) {
+      // Tem o identificador deste ficheiro mas também tem gclid: sai no ficheiro
+      // do gclid, não neste. Não é candidata a reconciliação — já está atribuída.
+      if (pickClickId(attr, kind)) continue;
+
       if (!phone) continue;
       const cand = (byPhone.get(phone) ?? []).find((c) => {
-        if (!pickClickId(c.attribution, kind)) return false;
+        if (!belongsToFile(c.attribution, kind)) return false;
         const t = (c.createdAt instanceof Date ? c.createdAt : new Date(c.createdAt)).getTime();
         return t >= conversionTime.getTime() - MATCH_BEFORE_MS
             && t <= conversionTime.getTime() + MATCH_AFTER_MS;
