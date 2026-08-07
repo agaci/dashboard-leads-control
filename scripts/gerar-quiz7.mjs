@@ -14,6 +14,16 @@ import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 
 const DIR = 'c:/projetos/dashboard-leads-control/app-dashboard-leads-control/site_YB/';
 
+// A máscara do brilho vai EMBUTIDA no CSS, não como ficheiro.
+//
+// O Chrome aplica CORS a `mask-image`. Aberto em file:// cada ficheiro é uma
+// origem distinta, a máscara falha a carregar e o browser trata isso como máscara
+// vazia — o elemento desaparece por completo. Um data URI não tem origem, por isso
+// funciona em file://, em http:// e sem depender de o ficheiro chegar ao FTP.
+// São ~8 KB no HTML e menos um pedido de rede.
+const MASCARA_B64 = readFileSync(DIR + 'assets/images/hero-map-rota-mask.png').toString('base64');
+const MASCARA_URL = `data:image/png;base64,${MASCARA_B64}`;
+
 const PARES = [
   { de: 'index-quiz-6b.html', para: 'index-quiz-7b.html', varDe: 'QUIZ6B', varPara: 'QUIZ7B' },
   { de: 'index-quiz-6c.html', para: 'index-quiz-7c.html', varDe: 'QUIZ6C', varPara: 'QUIZ7C' },
@@ -63,8 +73,9 @@ const CSS_NOVO = `.hero-map-bg { position: absolute; inset: 0; pointer-events: n
        se ve onde a rota existe. Fica POR CIMA do veu escuro, senao ficava apagado.
        O mask-size/position acompanham o object-fit da imagem, para alinharem. */
     .hero-route-glow { position: absolute; inset: 0; z-index: 2; pointer-events: none; overflow: hidden;
-      -webkit-mask-image: url(assets/images/hero-map-rota-mask.png?v=20260807);
-              mask-image: url(assets/images/hero-map-rota-mask.png?v=20260807);
+      --yb-rota-mask: url("${MASCARA_URL}");
+      -webkit-mask-image: var(--yb-rota-mask);
+              mask-image: var(--yb-rota-mask);
       -webkit-mask-size: cover;      mask-size: cover;
       -webkit-mask-position: center; mask-position: center;
       -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
