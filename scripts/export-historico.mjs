@@ -4,8 +4,13 @@
 //   node --experimental-strip-types scripts/export-historico.mjs --apply
 //
 // Sem --apply não escreve NADA: lê, analisa e gera o CSV para revisão.
-// Com --apply marca as leads exportadas em `conversionSync`, para não voltarem a
-// sair num CSV futuro e serem contadas duas vezes.
+//
+// Com --apply marca as leads como 'uploaded' — e não 'exported', que seria o
+// estado natural de um exportador. É deliberado: este script só se corre DEPOIS
+// de o Google Ads ter aceitado o ficheiro, portanto nessa altura a conversão já
+// está lá. E só 'uploaded' as exclui de exportações futuras; deixá-las em
+// 'exported' faria com que a exportação regular do dashboard as apanhasse outra
+// vez e o Google contasse as mesmas conversões duas vezes.
 //
 // POR QUE EXISTE
 //
@@ -204,11 +209,13 @@ async function main() {
     const ids = finais.map(c => new ObjectId(c.leadId));
     const r = await db.collection('messages').updateMany(
       { _id: { $in: ids }, 'conversionSync.status': { $ne: 'uploaded' } },
-      { $set: { 'conversionSync.status': 'exported', 'conversionSync.exportedAt': now } },
+      { $set: { 'conversionSync.status': 'uploaded', 'conversionSync.exportedAt': now } },
     );
-    console.log(`\nMarcadas como exportadas: ${r.result?.nModified ?? r.modifiedCount ?? 0} leads`);
+    console.log(`\nMarcadas como 'uploaded': ${r.result?.nModified ?? r.modifiedCount ?? 0} leads`);
+    console.log(`Nao voltam a sair em nenhuma exportacao futura.`);
   } else if (finais.length) {
-    console.log(`\nNada foi escrito. Revê os CSV e corre outra vez com --apply para marcar as leads.`);
+    console.log(`\nNada foi escrito.`);
+    console.log(`Corre com --apply SO DEPOIS de o Google Ads ter aceitado o ficheiro.`);
   }
 
   console.log('');
