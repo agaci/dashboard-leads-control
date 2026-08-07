@@ -1,7 +1,29 @@
 # Captura de GCLID e Conversões Offline — Google Ads
 
-> Estado: implementado, por validar em produção · Agosto 2026
+> Estado: em produção desde 07-08-2026, a acumular dados · primeira exportação prevista ~14-08-2026
 > Auditoria e desenho original: `prompt-gclid-conversoes-offline.md`
+
+## Acção de conversão no Google Ads
+
+Criada a 07-08-2026 na conta `244-927-7323 Yourbox Lda`:
+
+| Definição | Valor |
+|---|---|
+| Nome | `Lead Yourbox` (bate com o default de `GOOGLE_ADS_CONVERSION_NAME`) |
+| Fonte | Importar de cliques |
+| Categoria | Enviar formulários de leads · Ação principal |
+| Contagem | Uma conversão |
+| Período de conversão por clique | 90 dias |
+| Valor | valores diferentes, 1 € por omissão |
+
+O aviso *"não está a receber dados porque não existem associações relacionadas"* é
+esperado e desaparece ao primeiro carregamento — o botão "Associar origem de dados"
+é para CRMs e Data Manager, caminho que não usamos.
+
+As outras 9 acções da conta são todas de browser/tag e estão a 0. As duas Principais
+(`Lead no site NOVO (2026)` e `Call clicks from ads`) também. Quando a importação
+offline estiver a produzir, vale a pena desligar as inactivas — e atenção à dupla
+contagem se alguma das de website voltar a disparar.
 
 ## O problema
 
@@ -194,8 +216,8 @@ que a pessoa submeta o formulário duas vezes.
 
 ## Por fazer
 
-- **Confirmar no GTM** se existe acção de conversão do Google Ads e qual o nome
-  exacto — tem de coincidir letra a letra com `GOOGLE_ADS_CONVERSION_NAME`.
+- **Índices** — `node scripts/migrate-attribution.mjs --apply` ainda por correr.
+  Não bloqueia nada; só acelera as consultas do painel.
 - **Chat widget** (`public/yourbox-chat-b.js`, `/api/conversations/start`): fora do
   âmbito por não estar em rotação. Requer propagar `attribution` da conversa para a
   lead em `app/api/conversations/[id]/message/route.ts` — ficheiro central do bot,
