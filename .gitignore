@@ -55,3 +55,6 @@ yourbox_situacoes_100.json
 
 # Pasta de source dos ícones — não faz parte do repo
 /icons/
+
+# CSV de conversões para o Google Ads — contêm gclids, dados de negócio
+conversoes-*.csv
