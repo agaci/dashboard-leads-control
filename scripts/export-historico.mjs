@@ -3,14 +3,21 @@
 //   node --experimental-strip-types scripts/export-historico.mjs
 //   node --experimental-strip-types scripts/export-historico.mjs --apply
 //
-// Sem --apply não escreve NADA: lê, analisa e gera o CSV para revisão.
+// Sem --apply: lê, gera os CSV e escreve um MANIFESTO com os leadIds incluídos.
+// Com --apply: lê o manifesto e marca exactamente essas leads. Não recalcula.
 //
-// Com --apply marca as leads como 'uploaded' — e não 'exported', que seria o
-// estado natural de um exportador. É deliberado: este script só se corre DEPOIS
-// de o Google Ads ter aceitado o ficheiro, portanto nessa altura a conversão já
-// está lá. E só 'uploaded' as exclui de exportações futuras; deixá-las em
-// 'exported' faria com que a exportação regular do dashboard as apanhasse outra
-// vez e o Google contasse as mesmas conversões duas vezes.
+// O manifesto não é burocracia — é a correcção de um erro real. Na primeira
+// utilização o --apply recalculava tudo do zero, e como entretanto tinham entrado
+// leads novas, marcou 288 quando o ficheiro carregado tinha 284. Quatro leads
+// ficaram dadas como enviadas sem nunca o terem sido, e nunca mais sairiam em
+// exportação nenhuma. O que se marca tem de ser exactamente o que se carregou.
+//
+// Marca como 'uploaded' e não 'exported': este script só corre DEPOIS de o Google
+// Ads aceitar o ficheiro, e só 'uploaded' as exclui de exportações futuras. Em
+// 'exported' a exportação regular do dashboard apanhava-as outra vez.
+//
+// --so=gclid limita a marcação a um tipo de identificador, para quando se carrega
+// só um dos ficheiros (o normal: o gbraid costuma ter meia dúzia de linhas).
 //
 // POR QUE EXISTE
 //
@@ -32,7 +39,7 @@
 
 import pkg from 'mongodb';
 const { MongoClient, ObjectId } = pkg;
-import { readFileSync, writeFileSync } from 'fs';
+import { readFileSync, writeFileSync, existsSync } from 'fs';
 
 import {
   buildConversionsCsv,
@@ -48,6 +55,8 @@ const env = Object.fromEntries(
 );
 
 const APPLY = process.argv.includes('--apply');
+const SO = (process.argv.find(a => a.startsWith('--so=')) ?? '').slice(5) || null;
+const MANIFESTO = 'conversoes-historico-manifesto.json';
 const CONVERSION_NAME = env.GOOGLE_ADS_CONVERSION_NAME ?? 'Lead Yourbox';
 const CURRENCY = 'EUR';
 const JANELA_DIAS = 89; // margem de 1 dia sobre os 90 do Google
@@ -87,9 +96,36 @@ function leadPrice(leadData) {
   return Number.isFinite(n) && n > 0 ? n : 0;
 }
 
+// Marca as leads do manifesto — e só essas. Nada é recalculado aqui: o que se
+// marca tem de ser exactamente o que foi carregado no Google Ads.
+async function aplicarManifesto(db) {
+  if (!existsSync(MANIFESTO)) {
+    console.log(`\nNao existe ${MANIFESTO}.`);
+    console.log(`Corre primeiro sem --apply para gerar os CSV e o manifesto.\n`);
+    return;
+  }
+  const m = JSON.parse(readFileSync(MANIFESTO, 'utf8'));
+  const alvo = SO ? m.leads.filter(l => l.kind === SO) : m.leads;
+
+  console.log(`\nManifesto de ${m.geradoEm} — ${m.leads.length} leads`);
+  if (SO) console.log(`Filtrado por --so=${SO}: ${alvo.length} leads`);
+  if (!alvo.length) { console.log('Nada a marcar.\n'); return; }
+
+  const r = await db.collection('messages').updateMany(
+    { _id: { $in: alvo.map(l => new ObjectId(l.leadId)) }, 'conversionSync.status': { $ne: 'uploaded' } },
+    { $set: { 'conversionSync.status': 'uploaded', 'conversionSync.exportedAt': new Date() } },
+  );
+  const n = r.result?.nModified ?? r.modifiedCount ?? 0;
+  console.log(`\nMarcadas como 'uploaded': ${n}   (${alvo.length - n} ja estavam)`);
+  console.log(`Nao voltam a sair em nenhuma exportacao futura.\n`);
+}
+
 async function main() {
   await client.connect();
   const db = client.db(env.MONGODB_DB ?? 'weby');
+
+  if (APPLY) { await aplicarManifesto(db); await client.close(); return; }
+
   const limite = new Date(Date.now() - JANELA_DIAS * 24 * 3600 * 1000);
 
   // ── 1. Visitas que trouxeram identificador de clique ──────────────────────
@@ -152,7 +188,7 @@ async function main() {
   const finais = candidatas.filter(c => !vistos.has(c.clickId) && vistos.add(c.clickId));
 
   // ── 5. Relatório ──────────────────────────────────────────────────────────
-  console.log(`\n${APPLY ? 'A APLICAR' : 'SIMULACAO — nada e escrito na base de dados'}\n`);
+  console.log(`\nGERACAO — nada e escrito na base de dados\n`);
   console.log(`Visitas com click id no entryPage : ${visitas.length}`);
   console.log(`Conversas de quiz ligadas a lead  : ${porLeadId.size}`);
   console.log(`Leads dentro da janela de ${JANELA_DIAS} dias : ${leads.length}`);
@@ -203,20 +239,17 @@ async function main() {
     console.log(`  ${p.clickId.slice(0, 30)}...,${CONVERSION_NAME},${formatConversionTime(p.conversionTime)},${p.value.toFixed(2)},${CURRENCY}`);
   }
 
-  // ── 7. Marcar como exportadas (só com --apply) ────────────────────────────
-  if (APPLY && finais.length) {
-    const now = new Date();
-    const ids = finais.map(c => new ObjectId(c.leadId));
-    const r = await db.collection('messages').updateMany(
-      { _id: { $in: ids }, 'conversionSync.status': { $ne: 'uploaded' } },
-      { $set: { 'conversionSync.status': 'uploaded', 'conversionSync.exportedAt': now } },
-    );
-    console.log(`\nMarcadas como 'uploaded': ${r.result?.nModified ?? r.modifiedCount ?? 0} leads`);
-    console.log(`Nao voltam a sair em nenhuma exportacao futura.`);
-  } else if (finais.length) {
-    console.log(`\nNada foi escrito.`);
-    console.log(`Corre com --apply SO DEPOIS de o Google Ads ter aceitado o ficheiro.`);
-  }
+  // ── 7. Manifesto: exactamente o que foi para os CSV ───────────────────────
+  writeFileSync(MANIFESTO, JSON.stringify({
+    geradoEm: new Date().toISOString(),
+    ficheiros: ficheiros.map(f => f.nome),
+    leads: finais.map(c => ({ leadId: c.leadId, kind: c.kind, clickId: c.clickId })),
+  }, null, 2), 'utf8');
+
+  console.log(`\nManifesto: ${MANIFESTO} (${finais.length} leads)`);
+  console.log(`\nNada foi escrito na base de dados.`);
+  console.log(`Carrega o CSV no Google Ads e SO DEPOIS corre:`);
+  console.log(`  node --experimental-strip-types scripts/export-historico.mjs --apply --so=gclid`);
 
   console.log('');
   await client.close();

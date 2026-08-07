@@ -58,3 +58,6 @@ yourbox_situacoes_100.json
 
 # CSV de conversões para o Google Ads — contêm gclids, dados de negócio
 conversoes-*.csv
+
+# Manifesto da exportacao historica — acompanha os CSV, mesmo motivo
+conversoes-historico-manifesto.json
