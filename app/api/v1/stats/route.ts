@@ -42,19 +42,21 @@ export async function GET(req: NextRequest) {
     const periodStart = new Date(year, month - 1, 1);
     const periodEnd   = new Date(year, month, 1);
 
-    // ── Domínios do cliente ───────────────────────────────────────────────────
+    // ── Atribuição ────────────────────────────────────────────────────────────
+    // Preferimos o carimbo directo `widgetClientId` (posto pelo widget em cada lead).
+    // Os domínios ficam como fallback para o histórico anterior a esse carimbo — daí o
+    // $or. Sem domínios específicos, só conta o que tem carimbo.
     const origins: string[] = (widgetClient.allowedOrigins ?? []).filter((o: string) => o !== '*');
-    if (origins.length === 0) {
-      return Response.json({
-        error: 'Sem domínios específicos configurados. Configure os domínios permitidos no gestor de widgets para activar as estatísticas.',
-      }, { status: 422, headers: CORS });
-    }
+    const clientId: string = widgetClient.clientId;
+
+    const attributionOr: Record<string, unknown>[] = [{ widgetClientId: clientId }];
+    if (origins.length > 0) attributionOr.push({ 'leadData.source': { $in: origins } });
 
     // ── Query leads (colecção messages) ───────────────────────────────────────
     const leadsFilter = {
       companyProvider: 'Yourbox',
       messageType: 'newLead',
-      'leadData.source': { $in: origins },
+      $or: attributionOr,
       timeStamp: { $gte: periodStart, $lt: periodEnd },
     };
 
@@ -64,8 +66,11 @@ export async function GET(req: NextRequest) {
       .toArray();
 
     // ── Query conversas ───────────────────────────────────────────────────────
+    const convsOr: Record<string, unknown>[] = [{ 'data.widgetClientId': clientId }];
+    if (origins.length > 0) convsOr.push({ 'data.source': { $in: origins } });
+
     const convsFilter = {
-      'data.source': { $in: origins },
+      $or: convsOr,
       createdAt: { $gte: periodStart, $lt: periodEnd },
     };
 
@@ -106,7 +111,9 @@ export async function GET(req: NextRequest) {
         price:       price,
         source:      ld.source ?? null,
         converted:   ld.converted ?? false,
-        clientId:    d.clientId ?? null,
+        clientId:    d.clientId ?? null,           // cliente do CRM (se a lead já foi convertida)
+        widgetClientId: d.widgetClientId ?? null,  // atribuição ao widget (comissões)
+        attributedBy: d.widgetClientId === clientId ? 'widget' : 'domain',
         variante:    d.variante ?? null,
       };
     });
@@ -138,8 +145,9 @@ export async function GET(req: NextRequest) {
     // ── Resposta ──────────────────────────────────────────────────────────────
     return Response.json({
       success: true,
-      client:  widgetClient.name,
-      domains: origins,
+      client:   widgetClient.name,
+      clientId,
+      domains:  origins,
       period:  { month, year, label: `${String(month).padStart(2, '0')}/${year}` },
       summary: {
         leads: {

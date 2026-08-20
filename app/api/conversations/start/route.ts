@@ -9,6 +9,7 @@ import { calculatePrice } from '@/lib/pricing/calculatePrice';
 import { buildDirectServiceBreakdown } from '@/lib/pricing/priceBreakdownBuilder';
 import { decideMode, defaultRoutingConfig } from '@/lib/routing/decideMode';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
+import { resolveWidgetAttribution } from '@/lib/widget/attribution';
 import type { ConversationData, ConversationMessage } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
 
@@ -16,7 +17,7 @@ import type { PartnerTariff } from '@/types/partner';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { origem, destino, viatura, urgencia, sessionId, nome, email, telemovel: phoneFromForm, source, observacoes } = body as {
+    const { origem, destino, viatura, urgencia, sessionId, nome, email, telemovel: phoneFromForm, source, observacoes, widgetClientId, widgetRef } = body as {
       origem: string;
       destino: string;
       viatura: string;
@@ -27,6 +28,8 @@ export async function POST(request: NextRequest) {
       telemovel?: string;
       source?: string;
       observacoes?: string;
+      widgetClientId?: string;
+      widgetRef?: string;
     };
 
     // web-b passa telemovel real; web-a passa sessionId (identificador aleatório)
@@ -38,6 +41,10 @@ export async function POST(request: NextRequest) {
 
     const db = await getDb();
     const now = new Date();
+
+    // Cliente de widget white-label (para comissoes). Validado contra widgetClients;
+    // fica na raiz da conversa e em data.* para viajar ate a lead.
+    const widget = await resolveWidgetAttribution(db, widgetClientId, widgetRef ?? source);
 
     // ── Verificar routing config ────────────────────────────────────────────
     const routingDoc = await db.collection('routingConfig').findOne({ _id: 'yourbox_main' as any });
@@ -60,6 +67,7 @@ export async function POST(request: NextRequest) {
             ...(nome ? { nome } : {}),
             ...(email ? { email } : {}),
             ...(source ? { source } : {}),
+            ...(widget ? widget : {}),
           },
           history: [{ role: 'bot', text: botMsg, timestamp: now }],
           escalatedAt: now,
@@ -104,6 +112,7 @@ export async function POST(request: NextRequest) {
           ...(nome ? { nome } : {}),
           ...(email ? { email } : {}),
           ...(source ? { source } : {}),
+          ...(widget ? widget : {}),
         },
         history: [{ role: 'bot', text: botMsg, timestamp: now }],
         escalatedAt: now,
@@ -139,6 +148,7 @@ export async function POST(request: NextRequest) {
       ...(nome        ? { nome:        nome.trim()        } : {}),
       ...(email       ? { email:       email.trim()       } : {}),
       ...(source      ? { source:      source.trim()      } : {}),
+      ...(widget      ? widget                                : {}),
       ...(observacoes ? { notas:       observacoes.trim() } : {}),
       ...(observacoes ? (() => { const cm = parseTotalCm(observacoes); return cm ? { totalCm: cm } : {}; })() : {}),
       ...(observacoes ? (() => { const nv = parseNVolumesFromText(observacoes); return nv ? { nVolumes: nv } : {}; })() : {}),

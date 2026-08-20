@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import crypto from 'crypto';
+import { invalidateWidgetClientCache } from '@/lib/widget/attribution';
 
 function generateClientId() {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-4);
@@ -67,6 +68,7 @@ export async function PATCH(req: NextRequest) {
     if (regenerateToken) update.secretToken = generateSecretToken();
 
     const db = await getDb();
+    invalidateWidgetClientCache(); // a atribuicao de leads le estes campos em cache
     await db.collection('widgetClients').updateOne(
       { _id: new ObjectId(_id) },
       { $set: update }

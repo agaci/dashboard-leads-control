@@ -31,6 +31,15 @@ export async function registerLead(
     ? `<p><b>Pagamento:</b> MBWAY ✓ (${conv.data.stripePaymentIntentId})</p>`
     : '';
 
+  // Cliente de widget white-label (comissoes): carimbado na raiz do doc e em leadData.
+  const widget = conv.data.widgetClientId
+    ? {
+        widgetClientId:   conv.data.widgetClientId,
+        widgetClientName: conv.data.widgetClientName ?? null,
+        widgetRef:        conv.data.widgetRef ?? null,
+      }
+    : null;
+
   const leadResult = await db.collection('messages').insertOne({
     company: 'Yourbox',
     messageType: 'newLead',
@@ -46,7 +55,9 @@ export async function registerLead(
     closed: false,
     closedAt: null,
     reply: [],
+    ...(widget ? widget : {}),
     leadData: {
+      ...(widget ? widget : {}),
       origem: conv.data.origem,
       destino: conv.data.destino,
       urgencia: conv.data.urgencia,

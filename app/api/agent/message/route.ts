@@ -159,6 +159,16 @@ export async function POST(request: NextRequest) {
       });
     }
 
+    // Cliente de widget white-label (comissoes). Uma conversa iniciada no widget e
+    // continuada por WhatsApp (mesmo telemovel) mantem a atribuicao.
+    const widgetStamp = conv.data?.widgetClientId
+      ? {
+          widgetClientId:   conv.data.widgetClientId,
+          widgetClientName: conv.data.widgetClientName ?? null,
+          widgetRef:        conv.data.widgetRef ?? null,
+        }
+      : null;
+
     await appendMessage(telemovel, { role: 'lead', text: mensagem, timestamp: new Date() });
 
     // ── Verificar config de routing ──────────────────────────────────────────
@@ -221,6 +231,7 @@ export async function POST(request: NextRequest) {
         await escalateConversation(telemovel);
         dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
         await dbNV.collection('messages').insertOne({
+          ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
           message: `<div><p><b>ESCALAMENTO — PESO/VOLUME 24H</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>${kgNV}kg em ${nVol} vol. (${kgPerVol}kg/vol > limite ${maxVolKgNV}kg)</p></div>`,
@@ -243,6 +254,7 @@ export async function POST(request: NextRequest) {
         dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
         const dbFri = await getDb();
         await dbFri.collection('messages').insertOne({
+          ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
           message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado</p></div>`,
@@ -796,6 +808,7 @@ export async function POST(request: NextRequest) {
         : '';
 
       const leadResult = await db.collection('messages').insertOne({
+        ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${volumesHtml}${moradaRecolhaHtml}${moradaEntregaHtml}${notasHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
@@ -833,6 +846,7 @@ export async function POST(request: NextRequest) {
         { $set: { step: 'LIVE_CHAT', escalationType: 'agg_request', updatedAt: new Date() } },
       );
       await db.collection('messages').insertOne({
+        ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div><p><b>PEDIDO DE ANÁLISE DE AGREGAÇÃO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p></div>`,
@@ -845,6 +859,7 @@ export async function POST(request: NextRequest) {
       dispatchNotification('escalation', { convId: conv._id?.toString() ?? telemovel, nome: conv.data?.nome, telemovel, origem: conv.data?.origem, destino: conv.data?.destino, lastMsg: mensagem });
       const db = await getDb();
       await db.collection('messages').insertOne({
+        ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div><p><b>ESCALAMENTO BOT</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>SIT: ${conv.data.activeSituacaoId ?? 'n/a'}</p></div>`,

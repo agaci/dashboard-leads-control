@@ -61,8 +61,11 @@ export async function computeRecommendation(db: Awaited<ReturnType<typeof getDb>
   const visitsBy: Record<string, number> = {};
   for (const r of visitsRaw as any[]) if (r._id) visitsBy[String(r._id)] = r.c;
 
+  // Conversas do site proprio apenas. As do widget white-label entram nesta coleccao
+  // com a mesma quizVariante, mas o iframe do widget nao regista visitas — contá-las
+  // aqui inflacionaria a taxa (leads/visitas) das variantes que calhassem ao widget.
   const convs = await db.collection('conversations').find(
-    { canal: 'web-quiz', createdAt: { $gte: since } },
+    { canal: 'web-quiz', createdAt: { $gte: since }, widgetClientId: { $exists: false } },
     { projection: { quizVariante: 1, step: 1, 'data.telefone': 1, 'data.email': 1 } },
   ).limit(20000).toArray();
   const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

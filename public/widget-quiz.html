@@ -271,6 +271,10 @@
     var p = new URLSearchParams(location.search);
     var v = p.get('v') || 'WIDGET';
     window.YB_QUIZ_WIDGET = true;
+    // Atribuicao da lead ao cliente do widget (comissoes). O embed.js passa ambos:
+    // clientId = cliente white-label; ref = hostname do site que embebe o iframe.
+    window.YB_QUIZ_CLIENT_ID = p.get('clientId') || null;
+    window.YB_QUIZ_REF = p.get('ref') || null;
 
     var C6 = ['origem', 'destino', 'urgencia', 'volumes', 'peso', 'nome', 'email', 'telefone', 'dimensoes', 'material', 'embalado', 'review'];
     var ORDERS = {

@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
+import { resolveWidgetAttribution } from '@/lib/widget/attribution';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
 // "conversa" na colecção conversations, para aparecer na vista de Conversas do
@@ -79,7 +80,7 @@ export async function POST(req: NextRequest) {
   try {
     const raw = await req.text();
     const body = raw ? JSON.parse(raw) : {};
-    const { sessionId, visitSid, event, step, stepIndex, total, label, data, variante, geo, attr } = body as {
+    const { sessionId, visitSid, event, step, stepIndex, total, label, data, variante, geo, attr, widgetClientId, widgetRef } = body as {
       sessionId?: string;
       visitSid?: string;
       event?: 'progress' | 'submit' | 'geo';
@@ -91,6 +92,8 @@ export async function POST(req: NextRequest) {
       variante?: string;
       geo?: { lat?: number; lng?: number; address?: string; field?: string; source?: string; city?: string; region?: string; country?: string };
       attr?: unknown;
+      widgetClientId?: string;
+      widgetRef?: string;
     };
 
     if (!sessionId || typeof sessionId !== 'string') {
@@ -143,6 +146,11 @@ export async function POST(req: NextRequest) {
     // por isso continua presente mesmo que o visitante recarregue a página a meio.
     const attribution = normalizeAttribution(attr);
 
+    // Atribuicao ao cliente de widget white-label (para comissoes). Validada no servidor
+    // contra a coleccao widgetClients; se nao for valida, a lead regista-se na mesma sem
+    // atribuicao. Vem em todos os eventos, por isso resiste a recarregamentos da pagina.
+    const widget = await resolveWidgetAttribution(db, widgetClientId, widgetRef);
+
     await col.updateOne(
       { quizSessionId: sessionId },
       {
@@ -154,6 +162,7 @@ export async function POST(req: NextRequest) {
           ...(variante ? { quizVariante: variante } : {}),
           ...(visitSid ? { visitSid } : {}),
           ...(attribution ? { attribution } : {}),
+          ...(widget ? widget : {}),
           ...dataSet,
           updatedAt: now,
           ...(isSubmit ? { closedAt: now } : {}),
@@ -206,6 +215,13 @@ export async function POST(req: NextRequest) {
         // passos anteriores. Sem gclid a lead cria-se na mesma — só não é exportável.
         const leadAttr = attribution ?? convDoc.attribution ?? null;
 
+        // Cliente de widget: o do submit, ou o que ja ficou na conversa nos passos
+        // anteriores. Fica na raiz do doc (para o apuramento de comissoes) e em
+        // leadData (para as vistas que so leem leadData).
+        const leadWidget = widget ?? (convDoc.widgetClientId
+          ? { widgetClientId: convDoc.widgetClientId, widgetClientName: convDoc.widgetClientName ?? null, widgetRef: convDoc.widgetRef ?? null }
+          : null);
+
         const ins = await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
           appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
@@ -214,12 +230,14 @@ export async function POST(req: NextRequest) {
           companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
           timeStamp: now, closed: false, closedAt: null, reply: [],
           ...(leadAttr ? { attribution: leadAttr, conversionSync: newConversionSync() } : {}),
+          ...(leadWidget ? leadWidget : {}),
           leadData: {
             origem: d.origem, destino: d.destino,
             urgencia: urg, serviceType, viatura, weightKg: totalKg,
             nome: d.nome, email: d.email, telefone: realPhone ?? d.telefone,
             volumes: d.volumes, material: d.material, embalado: d.embalado,
             geo: d.geo ?? null,
+            ...(leadWidget ? leadWidget : {}),
             timeStamp: now, converted: true, convertedAt: now, source: 'quiz',
           },
         });

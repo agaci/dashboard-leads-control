@@ -27,6 +27,16 @@ type WidgetClient = {
   createdAt: string;
 };
 
+type WidgetStats = {
+  clientId: string;
+  name: string;
+  leads: number;
+  converted: number;
+  withPrice: number;
+  totalValue: number;
+  lastLeadAt: string | null;
+};
+
 // Opções do modo "Formulário": fluxo fixo recomendado, ou rotação A/B pela distribuição.
 const QUIZ_VARIANTS: { value: string; label: string }[] = [
   { value: 'WIDGET', label: 'Widget — fluxo recomendado (fixo)' },
@@ -81,6 +91,9 @@ export default function WidgetsPage() {
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
+  // Apuramento do mes corrente por cliente de widget (base do calculo de comissoes)
+  const [stats, setStats] = useState<Record<string, WidgetStats>>({});
+  const [statsPeriod, setStatsPeriod] = useState<string>('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -91,7 +104,19 @@ export default function WidgetsPage() {
     } finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadStats = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/widget-clients/stats');
+      const data = await res.json();
+      if (!data.success) return;
+      const map: Record<string, WidgetStats> = {};
+      for (const c of data.clients as WidgetStats[]) map[c.clientId] = c;
+      setStats(map);
+      setStatsPeriod(data.period?.label ?? '');
+    } catch { /* apuramento e informativo — nao bloqueia a pagina */ }
+  }, []);
+
+  useEffect(() => { load(); loadStats(); }, [load, loadStats]);
 
   function openCreate() {
     setEditId(null);
@@ -235,6 +260,20 @@ export default function WidgetsPage() {
                       ? <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Formulário</strong> ({c.variante === 'AB' ? 'Rotação A/B' : (c.variante ?? 'WIDGET')})</>
                       : <>Modo: <strong style={{ color: 'var(--yb-muted)' }}>Assistente</strong> · Bot: {c.botName}</>}
                     {' '}&bull; Origens: {(c.allowedOrigins ?? ['*']).join(', ')}
+                  </p>
+                  {/* Leads atribuidas a este widget no mes corrente (base das comissoes) */}
+                  <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '4px 0 0' }}>
+                    {stats[c.clientId]
+                      ? <>
+                          <strong style={{ color: '#bed62f' }}>{stats[c.clientId].leads} leads</strong>
+                          {' '}em {statsPeriod}
+                          {stats[c.clientId].withPrice > 0 && <> &bull; {stats[c.clientId].totalValue.toFixed(2)} € orçamentados</>}
+                          {stats[c.clientId].converted > 0 && <> &bull; {stats[c.clientId].converted} já em clientes</>}
+                        </>
+                      : <>Sem leads atribuídas em {statsPeriod || 'este mês'}</>}
+                    {(c.allowedOrigins ?? ['*']).includes('*') && (
+                      <span style={{ color: '#ffc107' }}> &bull; origens a * — qualquer site pode reclamar leads com este ID</span>
+                    )}
                   </p>
                 </div>
 

@@ -88,6 +88,9 @@ export interface ConversationData {
   totalCm?: number;
   notas?: string;
   source?: string;   // domain/origin identifier (e.g. 'yourbox.com.pt', 'meusite.pt', 'bot')
+  widgetClientId?: string;    // cliente white-label que embebe o widget (comissoes)
+  widgetClientName?: string;  // nome do cliente do widget, no momento do registo
+  widgetRef?: string | null;  // hostname do site que embebeu o widget
   nVolumes?: number;
   aggOfferShown?: boolean;
   effectiveType?: string;    // tipo real usado no cálculo (pode diferir de viatura por upgrade de distância)

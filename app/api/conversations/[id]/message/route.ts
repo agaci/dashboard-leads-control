@@ -86,6 +86,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return Response.json({ error: 'Conversa encerrada', step: convDoc.step }, { status: 409 });
     }
 
+    // Cliente de widget white-label (comissoes) — viaja da conversa para a lead.
+    const widgetStamp = (convDoc.data as any)?.widgetClientId
+      ? {
+          widgetClientId:   (convDoc.data as any).widgetClientId,
+          widgetClientName: (convDoc.data as any).widgetClientName ?? null,
+          widgetRef:        (convDoc.data as any).widgetRef ?? null,
+        }
+      : null;
+
     // Rastrear breakdown criado neste request (não usar convDoc que foi lido uma vez)
     let latestBreakdown: any = null;
 
@@ -338,6 +347,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         fridayEscalate = true;
         fridayBotText = `O serviço YourBox de entrega ao *sábado* requer análise individual — as entregas garantidas operam apenas em dias úteis.\n\n${contactSuffix}\n\n${URGENCY_NOTE}`;
         await db.collection('messages').insertOne({
+          ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
           message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado (fora de dias úteis do parceiro)</p></div>`,
@@ -531,6 +541,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
       // Inserir lead de escalamento
       await db.collection('messages').insertOne({
+        ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div><p><b>${isAggRequest ? 'PEDIDO DE ANÁLISE DE AGREGAÇÃO' : 'ESCALAMENTO WEB BOT'}</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Motivo: ${result.reason}</p></div>`,
@@ -579,11 +590,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         contactoEntrega: result.contactoEntrega,
         volumes: result.volumes,
         timeStamp: now, converted: true,
+        ...(widgetStamp ? widgetStamp : {}),
         source: isEscalatedCase ? 'web_chat_escalated' : 'web_chat',
         ...(latestBreakdown || convDocToUse.data.priceBreakdown) && { priceBreakdown: latestBreakdown || convDocToUse.data.priceBreakdown },
       };
 
       const _leadInsert = await db.collection('messages').insertOne({
+        ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
         message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p>` : ''}<p style="color:${isEscalatedCase ? 'orange' : 'green'};"><b>CONTACTAR [canal: ${canalLabel}]</b></p></div>`,

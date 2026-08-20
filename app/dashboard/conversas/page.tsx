@@ -63,11 +63,21 @@ type ConvSummary = {
   contactRequestOpen?: boolean;
   contactRequestChannel?: string | null;
   quizVariante?: string | null;
+  // Widget white-label que angariou esta conversa. O fluxo do formulario grava na raiz,
+  // o do assistente dentro de data — ler sempre pelos dois (widgetNameOf).
+  widgetClientId?: string | null;
+  widgetClientName?: string | null;
   leadId?: string;
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[]; serviceRoute?: string | null; serviceAt?: string | null } | null;
 };
 
 type ConvFull = ConvSummary & { history: Message[] };
+
+// Nome do cliente de widget, venha ele da raiz do doc (quiz) ou de data (assistente).
+function widgetNameOf(c: { widgetClientName?: string | null; widgetClientId?: string | null; data?: Record<string, any> } | null | undefined): string | null {
+  if (!c) return null;
+  return c.widgetClientName ?? c.data?.widgetClientName ?? c.widgetClientId ?? c.data?.widgetClientId ?? null;
+}
 
 const STEP_LABEL: Record<ConvStep, string> = {
   INIT: 'Início',
@@ -555,6 +565,15 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                         {conv.quizVariante}
                       </span>
                     )}
+                    {widgetNameOf(conv) && (
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[9px] font-bold"
+                        style={{ background: 'rgba(190,214,47,0.15)', color: '#8ea315', border: '1px solid rgba(190,214,47,0.35)' }}
+                        title="Angariada pelo widget deste parceiro"
+                      >
+                        {widgetNameOf(conv)}
+                      </span>
+                    )}
                   </div>
                   {lastMsg && (
                     <p className="text-xs text-muted-foreground truncate">
@@ -627,6 +646,15 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                       <span className="text-xs px-2 py-0.5 rounded-full font-medium" style={stepStyle(selected.step)}>
                         {STEP_LABEL[selected.step]}
                       </span>
+                      {widgetNameOf(selected) && (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ background: 'rgba(190,214,47,0.15)', color: '#8ea315' }}
+                          title={`Widget: ${selected.widgetClientId ?? selected.data?.widgetClientId ?? ''}`}
+                        >
+                          Widget: {widgetNameOf(selected)}
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-muted-foreground mt-0.5">
                       {bestPhone(selected) && (

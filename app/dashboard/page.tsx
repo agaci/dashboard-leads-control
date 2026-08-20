@@ -110,7 +110,9 @@ type Lead = {
   senderName: string;
   variante: string | null;
   leadData: LeadData;
-  clientId?: string | null;
+  clientId?: string | null;               // cliente do CRM
+  widgetClientId?: string | null;         // cliente white-label do widget (comissoes)
+  widgetClientName?: string | null;
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[] } | null;
   convId?: string | null;
   linkedConvId?: string | null;
@@ -635,6 +637,14 @@ export default function DashboardPage() {
                           </span>
                           {urgencia === '1 Hora' && (
                             <span style={{ fontSize: 9, fontWeight: 700, color: '#f87171', letterSpacing: '0.04em' }}>URGENTE</span>
+                          )}
+                          {lead.widgetClientName && (
+                            <span style={{
+                              fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 3,
+                              background: 'rgba(190,214,47,0.15)', color: '#bed62f', letterSpacing: '0.04em',
+                            }} title="Lead angariada por widget white-label">
+                              {lead.widgetClientName.toUpperCase()}
+                            </span>
                           )}
                           {lead.variante && lead.variante !== 'BOT' && (() => {
                             const [bg, fg] = VARIANTE_TAG[lead.variante] ?? ['rgba(148,163,184,0.15)', '#94a3b8'];
@@ -1724,6 +1734,15 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
                   </span>
                 );
               })()}
+              {currentLead.widgetClientName && (
+                <span
+                  className="rounded-full px-2.5 py-0.5 text-[11px] font-semibold"
+                  style={{ background: 'rgba(190,214,47,0.15)', color: '#bed62f' }}
+                  title={`Widget: ${currentLead.widgetClientId}`}
+                >
+                  Widget: {currentLead.widgetClientName}
+                </span>
+              )}
               {d.source && d.source !== 'bot' && (
                 <span className="rounded-full bg-brand-purple-soft px-2.5 py-0.5 text-[11px] font-semibold text-brand-purple">
                   {d.source}

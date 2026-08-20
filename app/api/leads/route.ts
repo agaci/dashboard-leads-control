@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const skip = parseInt(searchParams.get('skip') ?? '0');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo   = searchParams.get('dateTo');
+    const widgetClientId = searchParams.get('widgetClientId');   // filtrar por cliente de widget
 
     const db = await getDb();
 
@@ -16,6 +17,10 @@ export async function GET(request: NextRequest) {
     if (type === 'leads')        filter.variante = 'BOT';
     else if (type === 'sims')    filter.variante = { $ne: 'BOT' };
     else if (type === 'urgente') filter['leadData.urgencia'] = '1 Hora';
+
+    // 'none' isola as leads proprias (sem widget); um clientId isola as desse cliente.
+    if (widgetClientId === 'none')   filter.widgetClientId = { $exists: false };
+    else if (widgetClientId)         filter.widgetClientId = widgetClientId;
 
     if (dateFrom || dateTo) {
       const range: Record<string, Date> = {};
@@ -45,6 +50,8 @@ export async function GET(request: NextRequest) {
       variante: d.variante ?? null,
       leadData: d.leadData ?? {},
       clientId: d.clientId ?? null,
+      widgetClientId:   d.widgetClientId ?? null,
+      widgetClientName: d.widgetClientName ?? null,
     }));
 
     return Response.json({ success: true, leads, total, skip, limit });

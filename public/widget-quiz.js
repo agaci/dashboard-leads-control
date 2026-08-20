@@ -15,7 +15,11 @@
         WHATSAPP_NUMBER: '351964078194',
         // Variante por pagina (para o dashboard distinguir a origem da lead).
         // Cada pagina do quiz pode definir window.YB_QUIZ_VARIANTE; default 'QUIZ'.
-        VARIANTE: (typeof window !== 'undefined' && window.YB_QUIZ_VARIANTE) ? String(window.YB_QUIZ_VARIANTE) : 'QUIZ'
+        VARIANTE: (typeof window !== 'undefined' && window.YB_QUIZ_VARIANTE) ? String(window.YB_QUIZ_VARIANTE) : 'QUIZ',
+        // Cliente white-label do widget (comissoes). Definidos pelo bootstrap do
+        // widget-quiz.html a partir do ?clientId/?ref que o embed.js passa no iframe.
+        CLIENT_ID: (typeof window !== 'undefined' && window.YB_QUIZ_CLIENT_ID) ? String(window.YB_QUIZ_CLIENT_ID) : null,
+        REF: (typeof window !== 'undefined' && window.YB_QUIZ_REF) ? String(window.YB_QUIZ_REF) : null
     };
 
     // Passos do quiz (review e o ultimo cartao, nao conta para a barra)
@@ -139,7 +143,9 @@
                 label: STEP_LABELS[step] || step,
                 data: snapshot(),
                 variante: CONFIG.VARIANTE,
-                geo: clientGeo
+                geo: clientGeo,
+                widgetClientId: CONFIG.CLIENT_ID,
+                widgetRef: CONFIG.REF
             });
             if (navigator.sendBeacon) {
                 navigator.sendBeacon(PROGRESS_API, new Blob([payload], { type: 'text/plain' }));

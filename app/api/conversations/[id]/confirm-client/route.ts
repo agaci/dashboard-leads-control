@@ -41,6 +41,17 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const variante = conv.quizVariante ?? 'QUIZ';
   const serviceType = d.urgencia === '24H' ? 'arrasto' : 'direto';
 
+  // Cliente de widget white-label: acompanha a conversa (carimbado no registo) e passa
+  // para a lead e para a ficha de cliente — e o que permite atribuir servicos futuros
+  // deste cliente ao widget que o angariou.
+  const widget = (conv.widgetClientId ?? d.widgetClientId)
+    ? {
+        widgetClientId:   conv.widgetClientId ?? d.widgetClientId,
+        widgetClientName: conv.widgetClientName ?? d.widgetClientName ?? null,
+        widgetRef:        conv.widgetRef ?? d.widgetRef ?? null,
+      }
+    : null;
+
   // 1) Criar a lead (messages newLead) — marcada appSource leads-control
   const leadDoc = {
     company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
@@ -48,7 +59,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     message: `<div style="line-height:1.4;"><p><b>LEAD (inbox &rarr; cliente)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone}</p><p>${nome ?? ''}</p>${email ? `<p>${email}</p>` : ''}<p>${d.origem ?? ''} &rarr; ${d.destino ?? ''}</p>${serviceNr ? `<p><b>Serviço YourBox nr:</b> ${serviceNr}</p>` : ''}<p style="color:green;"><b>CONFIRMADO CLIENTE</b></p></div>`,
     companyProvider: 'Yourbox', senderName: 'Inbox->Cliente', variante,
     timeStamp: now, closed: false, closedAt: null, reply: [],
+    ...(widget ? widget : {}),
     leadData: {
+      ...(widget ? widget : {}),
       origem: d.origem, destino: d.destino, urgencia: d.urgencia ?? null, serviceType,
       nome, email, telefone: realPhone,
       volumes: d.volumes, material: d.material, embalado: d.embalado,
@@ -79,6 +92,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           ...(nome && !client.nome ? { nome } : {}),
           ...(email && !client.email ? { email } : {}),
           ...(serviceNr ? { lastServiceNr: serviceNr } : {}),
+          ...(widget && !client.widgetClientId ? widget : {}),
         },
       },
     );
@@ -87,6 +101,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       companyProvider: 'Yourbox', nome: nome ?? 'Sem nome', telefone: realPhone, email: email ?? null,
       empresa: null, notas: '', emailConsent: false, leadIds: [leadId],
       lastServiceNr: serviceNr ?? null, createdAt: now, updatedAt: now, source: 'inbox-reconcile',
+      ...(widget ? widget : {}),
     });
     client = { _id: cRes.insertedId } as any;
   }
