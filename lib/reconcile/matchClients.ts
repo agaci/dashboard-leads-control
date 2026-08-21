@@ -120,6 +120,11 @@ export async function reconcileClients(opts?: { sinceDays?: number; debug?: bool
           $set: {
             clientMatch: {
               serviceNr: svc.nr ?? null,
+              // _id do utilizador YourBox dono do servico (users._id). E a chave que
+              // permite somar os servicos futuros deste cliente e atribuir-lhe o
+              // comissionista do widget que o angariou.
+              clientUserId: typeof svc.client === 'string' ? svc.client : null,
+              clientNameYb: svc.clientName ?? null,
               score,
               matchedOn: on,
               serviceRoute: (svcOrig || svcDest) ? `${svcOrig || '?'} -> ${svcDest || '?'}` : null,

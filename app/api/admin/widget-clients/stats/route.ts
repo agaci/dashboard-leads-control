@@ -65,6 +65,60 @@ export async function GET(req: NextRequest) {
       { $sort: { leads: -1 } },
     ]).toArray();
 
+    // ── Serviços facturados e comissão (dados da plataforma YourBox) ──────────
+    // O parceiro do widget é inscrito na YourBox como comissionista. Os clientes que
+    // ele angaria ficam com users.profile.commissionUser = <nome do parceiro>, e cada
+    // serviço desses clientes copia esse nome para parameters.commissionUser. Aqui só
+    // lemos: quem calcula a comissão é a plataforma YourBox.
+    const allWidgets = await db.collection('widgetClients')
+      .find({}, { projection: { clientId: 1, name: 1, active: 1, commissionUserName: 1, commissionPercentage: 1 } })
+      .toArray();
+
+    const defaultPct: number = (await db.collection('serverSettings')
+      .findOne({ commissionPercentage: { $exists: true } }, { projection: { commissionPercentage: 1 } })
+    )?.commissionPercentage ?? 0.05;
+
+    const commissionByWidget = new Map<string, any>();
+    for (const w of allWidgets as any[]) {
+      if (!w.commissionUserName) continue;
+      const rows = await db.collection('servicesHistory').aggregate([
+        {
+          $match: {
+            'parameters.commissionUser': w.commissionUserName,
+            status: 'executed',
+            timestamp: { $gte: periodStart, $lt: periodEnd },
+          },
+        },
+        {
+          $group: {
+            _id: '$client',
+            clientName: { $last: '$clientName' },
+            services:   { $sum: 1 },
+            billed:     { $sum: { $ifNull: ['$price', 0] } },
+          },
+        },
+        { $sort: { billed: -1 } },
+      ]).toArray();
+
+      const pct = typeof w.commissionPercentage === 'number' ? w.commissionPercentage : defaultPct;
+      const services = rows.reduce((a: number, r: any) => a + r.services, 0);
+      const billed   = rows.reduce((a: number, r: any) => a + r.billed, 0);
+
+      commissionByWidget.set(w.clientId, {
+        commissionUserName: w.commissionUserName,
+        percentage: pct,
+        services,
+        billed:     Math.round(billed * 100) / 100,
+        commission: Math.round(billed * pct * 100) / 100,
+        clients: rows.map((r: any) => ({
+          userId:   r._id ? String(r._id) : null,
+          name:     r.clientName ?? null,
+          services: r.services,
+          billed:   Math.round(r.billed * 100) / 100,
+        })),
+      });
+    }
+
     // Nome actual do cliente (o carimbo guarda o nome à data do registo)
     const ids = rows.map((r: any) => r._id);
     const clients = ids.length
@@ -83,16 +137,31 @@ export async function GET(req: NextRequest) {
       withPrice:  r.withPrice,
       totalValue: Math.round((r.totalValue ?? 0) * 100) / 100,
       lastLeadAt: r.lastLeadAt,
+      commission: commissionByWidget.get(r._id) ?? null,
     }));
+
+    // Parceiros sem leads no periodo mas com servicos facturados na YourBox
+    const semLeads = allWidgets
+      .filter((w: any) => w.commissionUserName && !out.some((o) => o.clientId === w.clientId))
+      .map((w: any) => ({
+        clientId: w.clientId, name: w.name, active: w.active !== false,
+        leads: 0, converted: 0, withPrice: 0, totalValue: 0, lastLeadAt: null,
+        commission: commissionByWidget.get(w.clientId) ?? null,
+      }))
+      .filter((w: any) => w.commission && w.commission.services > 0);
+    out.push(...semLeads);
 
     return Response.json({
       success: true,
       period: { month, year, label: `${String(month).padStart(2, '0')}/${year}` },
       clients: out,
       totals: {
-        leads:      out.reduce((a, c) => a + c.leads, 0),
-        totalValue: Math.round(out.reduce((a, c) => a + c.totalValue, 0) * 100) / 100,
+        leads:       out.reduce((a, c) => a + c.leads, 0),
+        totalValue:  Math.round(out.reduce((a, c) => a + c.totalValue, 0) * 100) / 100,
+        billed:      Math.round(out.reduce((a, c) => a + (c.commission?.billed ?? 0), 0) * 100) / 100,
+        commission:  Math.round(out.reduce((a, c) => a + (c.commission?.commission ?? 0), 0) * 100) / 100,
       },
+      defaultCommissionPercentage: defaultPct,
     });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });

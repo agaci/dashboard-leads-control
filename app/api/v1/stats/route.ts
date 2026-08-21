@@ -98,12 +98,12 @@ export async function GET(req: NextRequest) {
       byServiceType[svcType].count++;
       if (price != null) byServiceType[svcType].totalValue += price;
 
+      // Sem dados pessoais: o parceiro do widget e uma entidade distinta da YourBox e
+      // as leads sao contactos de terceiros. So contagens, rotas e valores. (Decisao de
+      // 21/08/2026; antes desta data a resposta incluia nome, telefone e email.)
       return {
         id:          d._id.toString(),
         date:        d.timeStamp,
-        name:        ld.nome ?? null,
-        phone:       ld.telefone ?? null,
-        email:       ld.email ?? null,
         route:       ld.origem && ld.destino ? `${ld.origem} → ${ld.destino}` : null,
         vehicle:     ld.viatura ?? null,
         urgency:     ld.urgencia ?? null,
@@ -134,8 +134,6 @@ export async function GET(req: NextRequest) {
         date:    c.createdAt,
         step:    c.step,
         canal:   c.canal ?? null,
-        name:    cd.nome ?? null,
-        phone:   c.telemovel ?? null,
         route:   cd.origem && cd.destino ? `${cd.origem} → ${cd.destino}` : null,
         price:   price,
         source:  cd.source ?? null,

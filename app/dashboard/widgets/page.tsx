@@ -23,6 +23,12 @@ type WidgetClient = {
   webhookUrl: string | null;
   mode?: 'bot' | 'quiz';
   variante?: string | null;
+  commissionUserName?: string | null;
+  commissionUserId?: string | null;
+  commissionPercentage?: number | null;
+  commissionModel?: 'fixed' | 'margin' | null;
+  commissionMarginBase?: 'cost' | 'revenue' | null;
+  referenceProfitPercentage?: number | null;
   active: boolean;
   createdAt: string;
 };
@@ -35,6 +41,14 @@ type WidgetStats = {
   withPrice: number;
   totalValue: number;
   lastLeadAt: string | null;
+  commission: {
+    commissionUserName: string;
+    percentage: number;
+    services: number;
+    billed: number;
+    commission: number;
+    clients: { userId: string | null; name: string | null; services: number; billed: number }[];
+  } | null;
 };
 
 // Opções do modo "Formulário": fluxo fixo recomendado, ou rotação A/B pela distribuição.
@@ -48,6 +62,8 @@ const EMPTY_FORM = {
   logoUrl: '', whatsappNumber: '', botName: 'Assistente',
   allowedOrigins: '*', webhookUrl: '',
   mode: 'bot' as 'bot' | 'quiz', variante: 'WIDGET',
+  commissionUserName: '', commissionUserId: '', commissionPercentage: '',
+  commissionModel: '', commissionMarginBase: '', referenceProfitPercentage: '',
 };
 
 function copyToClipboard(text: string) {
@@ -90,8 +106,10 @@ export default function WidgetsPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [revealedToken, setRevealedToken] = useState<string | null>(null);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
+  const [copiedPortal, setCopiedPortal] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState<string | null>(null);
   // Apuramento do mes corrente por cliente de widget (base do calculo de comissoes)
+  const [ybUsers, setYbUsers] = useState<{ id: string; name: string | null; company: string | null; email: string | null }[]>([]);
   const [stats, setStats] = useState<Record<string, WidgetStats>>({});
   const [statsPeriod, setStatsPeriod] = useState<string>('');
 
@@ -102,6 +120,16 @@ export default function WidgetsPage() {
       const data = await res.json();
       if (data.success) setClients(data.clients);
     } finally { setLoading(false); }
+  }, []);
+
+  // Procura de utilizadores da plataforma YourBox para ligar ao comissionista
+  const searchYbUsers = useCallback(async (q: string) => {
+    if (q.trim().length < 2) { setYbUsers([]); return; }
+    try {
+      const res = await fetch(`/api/admin/yourbox-users?q=${encodeURIComponent(q.trim())}`);
+      const data = await res.json();
+      setYbUsers(data.success ? data.users : []);
+    } catch { setYbUsers([]); }
   }, []);
 
   const loadStats = useCallback(async () => {
@@ -137,6 +165,12 @@ export default function WidgetsPage() {
       webhookUrl:     c.webhookUrl ?? '',
       mode:           (c.mode === 'quiz' ? 'quiz' : 'bot') as 'bot' | 'quiz',
       variante:       c.variante ?? 'WIDGET',
+      commissionUserName:   c.commissionUserName ?? '',
+      commissionUserId:     c.commissionUserId ?? '',
+      commissionPercentage: c.commissionPercentage != null ? String(c.commissionPercentage * 100) : '',
+      commissionModel:           c.commissionModel ?? '',
+      commissionMarginBase:      c.commissionMarginBase ?? '',
+      referenceProfitPercentage: c.referenceProfitPercentage != null ? String(c.referenceProfitPercentage * 100) : '',
     });
     setShowForm(true);
   }
@@ -157,6 +191,17 @@ export default function WidgetsPage() {
         webhookUrl:     form.webhookUrl.trim() || null,
         mode:           form.mode === 'quiz' ? 'quiz' : 'bot',
         variante:       form.mode === 'quiz' ? (form.variante || 'WIDGET') : null,
+        commissionUserName: form.commissionUserName.trim() || null,
+        commissionUserId:   form.commissionUserId.trim() || null,
+        // Guardado como fraccao (5% -> 0.05), a par de serverSettings.commissionPercentage
+        commissionPercentage: form.commissionPercentage.trim()
+          ? Number(form.commissionPercentage) / 100
+          : null,
+        commissionModel:      form.commissionModel || null,
+        commissionMarginBase: form.commissionMarginBase || null,
+        referenceProfitPercentage: form.referenceProfitPercentage.trim()
+          ? Number(form.referenceProfitPercentage) / 100
+          : null,
       };
       if (editId) {
         await fetch('/api/admin/widget-clients', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ _id: editId, ...body }) });
@@ -275,6 +320,25 @@ export default function WidgetsPage() {
                       <span style={{ color: '#ffc107' }}> &bull; origens a * — qualquer site pode reclamar leads com este ID</span>
                     )}
                   </p>
+                  {/* Servicos facturados na YourBox e comissao do periodo */}
+                  {stats[c.clientId]?.commission ? (() => {
+                    const cm = stats[c.clientId].commission!;
+                    return (
+                      <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>
+                        Comissionista <strong style={{ color: 'var(--yb-muted)' }}>{cm.commissionUserName}</strong>
+                        {' '}&bull; {cm.services} serviços facturados &bull; {cm.billed.toFixed(2)} €
+                        {' '}&bull; comissão <strong style={{ color: '#22c55e' }}>{cm.commission.toFixed(2)} €</strong>
+                        {' '}<span style={{ color: 'var(--yb-subtle)' }}>({(cm.percentage * 100).toFixed(1)}%)</span>
+                        {cm.clients.length > 0 && (
+                          <span> &bull; {cm.clients.length} cliente{cm.clients.length > 1 ? 's' : ''}: {cm.clients.slice(0, 3).map(x => x.name).filter(Boolean).join(', ')}{cm.clients.length > 3 ? '…' : ''}</span>
+                        )}
+                      </p>
+                    );
+                  })() : (
+                    <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '3px 0 0' }}>
+                      Sem comissionista ligado — sem isto os serviços dos clientes angariados não lhe podem ser atribuídos.
+                    </p>
+                  )}
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
@@ -338,6 +402,20 @@ export default function WidgetsPage() {
                     </span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
+                    {c.secretToken && (
+                      <button
+                        onClick={() => { copyToClipboard(`${BASE_URL}/parceiro?t=${c.secretToken}`); setCopiedPortal(c._id); setTimeout(() => setCopiedPortal(null), 1800); }}
+                        title="Link de acesso ao portal do parceiro (contem o token)"
+                        style={{
+                          fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+                          border: '1px solid rgba(190,214,47,0.35)',
+                          background: copiedPortal === c._id ? 'rgba(190,214,47,0.15)' : 'var(--yb-input)',
+                          color: '#bed62f', fontWeight: 600,
+                        }}
+                      >
+                        {copiedPortal === c._id ? 'Copiado' : 'Link do portal'}
+                      </button>
+                    )}
                     {c.secretToken && (
                       <button
                         onClick={() => handleCopyToken(c.secretToken!, c._id)}
@@ -487,6 +565,76 @@ export default function WidgetsPage() {
                 <label style={labelStyle}>Origens permitidas (separadas por vírgula, ou * para todas)</label>
                 <input style={inputStyle} value={form.allowedOrigins} onChange={e => setForm(f => ({ ...f, allowedOrigins: e.target.value }))} placeholder="meusite.pt, www.meusite.pt" />
               </div>
+
+              <div style={{ borderTop: `1px solid ${BORDER}`, paddingTop: 14 }}>
+                <label style={labelStyle}>Comissionista na YourBox</label>
+                <input
+                  style={inputStyle}
+                  value={form.commissionUserName}
+                  onChange={e => { setForm(f => ({ ...f, commissionUserName: e.target.value, commissionUserId: '' })); searchYbUsers(e.target.value); }}
+                  placeholder="Nome exacto do parceiro na plataforma YourBox"
+                />
+                {ybUsers.length > 0 && (
+                  <div style={{ border: `1px solid ${BORDER}`, borderRadius: 7, marginTop: 4, maxHeight: 160, overflowY: 'auto' }}>
+                    {ybUsers.map(u => (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => { setForm(f => ({ ...f, commissionUserName: u.name ?? '', commissionUserId: u.id })); setYbUsers([]); }}
+                        style={{ display: 'block', width: '100%', textAlign: 'left', padding: '7px 10px', background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 12, color: 'var(--yb-fg)' }}
+                      >
+                        <strong>{u.name ?? '(sem nome)'}</strong>
+                        {u.company ? ` — ${u.company}` : ''}
+                        <span style={{ color: 'var(--yb-subtle)' }}> · {u.email ?? 'sem email'}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '6px 0 0' }}>
+                  Tem de coincidir com o nome usado em <code>commissionUser</code> na YourBox. Quando uma lead deste widget é confirmada como cliente, esse cliente passa a ter este comissionista — e todos os serviços que pedir daí em diante ficam atribuídos a ele.
+                  {form.commissionUserId && <span style={{ color: '#22c55e' }}> Utilizador YourBox ligado.</span>}
+                </p>
+              </div>
+
+              <div>
+                <label style={labelStyle}>Percentagem de comissão (%, vazio = a da YourBox)</label>
+                <input style={inputStyle} value={form.commissionPercentage} onChange={e => setForm(f => ({ ...f, commissionPercentage: e.target.value }))} placeholder="5" />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Modelo de cálculo (vazio = o da YourBox)</label>
+                <select style={inputStyle} value={form.commissionModel} onChange={e => setForm(f => ({ ...f, commissionModel: e.target.value }))}>
+                  <option value="">Herdar de serverSettings (YourBox)</option>
+                  <option value="fixed">Percentagem fixa do valor de venda</option>
+                  <option value="margin">Proporcional à margem de lucro bruto</option>
+                </select>
+              </div>
+
+              {form.commissionModel === 'margin' && (
+                <>
+                  <div>
+                    <label style={labelStyle}>Base de cálculo da margem</label>
+                    <select style={inputStyle} value={form.commissionMarginBase} onChange={e => setForm(f => ({ ...f, commissionMarginBase: e.target.value }))}>
+                      <option value="">Herdar de serverSettings (YourBox)</option>
+                      <option value="cost">Sobre o custo — (preço - custo driver) / custo driver</option>
+                      <option value="revenue">Sobre a venda — (preço - custo driver) / preço</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label style={labelStyle}>Percentual de lucro de referência (%)</label>
+                    <input style={inputStyle} value={form.referenceProfitPercentage} onChange={e => setForm(f => ({ ...f, referenceProfitPercentage: e.target.value }))} placeholder="50" />
+                  </div>
+                </>
+              )}
+
+              {(form.commissionPercentage || form.commissionModel || form.referenceProfitPercentage) && (
+                <div style={{ background: 'rgba(255,193,7,0.08)', border: '1px solid rgba(255,193,7,0.3)', borderRadius: 8, padding: '10px 12px' }}>
+                  <p style={{ fontSize: 11.5, color: '#ffc107', margin: 0, fontWeight: 600 }}>Atenção — isto altera meses já passados</p>
+                  <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '4px 0 0', lineHeight: 1.5 }}>
+                    O portal do parceiro recalcula sempre a comissão a partir do histórico de serviços, tal como a YourBox faz. Mudar qualquer destes valores muda também o que o parceiro vê nos meses anteriores — incluindo os que já lhe foram pagos. Antes de alterar, confirme os valores dos meses fechados.
+                  </p>
+                </div>
+              )}
 
               <div>
                 <label style={labelStyle}>Webhook URL (opcional)</label>

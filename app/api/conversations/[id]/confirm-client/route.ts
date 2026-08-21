@@ -38,6 +38,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const email = d.email ?? null;
   const nome = d.nome ?? null;
   const serviceNr = conv.clientMatch?.serviceNr ?? null;
+  // Utilizador YourBox dono do servico reconciliado (users._id). Guardado na ficha do
+  // cliente: e por aqui que se somam os servicos futuros e se atribui o comissionista.
+  const ybUserId: string | null = conv.clientMatch?.clientUserId ?? null;
   const variante = conv.quizVariante ?? 'QUIZ';
   const serviceType = d.urgencia === '24H' ? 'arrasto' : 'direto';
 
@@ -66,6 +69,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       nome, email, telefone: realPhone,
       volumes: d.volumes, material: d.material, embalado: d.embalado,
       geo: d.geo ?? null, serviceNr,
+      ...(ybUserId ? { yourboxUserId: ybUserId } : {}),
       timeStamp: now, converted: true, convertedAt: now, source: 'inbox-reconcile',
     },
   };
@@ -92,6 +96,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           ...(nome && !client.nome ? { nome } : {}),
           ...(email && !client.email ? { email } : {}),
           ...(serviceNr ? { lastServiceNr: serviceNr } : {}),
+          ...(ybUserId && !client.yourboxUserId ? { yourboxUserId: ybUserId } : {}),
           ...(widget && !client.widgetClientId ? widget : {}),
         },
       },
@@ -101,11 +106,56 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       companyProvider: 'Yourbox', nome: nome ?? 'Sem nome', telefone: realPhone, email: email ?? null,
       empresa: null, notas: '', emailConsent: false, leadIds: [leadId],
       lastServiceNr: serviceNr ?? null, createdAt: now, updatedAt: now, source: 'inbox-reconcile',
+      ...(ybUserId ? { yourboxUserId: ybUserId } : {}),
       ...(widget ? widget : {}),
     });
     client = { _id: cRes.insertedId } as any;
   }
   const clientId = client!._id.toString();
+
+  // 2b) Comissionista do widget ─────────────────────────────────────────────
+  // O parceiro do widget está inscrito na YourBox como comissionista. O cliente que ele
+  // angariou passa a ter users.profile.commissionUser = <nome do parceiro>, e a partir
+  // daí todos os serviços desse cliente saem já com esse comissionista — o cálculo da
+  // comissão continua a ser da plataforma YourBox; aqui só se ligam as pontas.
+  //
+  // Salvaguardas: só com comissionista configurado no widget, só se o utilizador ainda
+  // não tiver um (nunca sobrepor atribuição existente) e sempre com registo de auditoria.
+  let commissionAssigned: { yourboxUserId: string; commissionUser: string } | null = null;
+  if (widget && ybUserId) {
+    const wc = await db.collection('widgetClients').findOne(
+      { clientId: widget.widgetClientId },
+      { projection: { commissionUserName: 1, name: 1 } },
+    );
+    const commissionUserName: string | null = wc?.commissionUserName ?? null;
+    if (commissionUserName) {
+      const res = await db.collection('users').updateOne(
+        {
+          _id: ybUserId as any,
+          $or: [
+            { 'profile.commissionUser': { $exists: false } },
+            { 'profile.commissionUser': '' },
+            { 'profile.commissionUser': null },
+          ],
+        },
+        { $set: { 'profile.commissionUser': commissionUserName } },
+      );
+      if (res.modifiedCount === 1) {
+        commissionAssigned = { yourboxUserId: ybUserId, commissionUser: commissionUserName };
+        await db.collection('widgetCommissionLog').insertOne({
+          at: now,
+          action: 'assign-commission-user',
+          yourboxUserId: ybUserId,
+          commissionUser: commissionUserName,
+          widgetClientId: widget.widgetClientId,
+          widgetClientName: widget.widgetClientName ?? wc?.name ?? null,
+          leadId: leadId.toString(),
+          clientId,
+          convId: _id.toString(),
+        });
+      }
+    }
+  }
 
   // 3) Ligar tudo
   await db.collection('messages').updateOne({ _id: leadId }, { $set: { clientId } });
@@ -117,5 +167,5 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     $unset: { clientMatch: '' },
   });
 
-  return Response.json({ success: true, leadId: leadId.toString(), clientId });
+  return Response.json({ success: true, leadId: leadId.toString(), clientId, commissionAssigned });
 }

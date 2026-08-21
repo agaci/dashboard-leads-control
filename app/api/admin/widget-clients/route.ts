@@ -25,7 +25,9 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, primaryColor, darkColor, logoUrl, whatsappNumber, botName, allowedOrigins, webhookUrl, mode, variante } = body;
+    const { name, primaryColor, darkColor, logoUrl, whatsappNumber, botName, allowedOrigins, webhookUrl, mode, variante,
+            commissionUserName, commissionUserId, commissionPercentage,
+            commissionModel, commissionMarginBase, referenceProfitPercentage } = body;
     if (!name?.trim()) return Response.json({ error: 'Nome obrigatório' }, { status: 400 });
 
     const clientId = generateClientId();
@@ -47,6 +49,16 @@ export async function POST(req: NextRequest) {
       webhookUrl:     webhookUrl     ?? null,
       mode:           mode === 'quiz' ? 'quiz' : 'bot', // default: bot (comportamento actual)
       variante:       variante       ?? null,
+      // Ligacao ao circuito de comissoes da YourBox: nome EXACTO do comissionista tal
+      // como aparece em users.profile.commissionUser e em services.parameters.commissionUser.
+      commissionUserName:   commissionUserName?.trim() || null,
+      commissionUserId:     commissionUserId?.trim()   || null,
+      commissionPercentage: typeof commissionPercentage === 'number' ? commissionPercentage : null,
+      // Override do modelo de calculo. A null herda o que estiver em serverSettings da
+      // YourBox, que e a fonte de verdade — ver lib/commissions/calc.ts.
+      commissionModel:           commissionModel === 'margin' || commissionModel === 'fixed' ? commissionModel : null,
+      commissionMarginBase:      commissionMarginBase === 'revenue' || commissionMarginBase === 'cost' ? commissionMarginBase : null,
+      referenceProfitPercentage: typeof referenceProfitPercentage === 'number' ? referenceProfitPercentage : null,
       active:         true,
       createdAt:      now,
       updatedAt:      now,
