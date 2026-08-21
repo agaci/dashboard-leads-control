@@ -239,7 +239,8 @@
       <div class="success-icon">&#10004;</div>
       <h3 style="font-size:1.4rem;margin:0 0 6px;">Pedido Recebido!</h3>
       <p style="color:var(--muted);margin:0;">Obrigado <strong id="confirmedName"></strong>! A nossa equipa vai tratar já do seu orçamento.
-        <span style="display:block;margin-top:10px;">Enviámos confirmação para <strong id="confirmedEmail"></strong></span>
+        <span style="display:block;margin-top:10px;" id="confirmedContact"></span>
+        <span style="display:block;margin-top:6px;" id="confirmedEmailLine">Enviámos confirmação para <strong id="confirmedEmail"></strong></span>
       </p>
     </div>
   </div>
@@ -299,11 +300,13 @@
     }
 
     if (v === 'AB') {
-      var sticky = null; try { sticky = sessionStorage.getItem('yb_widget_var'); } catch (e) {}
+      // Sticky por widget: o sessionStorage do iframe e partilhado entre parceiros.
+      var stickyKey = 'yb_widget_var' + (window.YB_QUIZ_CLIENT_ID ? '_' + window.YB_QUIZ_CLIENT_ID : '');
+      var sticky = null; try { sticky = sessionStorage.getItem(stickyKey); } catch (e) {}
       if (sticky && ORDERS[sticky]) { start(sticky); return; }
       fetch('/api/variant-config').then(function (r) { return r.json(); }).then(function (d) {
         var tag = pickByWeight(d && d.variants);
-        try { sessionStorage.setItem('yb_widget_var', tag); } catch (e) {}
+        try { sessionStorage.setItem(stickyKey, tag); } catch (e) {}
         start(tag);
       }).catch(function () { start('WIDGET'); });
     } else {

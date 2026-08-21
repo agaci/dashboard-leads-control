@@ -113,6 +113,8 @@ type Lead = {
   clientId?: string | null;               // cliente do CRM
   widgetClientId?: string | null;         // cliente white-label do widget (comissoes)
   widgetClientName?: string | null;
+  widgetRef?: string | null;              // dominio do site que embebeu o widget
+  widgetCommissionUser?: string | null;   // nome a usar como comissionista na YourBox
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[] } | null;
   convId?: string | null;
   linkedConvId?: string | null;
@@ -1953,6 +1955,31 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
       {/* Hipóteses de agregação */}
       {currentLead.messageType === 'newLead' && d.origem && d.destino && (
         <AggregationHints origem={d.origem} destino={d.destino} />
+      )}
+
+      {/* Parceiro de widget — o que o operador precisa para atribuir a comissao */}
+      {currentLead.widgetClientName && (
+        <div className="rounded-xl bg-card p-5 shadow-card">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Parceiro de widget</div>
+          <div className="mt-2 grid gap-x-6 gap-y-2 sm:grid-cols-2">
+            <div>
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Widget</div>
+              <div className="text-sm font-semibold" style={{ color: '#bed62f' }}>{currentLead.widgetClientName}</div>
+            </div>
+            {currentLead.widgetRef && (
+              <div>
+                <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Site de origem</div>
+                <div className="text-sm text-foreground">{currentLead.widgetRef}</div>
+              </div>
+            )}
+            <div className="sm:col-span-2">
+              <div className="text-[11px] uppercase tracking-wide text-muted-foreground">Comissionista a usar na YourBox</div>
+              {currentLead.widgetCommissionUser
+                ? <div className="text-sm font-semibold text-foreground">{currentLead.widgetCommissionUser}</div>
+                : <div className="text-sm text-warning">Este widget ainda não tem comissionista configurado — defina-o em Widgets antes de inscrever o cliente.</div>}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Converter para Cliente */}

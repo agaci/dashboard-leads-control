@@ -291,3 +291,16 @@ h1, h2, h3, h4, h5, h6 {
     box-shadow: 0 0 0 3px hsl(var(--primary) / 15%);
   }
 }
+
+/* ── Portal do parceiro ───────────────────────────────────────
+   O popup nativo dos <select> herda a cor de fundo do elemento. Com uma cor
+   translucida sai branco em tema escuro e o texto claro fica ilegivel, por isso
+   as opcoes levam cores solidas do tema. */
+.yb-portal select,
+.yb-portal select option {
+  background-color: var(--yb-card-2);
+  color: var(--yb-fg);
+}
+.yb-portal select option:disabled {
+  color: var(--yb-subtle);
+}

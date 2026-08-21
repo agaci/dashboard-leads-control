@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
-import { resolveWidgetAttribution } from '@/lib/widget/attribution';
+import { explainWidgetAttribution } from '@/lib/widget/attribution';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
 // "conversa" na colecção conversations, para aparecer na vista de Conversas do
@@ -149,7 +149,13 @@ export async function POST(req: NextRequest) {
     // Atribuicao ao cliente de widget white-label (para comissoes). Validada no servidor
     // contra a coleccao widgetClients; se nao for valida, a lead regista-se na mesma sem
     // atribuicao. Vem em todos os eventos, por isso resiste a recarregamentos da pagina.
-    const widget = await resolveWidgetAttribution(db, widgetClientId, widgetRef);
+    const widgetResult = await explainWidgetAttribution(db, widgetClientId, widgetRef);
+    const widget = widgetResult.ok ? widgetResult.attribution : null;
+    // Recusa com id presente fica registada: sem isto, uma lead que devia ser de um
+    // parceiro aparece sem parceiro nenhum e nao ha como saber porque.
+    const widgetRejected = !widgetResult.ok && widgetResult.reason !== 'sem-id'
+      ? { reason: widgetResult.reason, clientId: widgetResult.clientId, ref: widgetResult.ref, at: now }
+      : null;
 
     await col.updateOne(
       { quizSessionId: sessionId },
@@ -163,6 +169,7 @@ export async function POST(req: NextRequest) {
           ...(visitSid ? { visitSid } : {}),
           ...(attribution ? { attribution } : {}),
           ...(widget ? widget : {}),
+          ...(widgetRejected ? { widgetRejected } : {}),
           ...dataSet,
           updatedAt: now,
           ...(isSubmit ? { closedAt: now } : {}),

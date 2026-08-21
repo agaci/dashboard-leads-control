@@ -53,9 +53,11 @@ const navBtn: React.CSSProperties = {
   fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 8,
   border: '1px solid var(--yb-border)', background: 'var(--yb-input)', color: 'var(--yb-fg)', cursor: 'pointer',
 };
+// Fundo OPACO de propósito: com uma cor translúcida (--yb-input é branco a 5%), o popup
+// nativo do select resolve-a sobre branco e fica ilegível em tema escuro.
 const selectStyle: React.CSSProperties = {
   fontSize: 12, fontWeight: 600, padding: '7px 10px', borderRadius: 8,
-  border: '1px solid var(--yb-border)', background: 'var(--yb-input)', color: 'var(--yb-fg)', cursor: 'pointer',
+  border: '1px solid var(--yb-border)', background: 'var(--yb-card-2)', color: 'var(--yb-fg)', cursor: 'pointer',
 };
 const th: React.CSSProperties = { padding: '6px 8px', fontWeight: 700, fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4 };
 const td: React.CSSProperties = { padding: '8px' };
@@ -92,7 +94,7 @@ function Rodape() {
 function Tile({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div style={{ background: 'var(--yb-card)', border: '1px solid var(--yb-border)', borderRadius: 12, padding: '16px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--yb-subtle)' }}>{label}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'var(--yb-muted)' }}>{label}</div>
       <div style={{ fontSize: 26, fontWeight: 700, color: 'var(--yb-fg)', marginTop: 4 }}>{value}</div>
       {hint && <div style={{ fontSize: 11.5, color: 'var(--yb-muted)', marginTop: 2 }}>{hint}</div>}
     </div>
@@ -100,7 +102,7 @@ function Tile({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 function Small({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--yb-subtle)' }}>{children}</div>;
+  return <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'var(--yb-muted)' }}>{children}</div>;
 }
 
 function Big({ children }: { children: React.ReactNode }) {
@@ -202,7 +204,7 @@ export default function PortalParceiro() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--yb-bg)' }}>
+    <div className="yb-portal" style={{ minHeight: '100vh', background: 'var(--yb-bg)' }}>
       <BarraMarca />
       <main style={{ padding: '24px 20px 40px' }}>
       <div style={{ maxWidth: 980, margin: '0 auto' }}>
@@ -341,13 +343,13 @@ export default function PortalParceiro() {
 
             <section style={{ background: 'var(--yb-card)', border: '1px solid var(--yb-border)', borderRadius: 12, padding: 18 }}>
               <h2 style={{ fontSize: 14, fontWeight: 700, color: 'var(--yb-fg)', margin: '0 0 4px' }}>Serviços que compõem a comissão</h2>
-              <p style={{ fontSize: 11.5, color: 'var(--yb-subtle)', margin: '0 0 12px' }}>
+              <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '0 0 12px' }}>
                 Detalhe do valor acima: cada serviço executado no mês pelos seus clientes.
               </p>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12.5, minWidth: 520 }}>
                   <thead>
-                    <tr style={{ color: 'var(--yb-subtle)', textAlign: 'left' }}>
+                    <tr style={{ color: 'var(--yb-muted)', textAlign: 'left' }}>
                       <th style={th}>Data</th>
                       <th style={th}>Serviço</th>
                       <th style={th}>Cliente</th>

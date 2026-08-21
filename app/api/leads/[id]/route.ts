@@ -32,6 +32,18 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       ...(priceBreakdown && { priceBreakdown }),
     };
 
+    // Parceiro de widget: além do nome, devolver o comissionista configurado — é o nome
+    // que o operador tem de pôr na plataforma YourBox ao inscrever este cliente. Sem
+    // isto, com vários parceiros, não há como saber qual usar.
+    let widgetCommissionUser: string | null = null;
+    if (doc.widgetClientId) {
+      const wc = await db.collection('widgetClients').findOne(
+        { clientId: doc.widgetClientId },
+        { projection: { commissionUserName: 1 } },
+      );
+      widgetCommissionUser = wc?.commissionUserName ?? null;
+    }
+
     // Sugestão "provável cliente" — vive na CONVERSA (fonte única). Procuramos pela
     // conversa com o mesmo telemóvel que tenha um clientMatch aberto (não convertida).
     let clientMatch: any = null;
@@ -70,6 +82,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         clientId:    doc.clientId ?? null,
         widgetClientId:   doc.widgetClientId ?? null,
         widgetClientName: doc.widgetClientName ?? null,
+        widgetRef:        doc.widgetRef ?? null,
+        widgetCommissionUser,
         clientMatch,
         convId,
         linkedConvId,

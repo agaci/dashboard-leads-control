@@ -86,24 +86,52 @@ export async function resolveWidgetAttribution(
   clientId: unknown,
   ref?: unknown,
 ): Promise<WidgetAttribution | null> {
+  const r = await explainWidgetAttribution(db, clientId, ref);
+  return r.ok ? r.attribution : null;
+}
+
+/** Motivo da recusa, para diagnóstico: sem isto uma atribuição falhada é silenciosa. */
+export type AttributionRejection =
+  | 'sem-id'          // não veio clientId nenhum (tráfego próprio, normal)
+  | 'id-invalido'     // formato inaceitável
+  | 'desconhecido'    // não existe em widgetClients
+  | 'inactivo'        // existe mas está desactivado
+  | 'origem-recusada' // o ref não corresponde às origens permitidas
+  | 'erro';
+
+export type AttributionResult =
+  | { ok: true; attribution: WidgetAttribution }
+  | { ok: false; reason: AttributionRejection; clientId: string | null; ref: string | null };
+
+/** Igual a `resolveWidgetAttribution`, mas explica porque recusou. Nunca lança. */
+export async function explainWidgetAttribution(
+  db: Db,
+  clientId: unknown,
+  ref?: unknown,
+): Promise<AttributionResult> {
+  const refStr = typeof ref === 'string' && ref.trim() ? ref.trim() : null;
   try {
-    if (!clientId || typeof clientId !== 'string') return null;
+    if (!clientId || typeof clientId !== 'string') return { ok: false, reason: 'sem-id', clientId: null, ref: refStr };
     const id = clientId.trim();
-    if (!id || id.length > 64) return null;
+    if (!id || id.length > 64) return { ok: false, reason: 'id-invalido', clientId: null, ref: refStr };
 
     const client = await loadClient(db, id);
-    if (!client || !client.active) return null;
-
-    const refStr = typeof ref === 'string' && ref.trim() ? ref.trim() : null;
-    if (!refMatchesOrigins(refStr, client.allowedOrigins)) return null;
+    if (!client) return { ok: false, reason: 'desconhecido', clientId: id, ref: refStr };
+    if (!client.active) return { ok: false, reason: 'inactivo', clientId: id, ref: refStr };
+    if (!refMatchesOrigins(refStr, client.allowedOrigins)) {
+      return { ok: false, reason: 'origem-recusada', clientId: id, ref: refStr };
+    }
 
     return {
-      widgetClientId: client.clientId,
-      widgetClientName: client.name,
-      widgetRef: refStr ? hostOf(refStr) : null,
+      ok: true,
+      attribution: {
+        widgetClientId: client.clientId,
+        widgetClientName: client.name,
+        widgetRef: refStr ? hostOf(refStr) : null,
+      },
     };
   } catch {
-    return null;
+    return { ok: false, reason: 'erro', clientId: typeof clientId === 'string' ? clientId : null, ref: refStr };
   }
 }
 

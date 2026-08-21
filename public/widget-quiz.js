@@ -77,9 +77,13 @@
         dimensoes: 'Dimensoes por volume', urgencia: 'Urgencia',
         material: 'Material', embalado: 'Embalagem', review: 'Resumo'
     };
+    // A chave leva o cliente do widget: o iframe corre sempre em leads.comgo.pt, por isso
+    // o sessionStorage e PARTILHADO entre os sites de todos os parceiros. Sem este sufixo,
+    // visitar dois widgets no mesmo browser reutilizava a mesma sessao — e a mesma conversa.
+    var SID_SUFFIX = CONFIG.CLIENT_ID ? '_' + CONFIG.CLIENT_ID : '';
     var sessionId = (function () {
         try {
-            var k = 'yb_quiz_sid';
+            var k = 'yb_quiz_sid' + SID_SUFFIX;
             var s = sessionStorage.getItem(k);
             if (!s) {
                 s = (window.crypto && crypto.randomUUID) ? crypto.randomUUID()
@@ -94,8 +98,9 @@
     // a `visits.sessionId`, para o apagar em cascata visita -> conversa -> lead.
     function visitSid() {
         try {
-            var v = sessionStorage.getItem('yb_vsid');
-            if (!v) { v = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); sessionStorage.setItem('yb_vsid', v); }
+            var vk = 'yb_vsid' + SID_SUFFIX;
+            var v = sessionStorage.getItem(vk);
+            if (!v) { v = 's_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8); sessionStorage.setItem(vk, v); }
             return v;
         } catch (e) { return null; }
     }
@@ -569,6 +574,24 @@
         const em = document.getElementById('confirmedEmail');
         if (nm) nm.textContent = data.nome;
         if (em) em.textContent = data.email;
+
+        // Dizer ao visitante COMO vai ser contactado: o telefone e o canal rapido para
+        // pedidos urgentes, o email fica para o registo escrito. So no widget — nas
+        // landings esta informacao vive na caixa .next-steps.
+        var ct = document.getElementById('confirmedContact');
+        if (ct) {
+            var tel = String(data.telefone || '').trim();
+            var urgente = (data.urgencia === 'Imediata' || data.urgencia === 'Proprio dia');
+            var quando = isBusinessOpen()
+                ? (urgente ? 'nos pr&oacute;ximos minutos' : 'ainda hoje')
+                : 'no pr&oacute;ximo per&iacute;odo &uacute;til';
+            ct.innerHTML = tel
+                ? ('Vamos ligar-lhe para o <strong>' + tel + '</strong> ' + quando +
+                   (urgente ? ' &mdash; o pedido ficou marcado como <strong>urgente</strong>.' : ' para confirmar os detalhes.'))
+                : ('Entraremos em contacto ' + quando + '.');
+        }
+        var emLine = document.getElementById('confirmedEmailLine');
+        if (emLine && !String(data.email || '').trim()) emLine.style.display = 'none';
         if (flow) flow.style.display = 'none';
         if (success) success.classList.add('active');
         updateSuccessMessage();
