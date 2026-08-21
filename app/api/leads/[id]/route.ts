@@ -68,6 +68,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         variante:    doc.variante ?? null,
         leadData,
         clientId:    doc.clientId ?? null,
+        widgetClientId:   doc.widgetClientId ?? null,
+        widgetClientName: doc.widgetClientName ?? null,
         clientMatch,
         convId,
         linkedConvId,
