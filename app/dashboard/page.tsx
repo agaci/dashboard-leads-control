@@ -9,6 +9,7 @@ import ConversasPage from './conversas/page';
 import VisitasPage from './visitas/page';
 import ContactAlertBanner from './ContactAlertBanner';
 import { DeleteDialog } from './DeleteDialog';
+import GestaoLead from './GestaoLead';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
@@ -115,6 +116,7 @@ type Lead = {
   widgetClientName?: string | null;
   widgetRef?: string | null;              // dominio do site que embebeu o widget
   widgetCommissionUser?: string | null;   // nome a usar como comissionista na YourBox
+  inboxReason?: string | null;            // motivo escolhido ao fechar a conversa na Inbox
   clientMatch?: { serviceNr?: number | null; score?: number; matchedOn?: string[] } | null;
   convId?: string | null;
   linkedConvId?: string | null;
@@ -1956,6 +1958,18 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
       {currentLead.messageType === 'newLead' && d.origem && d.destino && (
         <AggregationHints origem={d.origem} destino={d.destino} />
       )}
+
+      {/* Motivo com que a operadora fechou a conversa na Inbox */}
+      {currentLead.inboxReason && (
+        <div className="rounded-xl bg-card p-5 shadow-card">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Motivo (Inbox)</div>
+          <p className="mt-1 text-sm font-semibold text-foreground">{currentLead.inboxReason}</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Escolhido por quem marcou a conversa como lead registada.</p>
+        </div>
+      )}
+
+      {/* Gestao da lead — mesma coleccao do card "Gestao" do leadsBoard da YourBox */}
+      {currentLead.messageType === 'newLead' && <GestaoLead leadId={currentLead.id} />}
 
       {/* Parceiro de widget — o que o operador precisa para atribuir a comissao */}
       {currentLead.widgetClientName && (

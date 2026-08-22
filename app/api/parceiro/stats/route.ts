@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { loadCommissionConfig, computeServices, usesMargin } from '@/lib/commissions/calc';
+import { lerGestaoEmLote } from '@/lib/leads/gestao';
 
 /**
  * Dados do portal do parceiro de widget (`/parceiro`).
@@ -37,7 +38,7 @@ export async function GET(req: NextRequest) {
     const periodStart = new Date(year, month - 1, 1);
     const periodEnd   = new Date(year, month, 1);
 
-    // ── Leads angariadas pelo widget (só contagens e totais) ─────────────────
+    // ── Leads angariadas pelo widget ─────────────────────────────────────────
     const leadDocs = await db.collection('messages').find(
       {
         companyProvider: 'Yourbox',
@@ -45,8 +46,8 @@ export async function GET(req: NextRequest) {
         widgetClientId: w.clientId,
         timeStamp: { $gte: periodStart, $lt: periodEnd },
       },
-      { projection: { leadData: 1, clientId: 1 } },
-    ).limit(1000).toArray();
+      { projection: { leadData: 1, clientId: 1, timeStamp: 1, variante: 1, inboxReason: 1 } },
+    ).sort({ timeStamp: -1 }).limit(1000).toArray();
 
     let quoted = 0;
     let converted = 0;
@@ -58,10 +59,75 @@ export async function GET(req: NextRequest) {
       if (d.clientId) converted++;
     }
 
-    // ── Conversas iniciadas (funil antes da lead) ────────────────────────────
-    const started = await db.collection('conversations').countDocuments({
-      $or: [{ widgetClientId: w.clientId }, { 'data.widgetClientId': w.clientId }],
-      createdAt: { $gte: periodStart, $lt: periodEnd },
+    // Detalhe de cada pedido completo, com a gestão da operadora. Serve para o parceiro
+    // perceber que tipo de pedidos o seu site gera e como estão a ser tratados.
+    // Sem contactos: nome, telemóvel e email nunca saem daqui.
+    const cidade = (s?: string) => (s ? String(s).split(',')[0].trim() : null);
+    const gestoes = await lerGestaoEmLote(db, leadDocs.map((d: any) => String(d._id)));
+
+    const pedidos = leadDocs.map((d: any) => {
+      const ld = d.leadData ?? {};
+      const price = ld.serviceType === 'arrasto' ? ld.partnerFinalPrice : ld.priceWithDiscount;
+      const g = gestoes.get(String(d._id))!;
+      return {
+        id:          String(d._id),
+        date:        d.timeStamp,
+        origem:      cidade(ld.origem),
+        destino:     cidade(ld.destino),
+        urgencia:    ld.urgencia ?? null,
+        viatura:     ld.viatura ?? null,
+        weightKg:    ld.weightKg ?? null,
+        volumes:     ld.volumes ?? null,
+        material:    ld.material ?? null,
+        embalado:    ld.embalado ?? null,
+        price:       typeof price === 'number' ? price : null,
+        isClient:    !!d.clientId,
+        motivo:      d.inboxReason ?? null,
+        gestao: {
+          status:       g.status,
+          priority:     g.priority,
+          notes:        g.notes,
+          followUpDate: g.followUpDate,
+          tags:         g.tags,
+          comments:     g.comments.map((c) => ({ timestamp: c.timestamp, user: c.user, text: c.text })),
+          updatedAt:    g.updatedAt,
+          updatedBy:    g.updatedBy,
+        },
+      };
+    });
+
+    // ── Orçamentos iniciados (o funil antes da lead) ─────────────────────────
+    // Inclui quem desistiu a meio: é onde o parceiro vê em que passo perde as pessoas.
+    const convDocs = await db.collection('conversations').find(
+      {
+        $or: [{ widgetClientId: w.clientId }, { 'data.widgetClientId': w.clientId }],
+        createdAt: { $gte: periodStart, $lt: periodEnd },
+      },
+      { projection: { createdAt: 1, updatedAt: 1, step: 1, quizStep: 1, quizVariante: 1, leadId: 1, data: 1, history: { $slice: -1 } } },
+    ).sort({ createdAt: -1 }).limit(1000).toArray();
+
+    const started = convDocs.length;
+
+    const iniciados = convDocs.map((c: any) => {
+      const cd = c.data ?? {};
+      const ultimo = (c.history ?? [])[0];
+      return {
+        id:        String(c._id),
+        date:      c.createdAt,
+        origem:    cidade(cd.origem),
+        destino:   cidade(cd.destino),
+        urgencia:  cd.urgencia ?? null,
+        volumes:   cd.volumes ?? null,
+        peso:      cd.peso ?? null,
+        dimensoes: cd.comprimento && cd.largura && cd.altura ? `${cd.comprimento}x${cd.largura}x${cd.altura} cm` : null,
+        material:  cd.material ?? null,
+        embalado:  cd.embalado ?? null,
+        // Até onde chegou: o passo e a posição, para se ver onde se perdem
+        ultimoPasso: ultimo?.label ?? ultimo?.step ?? c.quizStep ?? null,
+        passo:       ultimo?.stepIndex != null ? ultimo.stepIndex + 1 : null,
+        total:       ultimo?.total ?? null,
+        completo:    !!c.leadId || c.step === 'LEAD_REGISTERED',
+      };
     });
 
     // ── Clientes angariados (acumulado, não só do período) ───────────────────
@@ -139,6 +205,8 @@ export async function GET(req: NextRequest) {
         clientsWon,
       },
       services,
+      iniciados,
+      pedidos,
       commission,
       commissionLinked: !!w.commissionUserName,
     });

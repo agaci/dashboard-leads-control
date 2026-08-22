@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
 import { explainWidgetAttribution } from '@/lib/widget/attribution';
@@ -250,6 +251,46 @@ export async function POST(req: NextRequest) {
         });
         // Vincular a conversa à lead criada (link simétrico p/ o fluxo de apagar).
         await col.updateOne({ quizSessionId: sessionId }, { $set: { leadId: ins.insertedId.toString() } });
+      } else {
+        // Já havia lead para esta conversa — tipicamente criada a partir da inbox, quando
+        // a operadora a marcou como registada com os dados parciais. Não se cria uma
+        // segunda: actualiza-se a existente com o que o visitante preencheu até ao fim.
+        const existente = await col.findOne(
+          { quizSessionId: sessionId },
+          { projection: { leadId: 1, data: 1 } },
+        );
+        if (existente?.leadId) {
+          const d = { ...(existente.data ?? {}), ...(data ?? {}) };
+          const urMap: Record<string, string> = { 'Imediata': '1 Hora', 'Proprio dia': '4 Horas', 'Próprio dia': '4 Horas', '24H': '24 Horas' };
+          const totalKg = (Number(d.volumes) || 0) * (Number(d.peso) || 0) || null;
+          const maxDim = Math.max(Number(d.comprimento) || 0, Number(d.largura) || 0, Number(d.altura) || 0);
+          const viatura = totalKg && totalKg <= 2 && maxDim <= 60 ? 'Moto'
+            : totalKg && totalKg <= 150 ? 'Furgão Classe 1'
+            : totalKg ? 'Furgão Classe 2' : null;
+
+          // Só sobrepõe o que tem valor: o que o visitante não preencheu fica como estava.
+          const set: Record<string, unknown> = { 'leadData.updatedAt': now };
+          const por = (campo: string, valor: unknown) => {
+            if (valor !== undefined && valor !== null && valor !== '') set[`leadData.${campo}`] = valor;
+          };
+          por('nome', d.nome);
+          por('email', d.email);
+          por('telefone', String(d.telefone ?? '').replace(/\D/g, '') || null);
+          por('origem', d.origem);
+          por('destino', d.destino);
+          por('urgencia', urMap[d.urgencia] ?? d.urgencia);
+          por('serviceType', d.urgencia === '24H' ? 'arrasto' : 'direto');
+          por('volumes', d.volumes);
+          por('material', d.material);
+          por('embalado', d.embalado);
+          por('weightKg', totalKg);
+          por('viatura', viatura);
+          por('geo', d.geo);
+
+          try {
+            await db.collection('messages').updateOne({ _id: new ObjectId(String(existente.leadId)) }, { $set: set });
+          } catch { /* leadId inválido ou lead apagada: nada a actualizar */ }
+        }
       }
     }
 

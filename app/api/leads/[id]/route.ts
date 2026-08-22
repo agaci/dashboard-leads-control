@@ -84,6 +84,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
         widgetClientName: doc.widgetClientName ?? null,
         widgetRef:        doc.widgetRef ?? null,
         widgetCommissionUser,
+        inboxReason:      doc.inboxReason ?? null,
         clientMatch,
         convId,
         linkedConvId,

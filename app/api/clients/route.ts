@@ -57,6 +57,16 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     const leadObjId = new ObjectId(leadId);
 
+    // Parceiro que angariou a lead — segue para a ficha do cliente, senão o contador de
+    // clientes angariados do portal do parceiro nunca sobe por este caminho.
+    const widget = lead.widgetClientId
+      ? {
+          widgetClientId:   lead.widgetClientId,
+          widgetClientName: lead.widgetClientName ?? null,
+          widgetRef:        lead.widgetRef ?? null,
+        }
+      : null;
+
     // Se já existe cliente com o mesmo telefone, agregar
     let client = await db.collection('clients').findOne({ telefone, companyProvider: 'Yourbox' });
 
@@ -69,6 +79,8 @@ export async function POST(request: NextRequest) {
             updatedAt: now,
             ...(nome  && !client.nome  ? { nome }  : {}),
             ...(email && !client.email ? { email } : {}),
+            // Nunca sobrepor: a angariação pertence a quem trouxe o cliente primeiro
+            ...(widget && !client.widgetClientId ? widget : {}),
           },
         },
       );
@@ -84,6 +96,7 @@ export async function POST(request: NextRequest) {
         leadIds:      [leadObjId],
         createdAt:    now,
         updatedAt:    now,
+        ...(widget ? widget : {}),
       });
       client = { _id: result.insertedId };
     }

@@ -358,14 +358,28 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
     CLOSED:          ['Preço alto', 'Não disponível', 'Desistiu', 'Lead duplicada', 'Outro'],
   };
 
+  // Resultado do último fecho, para explicar ao operador o que aconteceu de facto
+  const [avisoFecho, setAvisoFecho] = useState<string | null>(null);
+
   async function confirmClose(step: 'LEAD_REGISTERED' | 'CLOSED', reason?: string) {
     if (!selected?._id) return;
     setPendingStep(null);
-    await fetch(`/api/conversations/${selected._id}`, {
+    setAvisoFecho(null);
+    const res = await fetch(`/api/conversations/${selected._id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ step, closeReason: reason ?? null }),
     });
+    const data = await res.json().catch(() => ({}));
+
+    // Sem telefone nem email não há lead possível: a conversa fecha com o motivo.
+    if (data?.semContacto) {
+      setAvisoFecho(`Sem contacto (telefone ou email) — a conversa foi fechada${reason ? ` com o motivo "${reason}"` : ''}, sem criar lead.`);
+    } else if (data?.leadCriada) {
+      setAvisoFecho('Lead criada e já disponível na lista de Leads.');
+    }
+    setTimeout(() => setAvisoFecho(null), 8000);
+
     await fetchSelected(selected._id);
     fetchList();
   }
@@ -753,6 +767,19 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
               onConfirm={(code, checked) => deleteConv(code, !!checked.lead)}
               onCancel={() => { setConfirmDelConv(false); setDelConvError(null); }}
             />
+
+            {/* O que aconteceu ao fechar: lead criada, ou fechada por falta de contacto */}
+            {avisoFecho && (
+              <div className="flex items-center gap-2 px-5 py-2 shrink-0 border-b bg-secondary border-border">
+                <span className="text-xs text-foreground">{avisoFecho}</span>
+                <button
+                  onClick={() => setAvisoFecho(null)}
+                  className="ml-auto text-muted-foreground bg-transparent border-none cursor-pointer text-base leading-none hover:text-foreground"
+                >
+                  ×
+                </button>
+              </div>
+            )}
 
             {/* Picker de motivo inline */}
             {pendingStep && (
