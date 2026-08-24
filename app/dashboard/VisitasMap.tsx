@@ -5,6 +5,36 @@ import { loadLeaflet } from './MiniMap';
 
 export type VisitPing = { id: string; lat: number; lng: number; city?: string | null };
 
+/** Uma visita já registada, para as bolhas fixas com contagem. */
+export type VisitSpot = { lat: number; lng: number; city?: string | null };
+
+// Plugin de agregação: junta pontos próximos numa bolha com o total e vai-os separando
+// à medida que se aproxima o zoom. Carregado por CDN, como o próprio Leaflet.
+let _clusterPromise: Promise<void> | null = null;
+function loadCluster(L: any): Promise<void> {
+  if (typeof window === 'undefined') return Promise.reject();
+  if ((L as any).markerClusterGroup) return Promise.resolve();
+  if (_clusterPromise) return _clusterPromise;
+  _clusterPromise = new Promise<void>((resolve, reject) => {
+    for (const [id, href] of [
+      ['leaflet-cluster-css', 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css'],
+      ['leaflet-cluster-css-default', 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css'],
+    ]) {
+      if (!document.getElementById(id)) {
+        const link = document.createElement('link');
+        link.id = id; link.rel = 'stylesheet'; link.href = href;
+        document.head.appendChild(link);
+      }
+    }
+    const s = document.createElement('script');
+    s.src = 'https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js';
+    s.onload = () => resolve();
+    s.onerror = reject;
+    document.body.appendChild(s);
+  });
+  return _clusterPromise;
+}
+
 // Bounds de Portugal continental (SW -> NE). Ilhas ficam de fora de propósito
 // (o mapa foca o continente; visitas dos Açores/Madeira ainda entram na coluna).
 const PT_BOUNDS: [[number, number], [number, number]] = [
@@ -17,12 +47,17 @@ const FADE_MS = 900;  // desvanecimento antes de remover
 
 // Mapa "ao vivo": cada visita nova faz cair um pin a pulsar durante uns segundos e
 // depois desvanece, para não poluir. A coluna de visitas guarda o registo completo.
-export function VisitasMap({ pings, onPickCity }: { pings: VisitPing[]; onPickCity?: (city: string) => void }) {
+export function VisitasMap({ pings, spots = [], onPickCity }: {
+  pings: VisitPing[];
+  spots?: VisitSpot[];
+  onPickCity?: (city: string) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
   const mapRef = useRef<any>(null);
   const LRef = useRef<any>(null);
   const seen = useRef<Set<string>>(new Set());
   const timers = useRef<number[]>([]);
+  const clusterRef = useRef<any>(null);
   const [ready, setReady] = useState(false);
 
   // Inicializar o mapa uma vez.
@@ -49,6 +84,20 @@ export function VisitasMap({ pings, onPickCity }: { pings: VisitPing[]; onPickCi
             box-shadow:0 2px 8px rgba(0,0,0,.15)}
           .yb-ping.fade{transition:opacity ${FADE_MS}ms ease;opacity:0}
           @keyframes ybPingRing{0%{transform:scale(1);opacity:.85}100%{transform:scale(4.6);opacity:0}}
+
+          /* Bolhas com o total de visitas. Tres tamanhos conforme a dimensao, para se
+             perceber o peso de cada zona sem ler o numero. */
+          .yb-bolha{display:flex;align-items:center;justify-content:center;border-radius:50%;
+            font:700 12px/1 Inter,system-ui,sans-serif;color:#fff;
+            background:rgba(14,116,144,.88);border:2px solid rgba(255,255,255,.9);
+            box-shadow:0 2px 10px rgba(0,0,0,.28)}
+          .yb-bolha.m{font-size:13px;background:rgba(8,145,178,.9)}
+          .yb-bolha.g{font-size:14px;background:rgba(2,132,199,.92)}
+          .yb-cidade{position:relative}
+          .yb-cidade s{position:absolute;left:50%;transform:translateX(-50%);top:100%;margin-top:3px;
+            white-space:nowrap;text-decoration:none;font:600 10px/1 Inter,system-ui,sans-serif;
+            color:#0e7490;background:rgba(255,255,255,.92);padding:2px 6px;border-radius:6px;
+            box-shadow:0 1px 4px rgba(0,0,0,.15)}
         `;
         document.head.appendChild(st);
       }
@@ -77,6 +126,75 @@ export function VisitasMap({ pings, onPickCity }: { pings: VisitPing[]; onPickCi
       if (mapRef.current) { mapRef.current.remove(); mapRef.current = null; }
     };
   }, []);
+
+  // Bolhas fixas com o total de visitas por zona.
+  //
+  // A geolocalização é por IP, portanto todas as visitas de uma cidade partilham as mesmas
+  // coordenadas (o centróide). Agregamos primeiro por cidade — uma bolha por cidade com o
+  // seu total — e o plugin junta depois as cidades próximas conforme o zoom. O total de
+  // cada bolha é a SOMA das visitas das cidades que contém, não o número de cidades.
+  useEffect(() => {
+    const L = LRef.current;
+    const map = mapRef.current;
+    if (!L || !map || !ready) return;
+
+    let cancelado = false;
+    loadCluster(L).then(() => {
+      if (cancelado || !mapRef.current) return;
+
+      if (clusterRef.current) { map.removeLayer(clusterRef.current); clusterRef.current = null; }
+      if (!spots.length) return;
+
+      // Agregar por cidade (ou pelas coordenadas, quando não há nome)
+      const porCidade = new Map<string, { lat: number; lng: number; city: string | null; n: number }>();
+      for (const s of spots) {
+        if (typeof s.lat !== 'number' || typeof s.lng !== 'number' || isNaN(s.lat) || isNaN(s.lng)) continue;
+        const chave = s.city ? `c:${s.city}` : `p:${s.lat.toFixed(3)},${s.lng.toFixed(3)}`;
+        const actual = porCidade.get(chave);
+        if (actual) actual.n++;
+        else porCidade.set(chave, { lat: s.lat, lng: s.lng, city: s.city ?? null, n: 1 });
+      }
+
+      const tamanho = (n: number) => (n >= 50 ? 46 : n >= 10 ? 40 : 34);
+      const classe = (n: number) => (n >= 50 ? 'g' : n >= 10 ? 'm' : '');
+
+      const grupo = L.markerClusterGroup({
+        showCoverageOnHover: false,
+        maxClusterRadius: 45,
+        spiderfyOnMaxZoom: false,   // pontos de cidades diferentes, não faz sentido abrir em leque
+        zoomToBoundsOnClick: true,
+        iconCreateFunction: (cluster: any) => {
+          const total = cluster.getAllChildMarkers().reduce((a: number, m: any) => a + (m.options.ybCount ?? 1), 0);
+          const d = tamanho(total);
+          return L.divIcon({
+            html: `<div class="yb-bolha ${classe(total)}" style="width:${d}px;height:${d}px">${total}</div>`,
+            className: '',
+            iconSize: [d, d],
+          });
+        },
+      });
+
+      for (const c of porCidade.values()) {
+        const d = tamanho(c.n);
+        const marcador = L.marker([c.lat, c.lng], {
+          ybCount: c.n,
+          icon: L.divIcon({
+            html: `<div class="yb-cidade"><div class="yb-bolha ${classe(c.n)}" style="width:${d}px;height:${d}px">${c.n}</div>${c.city ? `<s>${escapeHtml(c.city)}</s>` : ''}</div>`,
+            className: '',
+            iconSize: [d, d],
+            iconAnchor: [d / 2, d / 2],
+          }),
+        } as any);
+        if (c.city && onPickCity) marcador.on('click', () => onPickCity(c.city as string));
+        grupo.addLayer(marcador);
+      }
+
+      grupo.addTo(map);
+      clusterRef.current = grupo;
+    }).catch(() => { /* sem plugin, o mapa fica só com os pings */ });
+
+    return () => { cancelado = true; };
+  }, [spots, ready, onPickCity]);
 
   // Animar pins novos.
   useEffect(() => {

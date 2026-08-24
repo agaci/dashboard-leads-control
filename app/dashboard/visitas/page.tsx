@@ -1,10 +1,10 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { playVisitSound } from '@/lib/soundManager';
 import { useIsMobile } from '@/lib/useIsMobile';
-import { VisitasMap, type VisitPing } from '../VisitasMap';
+import { VisitasMap, type VisitPing, type VisitSpot } from '../VisitasMap';
 import { DeleteDialog } from '../DeleteDialog';
 
 const CYAN = '#00bcd4';
@@ -139,6 +139,8 @@ const VAR_META: Record<string, { label: string; bg: string; fg: string }> = {
   QUIZ6:  { label: 'Quiz 6',  bg: 'rgba(168,85,247,0.14)', fg: '#a855f7' },
   QUIZ6B: { label: 'Quiz 6b', bg: 'rgba(236,72,153,0.14)', fg: '#ec4899' },
   QUIZ6C: { label: 'Quiz 6c', bg: 'rgba(6,182,212,0.14)',  fg: '#06b6d4' },
+  QUIZ7B: { label: 'Quiz 7b', bg: 'rgba(217,70,239,0.14)', fg: '#c026d3' },
+  QUIZ7C: { label: 'Quiz 7c', bg: 'rgba(99,102,241,0.14)', fg: '#6366f1' },
   WIDGET: { label: 'Widget',  bg: 'rgba(234,179,8,0.14)',  fg: '#ca8a04' },
   A: { label: 'Site A', bg: 'rgba(139,92,246,0.14)', fg: '#7c3aed' },
   B: { label: 'Site B', bg: 'rgba(245,158,11,0.14)', fg: '#d97706' },
@@ -146,7 +148,16 @@ const VAR_META: Record<string, { label: string; bg: string; fg: string }> = {
   D: { label: 'Site D', bg: 'rgba(236,72,153,0.14)', fg: '#db2777' },
 };
 function varMeta(v?: string | null): { label: string; bg: string; fg: string } {
-  return VAR_META[(v || '').toUpperCase()] ?? { label: 'Site', bg: 'rgba(90,100,114,0.12)', fg: MUTED };
+  const chave = (v || '').toUpperCase();
+  if (VAR_META[chave]) return VAR_META[chave];
+  // Uma variante nova mas ainda sem entrada aqui mostra-se pelo nome cru, em vez de se
+  // disfarçar de "Site" — era o que acontecia com as QUIZ7B/QUIZ7C, mais de metade do
+  // tráfego a aparecer como se não tivesse variante nenhuma. Só sem variante é "Site".
+  return {
+    label: chave ? chave.charAt(0) + chave.slice(1).toLowerCase() : 'Site',
+    bg: 'rgba(90,100,114,0.12)',
+    fg: MUTED,
+  };
 }
 
 // ── Ícones (SVG, sem emojis) ────────────────────────────────────────────────
@@ -192,6 +203,13 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
   const [delBusy, setDelBusy] = useState(false);
   const [delError, setDelError] = useState<string | null>(null);
   const [pings, setPings] = useState<VisitPing[]>([]);
+  // Bolhas fixas: uma entrada por visita com coordenadas; o mapa agrega por cidade.
+  const spots: VisitSpot[] = useMemo(
+    () => visits
+      .filter((v) => v.geo?.lat != null && v.geo?.lng != null)
+      .map((v) => ({ lat: v.geo!.lat as number, lng: v.geo!.lng as number, city: v.geo?.city ?? null })),
+    [visits],
+  );
   const [range, setRange] = useState<Range>('hoje');
   const [todayCount, setTodayCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -375,7 +393,7 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
           boxShadow: '0 1px 3px rgba(16,24,40,0.06)', background: '#e9eef3',
           position: 'relative',
         }}>
-          <VisitasMap pings={pings} />
+          <VisitasMap pings={pings} spots={spots} />
           <div style={{
             position: 'absolute', left: 12, bottom: 12, zIndex: 500,
             background: 'rgba(255,255,255,0.92)', borderRadius: 10, padding: '7px 11px',
