@@ -539,9 +539,12 @@ export default function ConversasPage({ initialConvId, onGoToAgg, isMobile = fal
                 <button
                   key={conv._id}
                   onClick={() => openConv(conv._id)}
+                  // Vermelho translucido em vez de bg-red-50: a cor fixa clara do Tailwind
+                  // ficava branca em tema escuro e o texto (claro) desaparecia.
+                  style={conv.contactRequestOpen ? { background: 'rgba(239,68,68,0.14)' } : undefined}
                   className={`w-full rounded-xl p-4 text-left transition-all shadow-card ${
                     conv.contactRequestOpen
-                      ? 'bg-red-50 border-l-[3px] border-red-500 ring-1 ring-red-400/60'
+                      ? 'border-l-[3px] border-red-500 ring-1 ring-red-400/60'
                       : isSelected
                         ? 'bg-cyan-soft border-l-[3px] border-cyan'
                         : 'bg-card hover:shadow-elevated border-l-[3px] border-transparent'
