@@ -171,6 +171,19 @@ async function criarLeadDaConversa(db: any, oid: ObjectId, motivo: string | null
     : totalKg && totalKg <= 150 ? 'Furgão Classe 1'
     : totalKg ? 'Furgão Classe 2' : null;
 
+  // Mesmo detalhe de carga que a plataforma YourBox mostra, dimensoes incluidas
+  const dimensoes = d.comprimento && d.largura && d.altura
+    ? `${d.comprimento}x${d.largura}x${d.altura} cm (por volume)` : null;
+  const partesCarga = [
+    d.volumes ? `${d.volumes} volumes` : null,
+    dimensoes,
+    totalKg ? `${totalKg} kg (total)` : null,
+    d.peso ? `Peso médio: ${d.peso} kg/volume` : null,
+    d.material ? `Material: ${d.material}` : null,
+    d.embalado || null,
+  ].filter(Boolean);
+  const cargaHtml = partesCarga.length ? `<p><b>Carga:</b> ${partesCarga.join(' · ')}</p>` : '';
+
   const widget = conv.widgetClientId ?? d.widgetClientId
     ? {
         widgetClientId:   conv.widgetClientId ?? d.widgetClientId,
@@ -183,7 +196,7 @@ async function criarLeadDaConversa(db: any, oid: ObjectId, motivo: string | null
     company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
     appSource: 'leads-control',
     presentationMessage: 'stick', deletedAfter: 0,
-    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${telefone ?? ''}</p><p>${d.nome ?? ''}</p>${email ? `<p>${email}</p>` : ''}<p>${d.origem ?? ''} &rarr; ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urgencia ?? '—'}</p>${motivo ? `<p><b>Motivo:</b> ${motivo}</p>` : ''}<p style="color:green;"><b>CONTACTAR AGORA [canal: INBOX]</b></p></div>`,
+    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${telefone ?? ''}</p><p>${d.nome ?? ''}</p>${email ? `<p>${email}</p>` : ''}<p>${d.origem ?? ''} &rarr; ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urgencia ?? '—'}</p>${cargaHtml}${motivo ? `<p><b>Motivo:</b> ${motivo}</p>` : ''}<p style="color:green;"><b>CONTACTAR AGORA [canal: INBOX]</b></p></div>`,
     companyProvider: 'Yourbox', senderName: 'Inbox', variante: conv.quizVariante ?? 'INBOX',
     timeStamp: now, closed: false, closedAt: null, reply: [],
     // O motivo escolhido na inbox viaja para a lead — fica visível no detalhe dela
@@ -194,6 +207,8 @@ async function criarLeadDaConversa(db: any, oid: ObjectId, motivo: string | null
       urgencia, serviceType, weightKg: totalKg, viatura,
       nome: d.nome ?? null, email, telefone,
       volumes: d.volumes, material: d.material, embalado: d.embalado,
+      comprimento: d.comprimento ?? null, largura: d.largura ?? null, altura: d.altura ?? null,
+      dimensoes, pesoPorVolume: d.peso ?? null,
       geo: d.geo ?? null,
       ...(widget ? widget : {}),
       timeStamp: now, converted: true, convertedAt: now, source: 'inbox',

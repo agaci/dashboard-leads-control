@@ -217,7 +217,20 @@ export async function POST(req: NextRequest) {
         const viatura = totalKg && totalKg <= 2 && maxDim <= 60 ? 'Moto'
           : totalKg && totalKg <= 150 ? 'Furgão Classe 1'
           : totalKg ? 'Furgão Classe 2' : null;
-        const cargaHtml = totalKg ? `<p><b>Carga:</b> ${d.volumes ?? '?'} volumes · ${totalKg} kg · ${d.material ?? ''} · ${d.embalado ?? ''}</p>` : '';
+        // Descricao da carga com o mesmo detalhe que a plataforma YourBox mostra em
+        // "Observacoes do cliente" — dimensoes e peso por volume incluidos, que e o que
+        // permite dimensionar a viatura sem ter de telefonar a perguntar.
+        const dimensoes = d.comprimento && d.largura && d.altura
+          ? `${d.comprimento}x${d.largura}x${d.altura} cm (por volume)` : null;
+        const partesCarga = [
+          `${d.volumes ?? '?'} volumes`,
+          dimensoes,
+          totalKg ? `${totalKg} kg (total)` : null,
+          d.peso ? `Peso médio: ${d.peso} kg/volume` : null,
+          d.material ? `Material: ${d.material}` : null,
+          d.embalado || null,
+        ].filter(Boolean);
+        const cargaHtml = partesCarga.length > 1 ? `<p><b>Carga:</b> ${partesCarga.join(' · ')}</p>` : '';
 
         // Atribuição publicitária: a do submit, ou a que já ficou na conversa nos
         // passos anteriores. Sem gclid a lead cria-se na mesma — só não é exportável.
@@ -244,6 +257,10 @@ export async function POST(req: NextRequest) {
             urgencia: urg, serviceType, viatura, weightKg: totalKg,
             nome: d.nome, email: d.email, telefone: realPhone ?? d.telefone,
             volumes: d.volumes, material: d.material, embalado: d.embalado,
+            // Dimensoes e peso por volume: existiam na conversa mas nao passavam para a
+            // lead, e faziam falta a quem trata dela.
+            comprimento: d.comprimento ?? null, largura: d.largura ?? null, altura: d.altura ?? null,
+            dimensoes, pesoPorVolume: d.peso ?? null,
             geo: d.geo ?? null,
             ...(leadWidget ? leadWidget : {}),
             timeStamp: now, converted: true, convertedAt: now, source: 'quiz',

@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { loadCommissionConfig, computeServices, usesMargin } from '@/lib/commissions/calc';
 import { lerGestaoEmLote } from '@/lib/leads/gestao';
+import { idsDeGestao } from '@/lib/leads/parYourbox';
 
 /**
  * Dados do portal do parceiro de widget (`/parceiro`).
@@ -63,12 +64,15 @@ export async function GET(req: NextRequest) {
     // perceber que tipo de pedidos o seu site gera e como estão a ser tratados.
     // Sem contactos: nome, telemóvel e email nunca saem daqui.
     const cidade = (s?: string) => (s ? String(s).split(',')[0].trim() : null);
-    const gestoes = await lerGestaoEmLote(db, leadDocs.map((d: any) => String(d._id)));
+    // A gestao pode viver contra a lead gemea da plataforma YourBox — ler pelo id certo,
+    // senao o parceiro via sempre a gestao vazia. Ver lib/leads/parYourbox.ts.
+    const chaves = await idsDeGestao(db, leadDocs.map((d: any) => String(d._id)));
+    const gestoes = await lerGestaoEmLote(db, [...chaves.values()]);
 
     const pedidos = leadDocs.map((d: any) => {
       const ld = d.leadData ?? {};
       const price = ld.serviceType === 'arrasto' ? ld.partnerFinalPrice : ld.priceWithDiscount;
-      const g = gestoes.get(String(d._id))!;
+      const g = gestoes.get(chaves.get(String(d._id)) ?? String(d._id))!;
       return {
         id:          String(d._id),
         date:        d.timeStamp,

@@ -90,6 +90,14 @@ type LeadData = {
   urgencia?: string;
   serviceType?: 'direto' | 'arrasto' | 'internacional';
   weightKg?: number;
+  comprimento?: number | string | null;
+  largura?: number | string | null;
+  altura?: number | string | null;
+  dimensoes?: string | null;
+  pesoPorVolume?: number | string | null;
+  volumes?: number | string | null;
+  material?: string | null;
+  embalado?: string | null;
   partnerWindow?: string;
   partnerFinalPrice?: number;
   priceCalculated?: number;
@@ -1855,6 +1863,23 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
               </>
             );
           })()}
+          {/* Carga em detalhe: dimensoes e peso por volume vinham do quiz mas nunca eram
+              mostradas aqui — quem trata da lead precisa delas para dimensionar a viatura */}
+          {(d.volumes || d.dimensoes || d.pesoPorVolume || d.material) && (
+            <div className="mb-4">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">Carga</div>
+              <div className="mt-1 text-sm text-foreground">
+                {[
+                  d.volumes ? `${d.volumes} volumes` : null,
+                  d.dimensoes ?? (d.comprimento && d.largura && d.altura ? `${d.comprimento}x${d.largura}x${d.altura} cm (por volume)` : null),
+                  d.weightKg != null ? `${d.weightKg} kg (total)` : null,
+                  d.pesoPorVolume ? `${d.pesoPorVolume} kg/volume` : null,
+                  d.material ?? null,
+                  d.embalado ?? null,
+                ].filter(Boolean).join(' · ')}
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-x-6 gap-y-4">
             {d.serviceType === 'arrasto' ? (
               <>

@@ -4,16 +4,18 @@ import type { Db } from 'mongodb';
  * Gestão de leads — estado, prioridade, notas, follow-up, tags e comentários.
  *
  * Vive na colecção `leadsMetadata`, a mesma que o leadsBoard da YourBox usa, com o mesmo
- * formato de documento. A diferença está no `leadId`: o leadsBoard grava o id (Meteor) da
- * lead oficial dele; nós gravamos o ObjectId (em string) das nossas leads em `messages`.
- * Cada lado só encontra os seus, por isso convivem sem interferir — e se um dia as leads
- * de widget passarem também pela plataforma antiga, os dados já estão no formato certo.
+ * formato de documento. Não há sincronização: é uma base de dados só, partilhada pelas
+ * duas plataformas — o que um lado escreve, o outro lê.
  *
- * Ver PORTAL_PARCEIRO_COMISSOES.md e a análise em conversa de 22/08/2026.
+ * A chave é o `leadId`. Como cada pedido do quiz gera duas leads (a da plataforma e a
+ * nossa), escrevemos sempre contra a da plataforma quando ela existe, para que a gestão
+ * seja uma só. Ver lib/leads/parYourbox.ts.
+ *
+ * Contrato completo (vocabulários, tipos e armadilhas) em leads-partilha.md.
  */
 
 export const ESTADOS = ['novo', 'contactado', 'fechado', 'perdido'] as const;
-export const PRIORIDADES = ['alta', 'normal', 'baixa'] as const;
+export const PRIORIDADES = ['urgente', 'alta', 'normal', 'baixa'] as const;
 
 export type Estado = typeof ESTADOS[number];
 export type Prioridade = typeof PRIORIDADES[number];
@@ -31,7 +33,7 @@ export type Gestao = {
   status: Estado;
   priority: Prioridade;
   notes: string;
-  followUpDate: string | null;
+  followUpDate: Date | string | null;   // gravado como Date — ver leads-partilha.md 5.4
   tags: string[];
   comments: Comentario[];
   history: { timestamp: Date | string; user: string; userId: string | null; changes: Record<string, { from?: unknown; to: unknown }> }[];
@@ -110,7 +112,12 @@ export async function gravarGestao(
   aplicar('status', campos.status, campos.status !== undefined && ESTADOS.includes(campos.status));
   aplicar('priority', campos.priority, campos.priority !== undefined && PRIORIDADES.includes(campos.priority));
   aplicar('notes', campos.notes, typeof campos.notes === 'string');
-  aplicar('followUpDate', campos.followUpDate ?? null, campos.followUpDate !== undefined);
+  const followUp = campos.followUpDate ? new Date(campos.followUpDate) : null;
+  aplicar(
+    'followUpDate',
+    followUp && !isNaN(followUp.getTime()) ? followUp : null,
+    campos.followUpDate !== undefined,
+  );
   aplicar('tags', campos.tags, Array.isArray(campos.tags));
 
   // Nada mudou: não sujar o histórico com entradas vazias

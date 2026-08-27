@@ -265,6 +265,7 @@
   <div class="sidebar-section">
     <div class="sidebar-section-title">Integrações</div>
     <a href="#widget-embed">Widget para Sites</a>
+    <a href="#portal-parceiro">Portal do Parceiro e Comissões</a>
     <a href="#api-stats">API de Estatísticas</a>
     <a href="#pagamentos">Pagamentos</a>
   </div>
@@ -282,7 +283,7 @@
 
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.6</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.7</div>
       <h1>Dashboard <span>YourBox</span></h1>
       <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
     </div>
@@ -426,6 +427,22 @@
       </ul>
       <p>Esta informação de contacto no card permite ao operador ligar imediatamente ao cliente sem precisar de abrir a conversa.</p>
 
+      <h3>Resolver uma conversa — quando nasce a lead</h3>
+      <p>No topo do detalhe da conversa, <strong>Resolvida</strong> e <strong>Fechar</strong> pedem um motivo. O que acontece a seguir depende de haver contacto:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Situação</th><th>Resultado</th></tr></thead>
+          <tbody>
+            <tr><td>Conversa com <strong>telefone ou email</strong></td><td>Fica <span class="badge badge-green">Lead registada</span> e a lead é <strong>criada de facto</strong>, passando a contar na aba Leads e nas estatísticas</td></tr>
+            <tr><td>Conversa <strong>sem contacto nenhum</strong></td><td>Fica <span class="badge badge-navy">Fechada</span> com o motivo escolhido. Não se cria lead — sem telefone nem email ninguém consegue trabalhar o pedido</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Uma barra por cima da conversa confirma o que aconteceu. Basta <strong>um</strong> dos contactos: quem deixou só o email gera lead na mesma.</p>
+      <div class="callout info"><div class="callout-icon">i</div><div>
+        <strong>E se a pessoa voltar e terminar o quiz?</strong> Não nasce uma segunda lead. A que já existe é <strong>actualizada</strong> com o que ela preencher até ao fim — telefone, carga, urgência, viatura. Antes disto, uma lead criada a meio ficava sem o telefone que a pessoa dava a seguir, e a operadora não tinha como ligar.
+      </div></div>
+
       <h3>Modos de atendimento</h3>
       <div class="table-wrap">
         <table>
@@ -502,6 +519,10 @@
       </div>
       <div class="callout info"><div class="callout-icon">i</div><div>A localização por IP é <strong>aproximada</strong> (rótulo "aprox.") — o círculo no mapa indica a margem de erro. A precisa (GPS) só existe quando o visitante a autoriza de livre vontade. Ver implicações de privacidade na Política de Privacidade.</div></div>
 
+      <h3>Bolhas de totais no mapa</h3>
+      <p>Além dos pontos que acendem por instantes a cada visita nova, o mapa mostra <strong>bolhas fixas com o total de visitas por zona</strong>. Ao afastar o zoom juntam-se numa só; ao aproximar vão-se separando por cidade. Clicar numa bolha aproxima a área que ela cobre. Os totais acompanham o filtro de datas escolhido na coluna.</p>
+      <div class="callout info"><div class="callout-icon">i</div><div>Como a localização vem do IP, <strong>todas as visitas de uma cidade partilham as mesmas coordenadas</strong> — o centro dessa cidade. Por isso a bolha de uma cidade nunca se divide, por mais zoom que se faça: o detalhe máximo é "Lisboa 20". Só cidades diferentes se separam.</div></div>
+
       <div class="callout tip"><div class="callout-icon">+</div><div>Para acompanhar um visitante <strong>ao vivo</strong>, abra a Inbox no filtro <strong>Activas / Hoje</strong> enquanto ele preenche o quiz — os passos vão surgindo sozinhos.</div></div>
     </div>
 
@@ -546,6 +567,34 @@
           </tbody>
         </table>
       </div>
+
+      <h3>Gestão da lead</h3>
+      <p>No detalhe de cada lead há um card <strong>Gestão</strong> para o acompanhamento comercial:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Para que serve</th></tr></thead>
+          <tbody>
+            <tr><td>Estado</td><td>Novo, Contactado, Fechado ou Perdido. Guarda assim que muda</td></tr>
+            <tr><td>Prioridade</td><td>Alta, Normal ou Baixa</td></tr>
+            <tr><td>Data de follow-up</td><td>Quando voltar a contactar</td></tr>
+            <tr><td>Notas</td><td>Texto livre sobre o processo. Guarda ao sair do campo</td></tr>
+            <tr><td>Etiquetas</td><td>Marcadores próprios (escrever e carregar Enter)</td></tr>
+            <tr><td>Comentários</td><td>Registo datado, com o nome de quem escreveu</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout info"><div class="callout-icon">i</div><div>
+        <strong>É o mesmo card do leadsBoard da YourBox.</strong> Escreve na mesma colecção que a plataforma antiga usa, com o mesmo formato e o mesmo histórico de alterações — não há cópias nem sincronizações a correr.
+      </div></div>
+      <div class="callout warn"><div class="callout-icon">!</div><div>
+        <strong>Atenção ao que escreve.</strong> Quando a lead vem de um widget de parceiro, as notas e os comentários são visíveis no portal desse parceiro. O próprio card avisa disso no rodapé.
+      </div></div>
+
+      <h3>Motivo (Inbox)</h3>
+      <p>Se a lead nasceu de uma conversa resolvida na Inbox, um card mostra o <strong>motivo escolhido</strong> pelo operador nesse momento (Confirmou e pagou, Retomou mais tarde, etc.). O motivo é informativo e não mexe no estado da gestão, que começa sempre em <em>Novo</em>.</p>
+
+      <h3>Parceiro de widget</h3>
+      <p>Leads angariadas por um widget white-label mostram um card <strong>Parceiro de widget</strong> com três coisas: o widget de origem, o <strong>domínio</strong> de onde a pessoa veio, e o <strong>nome do comissionista</strong> a usar na YourBox ao inscrever esse cliente. Com vários parceiros, é este último campo que evita atribuir a comissão à pessoa errada.</p>
 
       <h3>Filtros e Pesquisa</h3>
       <ul>
@@ -847,9 +896,22 @@
             <tr><td>Nome do Bot</td><td>Nome que aparece nas mensagens automáticas</td></tr>
             <tr><td>Domínios Permitidos</td><td>Lista de domínios autorizados (ex: <code>farmaciacentral.pt</code>)</td></tr>
             <tr><td>Webhook URL</td><td>URL para receber notificações de novas leads (opcional)</td></tr>
+            <tr><td><strong>Comissionista na YourBox</strong></td><td>Nome do parceiro tal como existe na plataforma YourBox. O campo procura os utilizadores e liga-os — é o que permite atribuir-lhe os serviços dos clientes que angariar</td></tr>
+            <tr><td>Percentagem de comissão</td><td>Deixar vazio usa a percentagem da YourBox (5%). Preencher só quando o acordo com o parceiro for diferente</td></tr>
+            <tr><td>Modelo de cálculo</td><td>Vazio herda o que está em vigor na YourBox. Ver <strong>§Portal do Parceiro e Comissões</strong></td></tr>
           </tbody>
         </table>
       </div>
+
+      <h3>Atribuição das leads ao parceiro</h3>
+      <p>Cada lead que entra por um widget fica <strong>carimbada</strong> com o parceiro de origem. O nome dele aparece na Inbox e nas Leads, e o detalhe da lead mostra ainda o domínio de onde veio.</p>
+      <p>O carimbo vem do <code>clientId</code> no código de embed e é validado no servidor: o widget tem de existir, estar activo, e o domínio tem de bater certo com as <strong>Origens permitidas</strong>.</p>
+      <div class="callout warn"><div class="callout-icon">!</div><div>
+        <strong>Origens a <code>*</code> aceitam qualquer site.</strong> Se o código de embed de um parceiro for instalado noutro sítio — ou copiado por engano do cartão errado — as leads são atribuídas ao parceiro errado sem qualquer aviso. Configure sempre os domínios reais de cada parceiro; o cartão mostra um aviso enquanto estiverem a <code>*</code>.
+      </div></div>
+
+      <h3>Testar um widget</h3>
+      <p>A página <code>/teste-widget.html</code> simula o site de um parceiro e carrega o embed a sério. Mostra o <code>clientId</code> em uso e o domínio que vai ser enviado, e tem um botão para <strong>limpar a sessão</strong> — necessário porque a sessão do quiz é partilhada entre widgets no mesmo browser. Use <code>?client=&lt;id&gt;</code> para testar outro widget.</p>
 
       <h3>Regenerar Token</h3>
       <p>Se o <code>secretToken</code> for comprometido, pode regenerar um novo na edição do cliente. O token anterior fica imediatamente inválido.</p>
@@ -1079,7 +1141,7 @@
       <div class="callout tip"><div class="callout-icon">+</div><div>O selector é a <strong>fonte única de verdade</strong>: quando se escolhe "Agendamento", o antigo interruptor on/off do agendamento passa a ser ligado por aqui; escolher "Manual" ou "Automático" desliga-o. Clientes antigos ficam iguais (arrancam em Manual).</div></div>
 
       <h3>Distribuição Manual de Variantes</h3>
-      <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão. Inclui as variantes de <strong>landing</strong> (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>) e as de <strong>quiz</strong> (<code>quiz</code>, <code>quiz3</code>, <code>quiz4</code>, <code>quiz5</code>, <code>quiz6</code>, <code>quiz6b</code>, <code>quiz6c</code>). Ver a secção <strong>§Variantes de Captação</strong> para a dinâmica de cada uma.</p>
+      <p>O painel <strong>Distribuição de Variantes</strong> define a percentagem de visitantes que vê cada versão. Inclui as variantes de <strong>landing</strong> (<code>a</code>, <code>b</code>, <code>c</code>, <code>d</code>, <code>chat</code>, <code>chat-demo</code>) e as de <strong>quiz</strong> (<code>quiz</code>, <code>quiz3</code>, <code>quiz4</code>, <code>quiz5</code>, <code>quiz6</code>, <code>quiz6b</code>, <code>quiz6c</code>, <code>quiz7b</code>, <code>quiz7c</code>). Ver a secção <strong>§Variantes de Captação</strong> para a dinâmica de cada uma.</p>
       <ul>
         <li>A soma das percentagens deve ser exactamente <strong>100%</strong></li>
         <li>Colocar 100% numa variante desactiva as restantes efectivamente</li>
@@ -1174,13 +1236,67 @@
     <span class="section-anchor" id="variantes"></span>
     <div class="section">
       <h2>Variantes de Captação (Landing e Quiz)</h2>
-      <p>Existem várias <strong>variantes</strong> da página de entrada, todas com o mesmo hero; o que muda é a
-      <strong>mecânica do formulário</strong> e, no quiz, a <strong>ordem dos passos</strong>. Servem para testar (A/B) qual
-      capta mais leads. Cada lead/visita traz a sua <code>variante</code> — vê-se nos badges das Leads, no chip do Inbox,
+      <p>Existem várias <strong>variantes</strong> da página de entrada. O que muda entre elas é a <strong>mensagem de
+      entrada (hero)</strong>, a <strong>mecânica do formulário</strong> e, nas famílias mais antigas, a <strong>ordem dos
+      passos</strong>. Servem para testar (A/B) qual capta mais leads. Cada lead/visita traz a sua <code>variante</code> — vê-se nos badges das Leads, no chip do Inbox,
       no <strong>Funil por variante</strong> e no <strong>drop-off por passo</strong> dos Relatórios.</p>
 
       <div class="callout tip"><div class="callout-icon">+</div><div><strong>Regra de ouro do funil:</strong> começar pelo que
       envolve (rota, carga) e deixar os dados pessoais para depois. Quem chega para pedir um preço não veio dar o telefone.</div></div>
+
+      <h3>O que está em rotação hoje</h3>
+      <p>Quatro variantes activas, a 25% cada. Todas partilham <strong>exactamente a mesma ordem de passos</strong> — o teste
+      corre em dois eixos independentes, o que faz dele uma matriz 2&times;2:</p>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th></th><th>Hero "Entrega Ultra-Rápida"</th><th>Hero "Quando não pode esperar"</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Dimensões por campos</strong><br><small>comprimento, largura, altura</small></td><td><span class="badge badge-cyan">quiz6b</span></td><td><span class="badge badge-cyan">quiz7b</span></td></tr>
+          <tr><td><strong>Dimensões por botões</strong><br><small>Caixa P/M/G · Palete · Não sei</small></td><td><span class="badge badge-cyan">quiz6c</span></td><td><span class="badge badge-cyan">quiz7c</span></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <ul>
+        <li><strong>Eixo 6 vs 7 — a mensagem.</strong> A 6 abre com <em>"Entrega Ultra-Rápida em Todo Portugal · Entregas urgentes
+        em 1 hora ou 4 horas. Rastreamento em tempo real"</em> e o botão <em>Calcular Preço</em>. A 7 abre com <em>"Quando não pode
+        esperar, nós não esperamos · Recolha em 1 hora, em todo o país. Diga-nos o que envia e tratamos do resto"</em> e o botão
+        <em>Pedir orçamento agora</em>.</li>
+        <li><strong>Eixo b vs c — as dimensões.</strong> Único ponto do formulário onde as variantes diferem: campos numéricos
+        contra cinco presets de um toque.</li>
+      </ul>
+      <div class="callout info"><div class="callout-icon">i</div><div>Como a matriz é 2&times;2, dá para ler os dois eixos em
+      separado: somar <strong>6b+6c contra 7b+7c</strong> mede o hero; somar <strong>6b+7b contra 6c+7c</strong> mede as dimensões.
+      Cada eixo tem assim o dobro das leads de uma comparação isolada.</div></div>
+
+      <h3>Ordem dos passos (igual nas quatro, e no widget)</h3>
+      <pre style="background:#0f1724;color:#cbd5e1;padding:14px 16px;border-radius:8px;font-family:monospace;font-size:0.78rem;line-height:1.5;overflow-x:auto;"> 1 Origem     2 Destino    3 Urgência    4 Volumes    5 Peso
+ 6 NOME       7 EMAIL      8 TELEFONE          &lt;&lt; contacto a meio
+ 9 Dimensões  10 Material  11 Embalagem  -&gt; Resumo -&gt; LEAD</pre>
+      <p>O contacto é pedido nos <strong>passos 6 a 8 de 11</strong>: depois de a pessoa já ter investido em rota, urgência e carga,
+      e antes dos detalhes finais. O <strong>widget para sites externos usa a mesma sequência</strong>, o que torna os números
+      comparáveis entre landings e widget.</p>
+
+      <h3>Como cada campo é capturado</h3>
+      <div class="table-wrap">
+      <table>
+        <thead><tr><th>Passo</th><th>Elemento</th><th>Opções</th></tr></thead>
+        <tbody>
+          <tr><td>Origem / Destino</td><td>Campo de texto</td><td>Com autocomplete de moradas (Google Places)</td></tr>
+          <tr><td>Urgência</td><td>3 botões</td><td>Imediata · Próprio dia · 24 horas</td></tr>
+          <tr><td>Volumes</td><td>Campo numérico <strong>+ 5 atalhos</strong></td><td>Botões de 1 a 5 para o caso comum</td></tr>
+          <tr><td>Peso</td><td><strong>6 botões, sem campo</strong></td><td>Até 2 kg · Até 5 kg · 5 a 15 · 15 a 30 · Mais de 30 · Não sei</td></tr>
+          <tr><td>Nome / Email / Telefone</td><td>Campos de texto</td><td>Um por ecrã, com teclado próprio no telemóvel</td></tr>
+          <tr><td><strong>Dimensões</strong></td><td><strong>b:</strong> 3 campos numéricos<br><strong>c:</strong> 5 botões</td><td>b: comprimento, largura, altura<br>c: Caixa pequena · média · grande · Palete · Não sei</td></tr>
+          <tr><td>Material</td><td><strong>Lista pendente</strong></td><td>~10 opções (documentos, electrónica, peças auto, alimentares, …)</td></tr>
+          <tr><td>Embalagem</td><td>3 botões</td><td></td></tr>
+        </tbody>
+      </table>
+      </div>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Dois candidatos a próxima melhoria.</strong> O
+      <strong>peso já é só por botões</strong> em todas as variantes — as dimensões são o último sítio onde ainda se testa campo
+      contra preset; se a família <code>c</code> ganhar, o passo natural é eliminar os campos numéricos. E o <strong>material é a
+      única lista pendente</strong> de todo o quiz, o elemento mais lento de usar em telemóvel: está no passo 10, já depois do
+      contacto, o que limita o prejuízo, mas é candidato a passar a botões.</div></div>
 
       <h3>Variantes de LANDING (calculadora) — <code>index-a/b/c/d</code></h3>
       <ul>
@@ -1200,6 +1316,9 @@
         <li><strong>Quiz 6</strong> — como a 5, mas <strong>email antes do telefone</strong> (o telefone é o campo de maior fricção) e <strong>urgência cedo</strong> (3º passo, 1 toque). Traz advertência no topo e subtítulo sem promessa de espera.</li>
         <li><strong>Quiz 6b</strong> — Quiz 6 + <strong>carga inteligente</strong>: volumes por chips (1–5) e peso por faixas com exemplos ("Até 5 kg — ex.: caixa de roupa", … "Não sei"). Ataca o novo muro (o peso, ~28% de fuga).</li>
         <li><strong>Quiz 6c</strong> — Quiz 6b + <strong>dimensões por presets</strong> (Caixa P/M/G · Palete · Não sei), um toque.</li>
+        <li><strong>Quiz 7b / Quiz 7c</strong> — formulário <strong>igual</strong> ao das 6b/6c; o que muda é o <strong>hero</strong>
+        ("Quando não pode esperar, nós não esperamos"), mais directo e centrado na urgência. A 7b herda os campos de dimensões da 6b,
+        a 7c herda os presets da 6c.</li>
       </ul>
 
       <h3>Matriz-resumo</h3>
@@ -1216,7 +1335,9 @@
           <tr><td>Quiz 5</td><td>Contacto a meio</td><td>Baixa</td><td>Vencedora anterior</td></tr>
           <tr><td>Quiz 6</td><td>Contacto a meio, email→telefone, urgência cedo</td><td>Baixa</td><td>Base da família 6</td></tr>
           <tr><td>Quiz 6b</td><td>Quiz 6 + carga inteligente</td><td>Baixa</td><td>Ataca o muro do peso</td></tr>
-          <tr><td>Quiz 6c</td><td>Quiz 6b + dimensões por presets</td><td>Baixa</td><td>Mais recente</td></tr>
+          <tr><td>Quiz 6c</td><td>Quiz 6b + dimensões por presets</td><td>Baixa</td><td>Em rotação (25%)</td></tr>
+          <tr><td>Quiz 7b</td><td>Quiz 6b com hero novo</td><td>Baixa</td><td>Em rotação (25%)</td></tr>
+          <tr><td>Quiz 7c</td><td>Quiz 6c com hero novo</td><td>Baixa</td><td>Em rotação (25%)</td></tr>
         </tbody>
       </table>
       </div>
@@ -1253,7 +1374,10 @@ QUIZ 6  (email antes do telefone + urgência cedo + advertência no topo)
  8 Telefone ]  9 Dimensões  10 Material  11 Embalagem  12 Resumo -> LEAD
 
 QUIZ 6b = Quiz 6, mas Volumes por chips e Peso por FAIXAS  -> desarma o [MURO do peso]
-QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei)</pre>
+QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei)
+
+QUIZ 7b = Quiz 6b com HERO novo ("Quando não pode esperar...")   } mesmo formulário,
+QUIZ 7c = Quiz 6c com HERO novo                                  } muda só a entrada</pre>
 
       <h3>Cobertura do reengajamento</h3>
       <p>O toque de "quiz abandonado" só consegue contactar quem já deu <strong>nome + email</strong> (ou telefone). Por isso a
@@ -1264,7 +1388,7 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
         <tbody>
           <tr><td>Contacto-primeiro (base/B/3/4)</td><td>passos 1–3</td><td>passo 3 (email)</td><td>rede ampla, mas muitos saem no passo 1</td></tr>
           <tr><td>Contacto-a-meio (Quiz 5)</td><td>passos 5–7</td><td>passo 7 (email)</td><td>menos abandono inicial</td></tr>
-          <tr><td>Contacto-a-meio (Quiz 6/6b/6c)</td><td>passos 6–8</td><td>passo 7 (email)</td><td>email antes do telefone reforça a rede</td></tr>
+          <tr><td>Contacto-a-meio (Quiz 6/6b/6c <strong>e 7b/7c</strong>)</td><td>passos 6–8</td><td>passo 7 (email)</td><td>email antes do telefone reforça a rede</td></tr>
         </tbody>
       </table>
       </div>
@@ -1272,9 +1396,11 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
       (não há contacto) — é inerente, não é falha. Por isso vale a pena baixar as fugas iniciais (peso por faixas, dimensões por
       presets) para levar mais gente até ao passo do contacto.</div></div>
 
-      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Como medir cada teste:</strong> controlo = a variante
-      anterior da cadeia (ex.: 6b para avaliar a 6c). Métrica principal <strong>visita → lead</strong> nos Relatórios; confirmar com o
-      <strong>drop-off por passo</strong> se o muro visado caiu. Não decidir com menos de ~30 leads por variante.</div></div>
+      <div class="callout tip"><div class="callout-icon">+</div><div><strong>Como medir cada teste:</strong> com a matriz 2&times;2
+      actual, ler cada eixo somando pares — <strong>6b+6c vs 7b+7c</strong> para o hero, <strong>6b+7b vs 6c+7c</strong> para as
+      dimensões. Métrica principal <strong>visita → lead</strong> nos Relatórios; confirmar com o <strong>drop-off por passo</strong>
+      se o muro visado caiu. Não decidir com menos de ~30 leads por variante — e, ao ler um eixo, não tirar conclusões sobre o outro
+      no mesmo movimento.</div></div>
 
       <p style="font-size:0.85rem;color:var(--muted);margin-top:14px;">O guia técnico completo (com prós/contras detalhados e roadmap
       de novas variantes) vive em <code>MANUAL_VARIANTES.md</code> no repositório.</p>
@@ -1324,10 +1450,67 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
+    <span class="section-anchor" id="portal-parceiro"></span>
+    <div class="section">
+      <h2>Portal do Parceiro e Comissões</h2>
+      <p>Cada parceiro que instala um widget tem uma página própria, em <code>/parceiro</code>, onde vê a actividade do seu site e a comissão que lhe corresponde.</p>
+
+      <h3>Dar acesso ao parceiro</h3>
+      <div class="steps">
+        <div class="step"><div class="step-num">1</div><div class="step-body"><div class="step-title">Inscrever o parceiro na YourBox</div><div class="step-desc">Criar o utilizador na plataforma YourBox como comissionista, com nível de comissão e acesso a comissões. É o nome desse utilizador que conta.</div></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-body"><div class="step-title">Ligar no gestor de widgets</div><div class="step-desc">Editar o widget e preencher <strong>Comissionista na YourBox</strong>, escolhendo o utilizador da lista que aparece.</div></div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-body"><div class="step-title">Enviar o link</div><div class="step-desc">Botão <strong>Link do portal</strong> no cartão do widget — copia um endereço com o código de acesso incluído. Para revogar, <strong>Regenerar</strong> o token.</div></div></div>
+      </div>
+
+      <h3>O que o parceiro vê</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Card</th><th>O que conta</th></tr></thead>
+          <tbody>
+            <tr><td>Orçamentos iniciados</td><td>Quem abriu o formulário e começou, no mês. Clicável: abre a lista com o passo onde cada pessoa parou</td></tr>
+            <tr><td>Pedidos completos</td><td>Os que chegaram ao fim. Clicável: abre a lista com o acompanhamento de cada um</td></tr>
+            <tr><td>Valor orçamentado</td><td>Soma dos orçamentos calculados automaticamente</td></tr>
+            <tr><td>Clientes angariados</td><td>Acumulado desde sempre. Depende de alguém converter a lead em cliente, por isso pode ficar atrás da realidade</td></tr>
+            <tr><td>Clientes com serviço</td><td>Quantos pediram serviço no mês. Vem dos serviços executados, sem registo manual pelo meio</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Abaixo, a comissão do mês e a lista dos serviços que a compõem — data, número do serviço, cliente, facturado e comissão — com o total a fechar com o card.</p>
+      <div class="callout info"><div class="callout-icon">i</div><div>
+        O portal <strong>não mostra contactos</strong> de leads nem de clientes finais: apenas contagens, rotas e valores. Mostra, no entanto, as <strong>notas e comentários</strong> do card de Gestão dos pedidos que vieram do widget dele.
+      </div></div>
+
+      <h3>Como a comissão é calculada</h3>
+      <p>Quem calcula e paga é a plataforma YourBox; o portal apenas lê e mostra, para conferência. A cadeia é esta:</p>
+      <ol>
+        <li>O parceiro é um <strong>comissionista</strong> na YourBox;</li>
+        <li>quando uma lead do widget dele é confirmada como cliente, esse cliente fica atribuído ao parceiro;</li>
+        <li>a partir daí, <strong>todos os serviços</strong> desse cliente saem com o parceiro como comissionista — incluindo os que já não passem pelo widget e os dos meses seguintes;</li>
+        <li>o portal soma os serviços <strong>executados</strong> do mês e aplica a percentagem.</li>
+      </ol>
+      <p>Há dois modelos, definidos em <code>serverSettings</code> da YourBox e opcionalmente sobrepostos por parceiro no gestor de widgets:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modelo</th><th>Cálculo</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Percentagem fixa</strong> (em vigor)</td><td>Percentagem sobre o valor facturado de cada serviço</td></tr>
+            <tr><td><strong>Proporcional à margem</strong></td><td>A percentagem desce na proporção da margem quando esta fica abaixo da referência; acima dela nunca sobe. A margem calcula-se sobre o custo ou sobre a venda, conforme a definição</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="callout warn"><div class="callout-icon">!</div><div>
+        <strong>Mudar estes valores altera meses passados.</strong> O portal recalcula sempre a partir do histórico de serviços, tal como a YourBox faz. Alterar a percentagem ou o modelo muda também o que o parceiro vê — e já lhe foi mostrado — nos meses anteriores.
+      </div></div>
+    </div>
+
+    <!-- ══════════════════════════════════════════════════════════════════════ -->
     <span class="section-anchor" id="api-stats"></span>
     <div class="section">
       <h2>API de Estatísticas</h2>
       <p>Clientes com widget podem consultar as suas estatísticas programaticamente através da API REST.</p>
+      <div class="callout warn"><div class="callout-icon">!</div><div>
+        <strong>Desde Agosto de 2026 a resposta não inclui dados pessoais.</strong> Nome, telemóvel e email deixaram de ser devolvidos, tanto nas leads como nas conversas — o parceiro é uma entidade distinta da YourBox e as leads são contactos de terceiros. Continuam disponíveis contagens, rotas, valores e estados.
+      </div></div>
 
       <h3>Endpoint</h3>
       <div class="callout info" style="font-family: monospace; font-size: 0.85rem;">
@@ -1479,6 +1662,10 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
             <tr><td>Escalamento</td><td>Conversa transferida do bot para operador humano</td></tr>
             <tr><td>Análise de Agregação</td><td>Pedido da lead para verificar possibilidade de partilha de viatura para reduzir preço. Conversa entra em LIVE_CHAT (<code>agg_request</code>) para continuação pelo operador</td></tr>
             <tr><td>Agregação</td><td>Partilha de viatura em rota com nova recolha</td></tr>
+            <tr><td>Parceiro de widget</td><td>Empresa que instala o widget YourBox no seu site e recebe comissão pelos clientes que angariar</td></tr>
+            <tr><td>Comissionista</td><td>Nome, na plataforma YourBox, a quem os serviços de um cliente são atribuídos para efeito de comissão</td></tr>
+            <tr><td>Carimbo de widget</td><td>Marca deixada em cada lead com o parceiro de origem e o domínio de onde veio</td></tr>
+            <tr><td>Portal do parceiro</td><td>Página em <code>/parceiro</code>, com código de acesso próprio, onde o parceiro consulta a actividade do seu widget e as comissões</td></tr>
             <tr><td>Widget Client</td><td>Empresa parceira com formulário YourBox no seu site</td></tr>
             <tr><td>secretToken</td><td>Chave de autenticação da API de estatísticas do cliente</td></tr>
             <tr><td>Bot</td><td>Assistente automático que responde por WhatsApp/chat</td></tr>
@@ -1529,7 +1716,7 @@ QUIZ 6c = Quiz 6b, mas Dimensões por PRESETS (Caixa P/M/G · Palete · Não sei
 
     <!-- Footer -->
     <div class="doc-footer">
-      <span>YourBox Dashboard — Manual v1.6 — Julho 2026</span>
+      <span>YourBox Dashboard — Manual v1.7 — Agosto 2026</span>
       <div style="display: flex; gap: 12px;">
         <a href="/roadmap.html" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">Ver Roadmap</a>
         <a href="/dashboard" style="color: var(--cyan); text-decoration: none; font-size: 0.8rem;">← Voltar à App</a>

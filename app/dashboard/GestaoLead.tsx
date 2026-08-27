@@ -14,7 +14,7 @@ type Comentario = { id: string; timestamp: string; user: string; userId: string 
 type Gestao = {
   leadId: string;
   status: 'novo' | 'contactado' | 'fechado' | 'perdido';
-  priority: 'alta' | 'normal' | 'baixa';
+  priority: 'urgente' | 'alta' | 'normal' | 'baixa';
   notes: string;
   followUpDate: string | null;
   tags: string[];
@@ -24,7 +24,9 @@ type Gestao = {
 };
 
 const ESTADOS: Gestao['status'][] = ['novo', 'contactado', 'fechado', 'perdido'];
-const PRIORIDADES: Gestao['priority'][] = ['alta', 'normal', 'baixa'];
+// Mesmo vocabulario do backoffice YourBox — um valor fora desta lista fica gravado
+// mas nao aparece seleccionado no menu de nenhum dos lados.
+const PRIORIDADES: Gestao['priority'][] = ['urgente', 'alta', 'normal', 'baixa'];
 
 const CORES_ESTADO: Record<Gestao['status'], string> = {
   novo:       'bg-cyan-soft text-cyan',
@@ -47,6 +49,9 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
   const [novaTag, setNovaTag] = useState('');
   const [comentario, setComentario] = useState('');
   const [aGravar, setAGravar] = useState(false);
+  // Verdadeiro quando a gestao esta ligada a lead gemea da plataforma YourBox — o que
+  // significa que o leadsBoard ve e edita exactamente este registo.
+  const [partilhada, setPartilhada] = useState(false);
   const [guardado, setGuardado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -54,7 +59,7 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
     try {
       const res = await fetch(`/api/leads/${leadId}/gestao`);
       const data = await res.json();
-      if (data.success) { setG(data.gestao); setNotas(data.gestao.notes ?? ''); }
+      if (data.success) { setG(data.gestao); setNotas(data.gestao.notes ?? ''); setPartilhada(!!data.partilhada); }
       else setErro(data.error ?? 'Não foi possível carregar');
     } catch { setErro('Erro de ligação'); }
   }, [leadId]);
@@ -72,11 +77,20 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
       const data = await res.json();
       if (data.success) {
         setG(data.gestao);
+        setPartilhada(!!data.partilhada);
         setGuardado(true);
         setTimeout(() => setGuardado(false), 1800);
       } else setErro(data.error ?? 'Não foi possível guardar');
     } catch { setErro('Erro de ligação'); }
     finally { setAGravar(false); }
+  }
+
+  function juntarTag() {
+    const t = novaTag.trim();
+    if (!t) return;
+    if (!g || g.tags.includes(t)) { setNovaTag(''); return; }
+    gravar({ tags: [...g.tags, t] });
+    setNovaTag('');
   }
 
   async function comentar() {
@@ -178,7 +192,18 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
           onBlur={() => { if (notas !== g.notes) gravar({ notes: notas }); }}
           placeholder="Notas sobre esta lead..."
         />
-        <p className="mt-1 text-[11px] text-muted-foreground">Guarda ao sair do campo.</p>
+        <div className="mt-1 flex items-center gap-2">
+          <button
+            onClick={() => gravar({ notes: notas })}
+            disabled={aGravar || notas === g.notes}
+            className="rounded-lg bg-cyan px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-40 cursor-pointer border-none"
+          >
+            Guardar notas
+          </button>
+          <span className="text-[11px] text-muted-foreground">
+            {notas !== g.notes ? 'Alterações por guardar — também guarda ao sair do campo.' : 'Guardado.'}
+          </span>
+        </div>
       </div>
 
       <div className="mt-3">
@@ -200,16 +225,18 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
             className="rounded-lg border border-border bg-input px-2.5 py-1 text-xs text-foreground"
             value={novaTag}
             onChange={(e) => setNovaTag(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const t = novaTag.trim();
-                if (t && !g.tags.includes(t)) gravar({ tags: [...g.tags, t] });
-                setNovaTag('');
-              }
-            }}
-            placeholder="Escreve e carrega Enter"
+            onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); juntarTag(); } }}
+            onBlur={juntarTag}
+            placeholder="Nova etiqueta"
           />
+          <button
+            onClick={juntarTag}
+            disabled={aGravar || !novaTag.trim()}
+            className="rounded-lg border border-border bg-input px-2.5 py-1 text-xs font-semibold text-foreground disabled:opacity-40 cursor-pointer"
+            title="Juntar etiqueta"
+          >
+            + Juntar
+          </button>
         </div>
       </div>
 
@@ -258,7 +285,9 @@ export default function GestaoLead({ leadId }: { leadId: string }) {
       </div>
 
       <p className="mt-3 text-[11px] text-muted-foreground">
-        Visível no portal do parceiro quando a lead vem de um widget.
+        {partilhada
+          ? 'Partilhado com o leadsBoard da YourBox — a equipa vê e edita este mesmo registo. Visível também no portal do parceiro quando a lead vem de um widget.'
+          : 'Visível no portal do parceiro quando a lead vem de um widget.'}
       </p>
 
       <span className={`mt-3 inline-block rounded-full px-2.5 py-0.5 text-[11px] font-semibold ${CORES_ESTADO[g.status]}`}>

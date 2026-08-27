@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { lerGestao, gravarGestao, adicionarComentario, apagarComentario, type Autor } from '@/lib/leads/gestao';
+import { idDeGestao } from '@/lib/leads/parYourbox';
 
 /**
  * Gestão de uma lead — o mesmo que o card "Gestão" do leadsBoard da YourBox, sobre a
@@ -27,7 +28,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
   const { id } = await params;
   const db = await getDb();
-  return Response.json({ success: true, gestao: await lerGestao(db, id) });
+  // A gestao vive contra a lead da plataforma YourBox quando existe gemea, para ser a
+  // mesma que a equipa ve no leadsBoard. Ver lib/leads/parYourbox.ts.
+  const chave = await idDeGestao(db, id);
+  return Response.json({ success: true, gestao: await lerGestao(db, chave), partilhada: chave !== id });
 }
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,7 +43,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     const body = await req.json();
     const db = await getDb();
 
-    const gestao = await gravarGestao(db, id, {
+    const chave = await idDeGestao(db, id);
+    const gestao = await gravarGestao(db, chave, {
       status:       body.status,
       priority:     body.priority,
       notes:        body.notes,
@@ -47,7 +52,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       tags:         body.tags,
     }, autor);
 
-    return Response.json({ success: true, gestao });
+    return Response.json({ success: true, gestao, partilhada: chave !== id });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
@@ -64,7 +69,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       return Response.json({ error: 'Comentário vazio' }, { status: 400 });
     }
     const db = await getDb();
-    return Response.json({ success: true, gestao: await adicionarComentario(db, id, text, autor) });
+    const chave = await idDeGestao(db, id);
+    return Response.json({ success: true, gestao: await adicionarComentario(db, chave, text, autor), partilhada: chave !== id });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
@@ -79,7 +85,8 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
     const cid = new URL(req.url).searchParams.get('comentario');
     if (!cid) return Response.json({ error: 'comentario em falta' }, { status: 400 });
     const db = await getDb();
-    return Response.json({ success: true, gestao: await apagarComentario(db, id, cid) });
+    const chave = await idDeGestao(db, id);
+    return Response.json({ success: true, gestao: await apagarComentario(db, chave, cid), partilhada: chave !== id });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
