@@ -7,7 +7,7 @@ import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager
 export type NavTab =
   | 'visitas' | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
-  | 'routing' | 'widgets' | 'config';
+  | 'crm' | 'routing' | 'widgets' | 'config';
 
 interface NavSidebarProps {
   activeTab: NavTab;
@@ -120,6 +120,19 @@ function IcoPerfil() {
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
       <circle cx="12" cy="7" r="4"/>
+    </svg>
+  );
+}
+
+function IcoCrm() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M8 12l2.5 2.5a1.8 1.8 0 0 0 2.5 0L15 12"/>
+      <path d="M3 7h4l3 3"/>
+      <path d="M21 7h-4l-3 3"/>
+      <rect x="2" y="5" width="4" height="10" rx="1"/>
+      <rect x="18" y="5" width="4" height="10" rx="1"/>
+      <path d="M10 17l1.5 1.5a1.5 1.5 0 0 0 2 0L15 17"/>
     </svg>
   );
 }
@@ -487,6 +500,7 @@ export default function NavSidebar({
       { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
       { id: 'precos',     label: 'Preços',     icon: <IcoPrecos /> },
       { id: 'baseIA',     label: 'Base IA',    icon: <IcoBaseIA /> },
+      { id: 'crm',        label: 'CRM',        icon: <IcoCrm /> },
       { id: 'relatorios', label: 'Relatórios', icon: <IcoRelatorios /> },
       { id: 'widgets',    label: 'Widgets',    icon: <IcoWidgets /> },
       { id: 'config',     label: 'Perfil',     icon: <IcoPerfil /> },
@@ -603,6 +617,7 @@ export default function NavSidebar({
         <NavItem id="servicos"   label="Serviços"   icon={<IcoServicos />}   active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
         <NavItem id="precos"     label="Preços"     icon={<IcoPrecos />}     active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
         <NavItem id="baseIA"     label="Base IA"    icon={<IcoBaseIA />}     active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
+        <NavItem id="crm"        label="CRM Parceiros" icon={<IcoCrm />}    active={activeTab === 'crm'}        onClick={() => onTabChange('crm')} />
         <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
         <NavItem id="widgets"    label="Widgets"    icon={<IcoWidgets />}    active={activeTab === 'widgets'}    onClick={() => onTabChange('widgets')} />
       </div>

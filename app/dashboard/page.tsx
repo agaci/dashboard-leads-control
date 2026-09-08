@@ -10,11 +10,13 @@ import VisitasPage from './visitas/page';
 import ContactAlertBanner from './ContactAlertBanner';
 import { DeleteDialog } from './DeleteDialog';
 import GestaoLead from './GestaoLead';
+import CrmLead from './CrmLead';
 import ConhecimentoPage from './conhecimento/page';
 import PrecosPage from './precos/page';
 import RelatoriosPage from './relatorios/page';
 import ClientesPage from './clientes/page';
 import WidgetsPage from './widgets/page';
+import CrmPage from './crm/page';
 import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import { useTheme } from '@/lib/useTheme';
 import AppShell from '@/components/layout/AppShell';
@@ -781,6 +783,7 @@ export default function DashboardPage() {
                   lead={selected}
                   onClose={() => setSelected(null)}
                   isAdmin={isAdmin}
+                  aoAbrirCrm={() => switchTab('crm')}
                   onDeleted={(id) => {
                     setSelected(null);
                     setLeads(ls => ls.filter(l => l.id !== id));
@@ -861,6 +864,13 @@ export default function DashboardPage() {
       {tab === 'precos' && (
         <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
           <PrecosPage />
+        </div>
+      )}
+
+      {/* crm -> CRM de Parceiros: subcontratacao e venda de leads nao serviveis */}
+      {tab === 'crm' && (
+        <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <CrmPage />
         </div>
       )}
 
@@ -1628,12 +1638,14 @@ function DetailField({ label, children }: { label: string; children: React.React
 }
 
 
-function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDeleted }: {
+function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDeleted, aoAbrirCrm }: {
   lead: Lead;
   onClose: () => void;
   onClientConverted?: (clientId: string) => void;
   isAdmin?: boolean;
   onDeleted?: (id: string) => void;
+  /** Levar a operadora ao separador CRM sem sair do dashboard. */
+  aoAbrirCrm?: () => void;
 }) {
   const [currentLead, setCurrentLead] = useState<Lead>(lead);
   const d = currentLead.leadData;
@@ -1995,6 +2007,11 @@ function DetailPanel({ lead, onClose, onClientConverted, isAdmin = false, onDele
 
       {/* Gestao da lead — mesma coleccao do card "Gestao" do leadsBoard da YourBox */}
       {currentLead.messageType === 'newLead' && <GestaoLead leadId={currentLead.id} />}
+
+      {/* CRM de Parceiros — so aparece nas leads que a triagem deu como nao serviveis.
+          Vive aqui e nao so no separador CRM porque e aqui que a operadora esta quando
+          pega no telefone. */}
+      {currentLead.messageType === 'newLead' && <CrmLead leadId={currentLead.id} aoAbrirCrm={aoAbrirCrm} />}
 
       {/* Parceiro de widget — o que o operador precisa para atribuir a comissao */}
       {currentLead.widgetClientName && (

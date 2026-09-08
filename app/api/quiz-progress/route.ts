@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
 import { explainWidgetAttribution } from '@/lib/widget/attribution';
+import { triarLeadNova } from '@/lib/crm/entrada';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
 // "conversa" na colecção conversations, para aparecer na vista de Conversas do
@@ -243,7 +244,7 @@ export async function POST(req: NextRequest) {
           ? { widgetClientId: convDoc.widgetClientId, widgetClientName: convDoc.widgetClientName ?? null, widgetRef: convDoc.widgetRef ?? null }
           : null);
 
-        const ins = await db.collection('messages').insertOne({
+        const leadDoc = {
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
           appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
           presentationMessage: 'stick', deletedAfter: 0,
@@ -265,9 +266,21 @@ export async function POST(req: NextRequest) {
             ...(leadWidget ? leadWidget : {}),
             timeStamp: now, converted: true, convertedAt: now, source: 'quiz',
           },
-        });
+        };
+        const ins = await db.collection('messages').insertOne(leadDoc as any);
         // Vincular a conversa à lead criada (link simétrico p/ o fluxo de apagar).
         await col.updateOne({ quizSessionId: sessionId }, { $set: { leadId: ins.insertedId.toString() } });
+
+        // CRM de Parceiros: classificar a lead a chegada. So abre consulta se a triagem
+        // a der como nao servivel (Linha B) — e nunca distribui: isso depende da
+        // autorizacao do cliente e da decisao da operadora.
+        //
+        // Esperado, nao lancado em segundo plano: o Next nao garante que uma promessa
+        // solta sobreviva ao fim do pedido, e a triagem simplesmente nao acontecia. A
+        // espera nao custa nada a ninguem — o quiz manda isto por `sendBeacon` e nunca
+        // espera pela resposta. E `triarLeadNova` nao lanca, portanto nao pode fazer
+        // perder a lead.
+        await triarLeadNova(db, ins.insertedId.toString(), leadDoc.leadData);
       } else {
         // Já havia lead para esta conversa — tipicamente criada a partir da inbox, quando
         // a operadora a marcou como registada com os dados parciais. Não se cria uma
@@ -306,6 +319,19 @@ export async function POST(req: NextRequest) {
 
           try {
             await db.collection('messages').updateOne({ _id: new ObjectId(String(existente.leadId)) }, { $set: set });
+
+            // Triar tambem aqui. Esta lead ja existia — foi criada a partir da inbox,
+            // quando a operadora registou o contacto antes de a pessoa terminar — e so
+            // AGORA ganhou o material e o peso, que e o que a triagem precisa. Sem isto,
+            // uma lead de mudancas registada a meio do quiz nunca chegava ao CRM.
+            //
+            // A `consultaDeLead` nao duplica: se ja houver consulta para esta lead,
+            // devolve a que existe.
+            await triarLeadNova(db, String(existente.leadId), {
+              origem: d.origem, destino: d.destino,
+              urgencia: urMap[d.urgencia] ?? d.urgencia,
+              viatura, material: d.material, weightKg: totalKg, volumes: d.volumes,
+            });
           } catch { /* leadId inválido ou lead apagada: nada a actualizar */ }
         }
       }

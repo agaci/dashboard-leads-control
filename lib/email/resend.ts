@@ -2,7 +2,10 @@ import { Resend } from 'resend';
 
 const FROM    = process.env.ALERT_FROM_EMAIL ?? 'YourBox <noreply@yourbox.com.pt>';
 const TO      = (process.env.ALERT_EMAIL ?? '').split(',').map(e => e.trim()).filter(Boolean);
-const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.yourbox.com.pt').replace(/\/$/, '');
+// leads.comgo.pt e o dominio de producao. O fallback so entra se NEXT_PUBLIC_APP_URL
+// faltar no ambiente — e nesse caso todos os links dos emails tem de continuar a bater
+// no sitio certo. Estava aqui leads.yourbox.com.pt, que nao serve a aplicacao.
+const APP_URL = (process.env.NEXT_PUBLIC_APP_URL ?? 'https://leads.comgo.pt').replace(/\/$/, '');
 
 // Email de reengajamento — enviado AO VISITANTE que comecou o quiz e nao concluiu.
 export async function sendQuizNudgeEmail(opts: {
