@@ -33,6 +33,7 @@ import type { PartnerDepot } from '@/types/pricing';
 import { parseEndereco, parseContacto, formatEndereco, formatContacto } from '@/lib/agent/addressParser';
 import type { ConversationData } from '@/types/agent';
 import type { PartnerTariff } from '@/types/partner';
+import { esc } from '@/lib/html';
 
 function businessHoursContactWA(): string {
   const l = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Lisbon' }));
@@ -234,7 +235,7 @@ export async function POST(request: NextRequest) {
           ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
-          message: `<div><p><b>ESCALAMENTO — PESO/VOLUME 24H</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>${kgNV}kg em ${nVol} vol. (${kgPerVol}kg/vol > limite ${maxVolKgNV}kg)</p></div>`,
+          message: `<div><p><b>ESCALAMENTO — PESO/VOLUME 24H</b></p><p>${esc(telemovel)}</p><p>${esc(conv.data.origem ?? '?')} → ${esc(conv.data.destino ?? '?')}</p><p>${esc(kgNV)}kg em ${esc(nVol)} vol. (${esc(kgPerVol)}kg/vol > limite ${esc(maxVolKgNV)}kg)</p></div>`,
           companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Peso/Volume', variante: 'BOT',
           timeStamp: new Date(), closed: false, reply: [],
           leadData: { ...conv.data, nVolumes: nVol, telefone: telemovel, converted: false, source: 'whatsapp_volume_limit' },
@@ -257,7 +258,7 @@ export async function POST(request: NextRequest) {
           ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
-          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado</p></div>`,
+          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${esc(telemovel)}</p><p>${esc(conv.data.origem ?? '?')} → ${esc(conv.data.destino ?? '?')}</p><p>Lead necessita entrega ao sábado</p></div>`,
           companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Entrega Sábado', variante: 'BOT',
           timeStamp: new Date(), closed: false, reply: [],
           leadData: { ...conv.data, telefone: telemovel, converted: false, source: 'whatsapp_saturday_delivery' },
@@ -458,7 +459,7 @@ export async function POST(request: NextRequest) {
           const simResult = await db.collection('messages').insertOne({
             company: 'Yourbox', messageType: 'preLeadSimulation', to: 'admin', toPrivate: null,
             presentationMessage: 'stick', deletedAfter: 10000,
-            message: `<div style="line-height:1.4;"><p><b>SIM BOT</b> <small>(${timeStamp})</small></p><p>${conv.data.origem} → ${conv.data.destino}</p><p><b>Viatura:</b> ${conv.data.viatura} | <b>Urgencia:</b> ${conv.data.urgencia}</p><p><b>Preco:</b> €${priceCalculated.toFixed(2)} | <b>10% OFF:</b> €${priceWithDiscount.toFixed(2)}</p></div>`,
+            message: `<div style="line-height:1.4;"><p><b>SIM BOT</b> <small>(${timeStamp})</small></p><p>${esc(conv.data.origem)} → ${esc(conv.data.destino)}</p><p><b>Viatura:</b> ${esc(conv.data.viatura)} | <b>Urgencia:</b> ${esc(conv.data.urgencia)}</p><p><b>Preco:</b> €${esc(priceCalculated.toFixed(2))} | <b>10% OFF:</b> €${esc(priceWithDiscount.toFixed(2))}</p></div>`,
             companyProvider: 'Yourbox', senderName: 'Bot Agent', variante: 'BOT',
             timeStamp: new Date(), closed: false, closedAt: new Date(), reply: [],
             leadData: { origem: conv.data.origem, destino: conv.data.destino, viatura: conv.data.viatura, urgencia: conv.data.urgencia, priceCalculated, priceWithDiscount, discount, distance: fixResult.distanciaFinal, telemovel, converted: false, source: 'bot' },
@@ -574,7 +575,7 @@ export async function POST(request: NextRequest) {
         await db.collection('messages').insertOne({
           company: 'Yourbox', messageType: 'preLeadSimulation', to: 'admin', toPrivate: null,
           presentationMessage: 'stick', deletedAfter: 10000,
-          message: `<div style="line-height:1.4;"><p><b>SIM BOT ARRASTO</b> <small>(${timeStamp})</small></p><p>${conv.data.origem} → ${conv.data.destino}</p><p><b>Peso:</b> ${kg}kg | <b>Urgencia:</b> Amanha</p><p><b>Janela recomendada:</b> ${recommended.serviceLabelShort}</p><p><b>Preco:</b> €${recommended.finalPrice.toFixed(2)}</p></div>`,
+          message: `<div style="line-height:1.4;"><p><b>SIM BOT ARRASTO</b> <small>(${timeStamp})</small></p><p>${esc(conv.data.origem)} → ${esc(conv.data.destino)}</p><p><b>Peso:</b> ${esc(kg)}kg | <b>Urgencia:</b> Amanha</p><p><b>Janela recomendada:</b> ${esc(recommended.serviceLabelShort)}</p><p><b>Preco:</b> €${esc(recommended.finalPrice.toFixed(2))}</p></div>`,
           companyProvider: 'Yourbox', senderName: 'Bot Agent', variante: 'BOT',
           timeStamp: new Date(), closed: false, closedAt: new Date(), reply: [],
           leadData: { origem: conv.data.origem, destino: conv.data.destino, urgencia: '24 Horas', serviceType: 'arrasto', weightKg: kg, partnerWindow: recommended.deliveryWindow, partnerFinalPrice: recommended.finalPrice, telemovel, converted: false, source: 'bot' },
@@ -811,7 +812,7 @@ export async function POST(request: NextRequest) {
         ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${volumesHtml}${moradaRecolhaHtml}${moradaEntregaHtml}${notasHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${esc(telemovel)}</p><p>${esc(nome)}</p>${conv.data.email ? `<p>${esc(conv.data.email)}</p>` : ''}<p>${esc(conv.data.origem)} → ${esc(conv.data.destino)}</p>${esc(serviceInfo)}${volumesHtml}${moradaRecolhaHtml}${moradaEntregaHtml}${notasHtml}<p><b>Preco Final:</b> €${esc(finalPrice?.toFixed(2))}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent', variante: 'BOT',
         timeStamp: new Date(), closed: false, closedAt: null, reply: [],
         leadData: {
@@ -849,7 +850,7 @@ export async function POST(request: NextRequest) {
         ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div><p><b>PEDIDO DE ANÁLISE DE AGREGAÇÃO</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p></div>`,
+        message: `<div><p><b>PEDIDO DE ANÁLISE DE AGREGAÇÃO</b></p><p>${esc(telemovel)}</p><p>${esc(conv.data.origem ?? '?')} → ${esc(conv.data.destino ?? '?')}</p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot WhatsApp — Pedido Agregação', variante: 'BOT',
         timeStamp: new Date(), closed: false, reply: [],
         leadData: { ...conv.data, telefone: telemovel, converted: false, source: 'whatsapp_agg_request' },
@@ -862,7 +863,7 @@ export async function POST(request: NextRequest) {
         ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div><p><b>ESCALAMENTO BOT</b></p><p>${telemovel}</p><p>${conv.data.origem ?? '?'} → ${conv.data.destino ?? '?'}</p><p>SIT: ${conv.data.activeSituacaoId ?? 'n/a'}</p></div>`,
+        message: `<div><p><b>ESCALAMENTO BOT</b></p><p>${esc(telemovel)}</p><p>${esc(conv.data.origem ?? '?')} → ${esc(conv.data.destino ?? '?')}</p><p>SIT: ${esc(conv.data.activeSituacaoId ?? 'n/a')}</p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent — Escalamento', variante: 'BOT',
         timeStamp: new Date(), closed: false, reply: [],
         leadData: { ...conv.data, telefone: telemovel, converted: false, source: 'bot_escalation' },

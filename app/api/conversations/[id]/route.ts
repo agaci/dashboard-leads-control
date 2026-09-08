@@ -5,6 +5,7 @@ import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
 import { dispatchNotification } from '@/lib/notifications/dispatch';
 import { checkDeleteCode } from '@/lib/deleteGuard';
+import { esc } from '@/lib/html';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -196,7 +197,7 @@ async function criarLeadDaConversa(db: any, oid: ObjectId, motivo: string | null
     company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
     appSource: 'leads-control',
     presentationMessage: 'stick', deletedAfter: 0,
-    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${telefone ?? ''}</p><p>${d.nome ?? ''}</p>${email ? `<p>${email}</p>` : ''}<p>${d.origem ?? ''} &rarr; ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urgencia ?? '—'}</p>${cargaHtml}${motivo ? `<p><b>Motivo:</b> ${motivo}</p>` : ''}<p style="color:green;"><b>CONTACTAR AGORA [canal: INBOX]</b></p></div>`,
+    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${esc(telefone ?? '')}</p><p>${esc(d.nome ?? '')}</p>${email ? `<p>${esc(email)}</p>` : ''}<p>${esc(d.origem ?? '')} &rarr; ${esc(d.destino ?? '')}</p><p><b>Urgência:</b> ${esc(urgencia ?? '—')}</p>${cargaHtml}${motivo ? `<p><b>Motivo:</b> ${esc(motivo)}</p>` : ''}<p style="color:green;"><b>CONTACTAR AGORA [canal: INBOX]</b></p></div>`,
     companyProvider: 'Yourbox', senderName: 'Inbox', variante: conv.quizVariante ?? 'INBOX',
     timeStamp: now, closed: false, closedAt: null, reply: [],
     // O motivo escolhido na inbox viaja para a lead — fica visível no detalhe dela

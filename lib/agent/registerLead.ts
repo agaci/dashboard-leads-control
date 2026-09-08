@@ -3,6 +3,7 @@ import type { Conversation } from '@/types/agent';
 import { closeConversation } from './conversationState';
 import { buildLeadRegisteredMessage } from './botResponder';
 import { formatEndereco, formatContacto } from './addressParser';
+import { esc } from '@/lib/html';
 
 export async function registerLead(
   db: Db,
@@ -47,7 +48,7 @@ export async function registerLead(
     toPrivate: null,
     presentationMessage: 'stick',
     deletedAfter: 0,
-    message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${telemovel}</p><p>${nome}</p>${conv.data.email ? `<p>${conv.data.email}</p>` : ''}<p>${conv.data.origem} → ${conv.data.destino}</p>${serviceInfo}${moradaRecolhaHtml}${moradaEntregaHtml}${pagamentoHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
+    message: `<div style="line-height:1.4;"><p><b>LEAD BOT</b> <small>(${timeStamp})</small></p><p>${esc(telemovel)}</p><p>${esc(nome)}</p>${conv.data.email ? `<p>${esc(conv.data.email)}</p>` : ''}<p>${esc(conv.data.origem)} → ${esc(conv.data.destino)}</p>${esc(serviceInfo)}${moradaRecolhaHtml}${moradaEntregaHtml}${pagamentoHtml}<p><b>Preco Final:</b> €${finalPrice?.toFixed(2)}</p><p style="color:green;"><b>CONTACTAR AGORA [canal: BOT]</b></p></div>`,
     companyProvider: 'Yourbox',
     senderName: 'Bot Agent',
     variante: 'BOT',

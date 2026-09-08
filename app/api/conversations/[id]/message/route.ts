@@ -11,6 +11,7 @@ import { build24hPriceHeader, isPortugueseHoliday, getLisbonNow } from '@/lib/ut
 import { dispatchNotification } from '@/lib/notifications/dispatch';
 import type { PartnerTariff } from '@/types/partner';
 import type { PartnerDepot } from '@/types/pricing';
+import { esc } from '@/lib/html';
 
 function toOid(id: string) {
   try { return new ObjectId(id); } catch { return null; }
@@ -350,7 +351,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           ...(widgetStamp ? widgetStamp : {}),
           company: 'Yourbox', messageType: 'newLead', to: 'admin',
           presentationMessage: 'stick', deletedAfter: 0,
-          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Lead necessita entrega ao sábado (fora de dias úteis do parceiro)</p></div>`,
+          message: `<div><p><b>ESCALAMENTO — ENTREGA SÁBADO</b></p><p>${esc(convDoc.data.origem ?? '?')} → ${esc(convDoc.data.destino ?? '?')}</p><p>Lead necessita entrega ao sábado (fora de dias úteis do parceiro)</p></div>`,
           companyProvider: 'Yourbox', senderName: 'Bot Web — Entrega Sábado', variante: 'BOT',
           timeStamp: now, closed: false, reply: [],
           leadData: { ...convDoc.data, converted: false, source: 'web_chat_saturday_delivery' },
@@ -544,7 +545,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin',
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div><p><b>${isAggRequest ? 'PEDIDO DE ANÁLISE DE AGREGAÇÃO' : 'ESCALAMENTO WEB BOT'}</b></p><p>${convDoc.data.origem ?? '?'} → ${convDoc.data.destino ?? '?'}</p><p>Motivo: ${result.reason}</p></div>`,
+        message: `<div><p><b>${esc(isAggRequest ? 'PEDIDO DE ANÁLISE DE AGREGAÇÃO' : 'ESCALAMENTO WEB BOT')}</b></p><p>${esc(convDoc.data.origem ?? '?')} → ${esc(convDoc.data.destino ?? '?')}</p><p>Motivo: ${esc(result.reason)}</p></div>`,
         companyProvider: 'Yourbox', senderName: isAggRequest ? 'Bot Web — Pedido Agregação' : 'Bot Web — Escalamento', variante: 'BOT',
         timeStamp: now, closed: false, reply: [],
         leadData: { ...convDoc.data, converted: false, source: isAggRequest ? 'web_chat_agg_request' : 'web_chat_escalation' },
@@ -599,7 +600,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         ...(widgetStamp ? widgetStamp : {}),
         company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
         presentationMessage: 'stick', deletedAfter: 0,
-        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${convDoc.data.origem} → ${convDoc.data.destino}</p>${serviceInfo}<p><b>Nome:</b> ${nome}</p><p><b>Telefone:</b> ${telefone}</p>${email ? `<p><b>Email:</b> ${email}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${finalPrice?.toFixed(2) ?? '?'}</p>` : ''}<p style="color:${isEscalatedCase ? 'orange' : 'green'};"><b>CONTACTAR [canal: ${canalLabel}]</b></p></div>`,
+        message: `<div style="line-height:1.4;"><p><b>LEAD BOT WEB</b> <small>(${timeStamp})</small></p><p>${esc(convDoc.data.origem)} → ${esc(convDoc.data.destino)}</p>${esc(serviceInfo)}<p><b>Nome:</b> ${esc(nome)}</p><p><b>Telefone:</b> ${esc(telefone)}</p>${email ? `<p><b>Email:</b> ${esc(email)}</p>` : ''}${volumesHtml}${origemHtml}${contactoRecolhaHtml}${destinoHtml}${contactoEntregaHtml}${notasHtml}${!isEscalatedCase ? `<p><b>Preço Final:</b> €${esc(finalPrice?.toFixed(2) ?? '?')}</p>` : ''}<p style="color:${esc(isEscalatedCase ? 'orange' : 'green')};"><b>CONTACTAR [canal: ${esc(canalLabel)}]</b></p></div>`,
         companyProvider: 'Yourbox', senderName: 'Bot Agent Web', variante: 'BOT',
         timeStamp: now, closed: false, closedAt: null, reply: [],
         leadData: leadDataToInsert,

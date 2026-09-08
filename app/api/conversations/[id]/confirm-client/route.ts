@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { ObjectId } from 'mongodb';
+import { esc } from '@/lib/html';
 
 // Confirmar (ou dispensar) uma sugestão "provável cliente" numa conversa do inbox.
 //   POST { action: 'confirm' | 'dismiss' }  (autenticado)
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const leadDoc = {
     company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
     appSource: 'leads-control', presentationMessage: 'stick', deletedAfter: 0,
-    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox &rarr; cliente)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone}</p><p>${nome ?? ''}</p>${email ? `<p>${email}</p>` : ''}<p>${d.origem ?? ''} &rarr; ${d.destino ?? ''}</p>${serviceNr ? `<p><b>Serviço YourBox nr:</b> ${serviceNr}</p>` : ''}<p style="color:green;"><b>CONFIRMADO CLIENTE</b></p></div>`,
+    message: `<div style="line-height:1.4;"><p><b>LEAD (inbox &rarr; cliente)</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${esc(realPhone)}</p><p>${esc(nome ?? '')}</p>${email ? `<p>${esc(email)}</p>` : ''}<p>${esc(d.origem ?? '')} &rarr; ${esc(d.destino ?? '')}</p>${serviceNr ? `<p><b>Serviço YourBox nr:</b> ${esc(serviceNr)}</p>` : ''}<p style="color:green;"><b>CONFIRMADO CLIENTE</b></p></div>`,
     companyProvider: 'Yourbox', senderName: 'Inbox->Cliente', variante,
     timeStamp: now, closed: false, closedAt: null, reply: [],
     ...(widget ? widget : {}),

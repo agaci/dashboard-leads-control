@@ -37,6 +37,17 @@ export async function GET(request: NextRequest) {
     const leadId = searchParams.get('leadId');
     if (leadId) filtro['origem.leadId'] = leadId;
 
+    // Periodo. Mesmos nomes de parametro que /api/leads usa, para a listagem do CRM e a
+    // das Leads se filtrarem da mesma maneira.
+    const dateFrom = searchParams.get('dateFrom');
+    const dateTo = searchParams.get('dateTo');
+    if (dateFrom || dateTo) {
+      const range: Record<string, Date> = {};
+      if (dateFrom) range.$gte = new Date(dateFrom);
+      if (dateTo) range.$lte = new Date(dateTo);
+      filtro.createdAt = range;
+    }
+
     const db = await getDb();
     const [docs, total] = await Promise.all([
       db.collection('crm_consultas').find(filtro).sort({ createdAt: -1 }).skip(skip).limit(limite).toArray() as Promise<any[]>,

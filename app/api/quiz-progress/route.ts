@@ -4,6 +4,7 @@ import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
 import { explainWidgetAttribution } from '@/lib/widget/attribution';
 import { triarLeadNova } from '@/lib/crm/entrada';
+import { esc } from '@/lib/html';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
 // "conversa" na colecção conversations, para aparecer na vista de Conversas do
@@ -231,7 +232,7 @@ export async function POST(req: NextRequest) {
           d.material ? `Material: ${d.material}` : null,
           d.embalado || null,
         ].filter(Boolean);
-        const cargaHtml = partesCarga.length > 1 ? `<p><b>Carga:</b> ${partesCarga.join(' · ')}</p>` : '';
+        const cargaHtml = partesCarga.length > 1 ? `<p><b>Carga:</b> ${esc(partesCarga.join(' · '))}</p>` : '';
 
         // Atribuição publicitária: a do submit, ou a que já ficou na conversa nos
         // passos anteriores. Sem gclid a lead cria-se na mesma — só não é exportável.
@@ -248,7 +249,11 @@ export async function POST(req: NextRequest) {
           company: 'Yourbox', messageType: 'newLead', to: 'admin', toPrivate: null,
           appSource: 'leads-control', // marcador para a YourBox antiga filtrar esta entrada
           presentationMessage: 'stick', deletedAfter: 0,
-          message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${realPhone ?? ''}</p><p>${d.nome ?? ''}</p>${d.email ? `<p>${d.email}</p>` : ''}<p>${d.origem ?? ''} → ${d.destino ?? ''}</p><p><b>Urgência:</b> ${urg ?? '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
+          // Tudo o que veio do visitante passa por esc(): este HTML e mostrado no
+          // dashboard com dangerouslySetInnerHTML e vai tambem para o leadsBoard do
+          // Meteor. Sem escape, um nome com <img src=x onerror=...> corria no browser
+          // da operadora, com a sessao dela. A marcacao e nossa e nao se escapa.
+          message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${esc(realPhone)}</p><p>${esc(d.nome)}</p>${d.email ? `<p>${esc(d.email)}</p>` : ''}<p>${esc(d.origem)} → ${esc(d.destino)}</p><p><b>Urgência:</b> ${esc(urg) || '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
           companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
           timeStamp: now, closed: false, closedAt: null, reply: [],
           ...(leadAttr ? { attribution: leadAttr, conversionSync: newConversionSync() } : {}),
@@ -258,6 +263,10 @@ export async function POST(req: NextRequest) {
             urgencia: urg, serviceType, viatura, weightKg: totalKg,
             nome: d.nome, email: d.email, telefone: realPhone ?? d.telefone,
             volumes: d.volumes, material: d.material, embalado: d.embalado,
+            // O que a pessoa escreveu por palavras dela. E a unica parte destas
+            // observacoes que nao foi a aplicacao que compos — e por isso a unica
+            // que a triagem pode mesmo ler (lib/crm/categorias.ts).
+            observacoes: d.observacoes ?? null,
             // Dimensoes e peso por volume: existiam na conversa mas nao passavam para a
             // lead, e faziam falta a quem trata dela.
             comprimento: d.comprimento ?? null, largura: d.largura ?? null, altura: d.altura ?? null,
@@ -312,6 +321,7 @@ export async function POST(req: NextRequest) {
           por('serviceType', d.urgencia === '24H' ? 'arrasto' : 'direto');
           por('volumes', d.volumes);
           por('material', d.material);
+          por('observacoes', d.observacoes);
           por('embalado', d.embalado);
           por('weightKg', totalKg);
           por('viatura', viatura);
@@ -331,6 +341,7 @@ export async function POST(req: NextRequest) {
               origem: d.origem, destino: d.destino,
               urgencia: urMap[d.urgencia] ?? d.urgencia,
               viatura, material: d.material, weightKg: totalKg, volumes: d.volumes,
+              observacoes: d.observacoes,
             });
           } catch { /* leadId inválido ou lead apagada: nada a actualizar */ }
         }

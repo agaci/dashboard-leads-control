@@ -186,7 +186,7 @@ export default function CrmPage() {
           ))}
         </nav>
 
-        {aba === 'consultas' && <Consultas labelCategoria={labelCategoria} />}
+        {aba === 'consultas' && <Consultas labelCategoria={labelCategoria} categorias={categorias} />}
         {aba === 'parceiros' && <Parceiros categorias={categorias} />}
         {aba === 'config' && (
           <Configuracao config={config} categorias={categorias} limites={limites} aoGravar={carregarConfig} />
@@ -198,9 +198,31 @@ export default function CrmPage() {
 
 // ── Consultas ────────────────────────────────────────────────────────────────
 
-function Consultas({ labelCategoria }: { labelCategoria: (id: string) => string }) {
+/**
+ * Janelas de tempo. Os mesmos rotulos da lista de Leads, para quem salta de um separador
+ * para o outro nao ter de aprender duas linguagens. Devolve o intervalo em ISO, ou null
+ * quando e "sempre".
+ */
+function periodo(chave: string): { de?: string; ate?: string } | null {
+  const agora = new Date();
+  const meiaNoite = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (chave === 'hoje') return { de: meiaNoite(agora).toISOString() };
+  if (chave === 'ontem') {
+    const ontem = new Date(agora); ontem.setDate(ontem.getDate() - 1);
+    return { de: meiaNoite(ontem).toISOString(), ate: meiaNoite(agora).toISOString() };
+  }
+  if (chave === '7dias') {
+    const d = new Date(agora); d.setDate(d.getDate() - 6);
+    return { de: meiaNoite(d).toISOString() };
+  }
+  return null;
+}
+
+function Consultas({ labelCategoria, categorias }: { labelCategoria: (id: string) => string; categorias: Categoria[] }) {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [filtroRota, setFiltroRota] = useState<'' | 'lead_sale' | 'subcontract'>('lead_sale');
+  const [filtroData, setFiltroData] = useState('sempre');
+  const [filtroCategoria, setFiltroCategoria] = useState('');
   const [aberta, setAberta] = useState<string | null>(null);
   const [aCarregar, setACarregar] = useState(true);
   const [leadId, setLeadId] = useState('');
@@ -209,11 +231,17 @@ function Consultas({ labelCategoria }: { labelCategoria: (id: string) => string 
 
   const carregar = useCallback(async () => {
     setACarregar(true);
-    const qs = filtroRota ? `?route=${filtroRota}` : '';
-    const r = await fetch(`/api/crm/consultas${qs}`).then((x) => x.json()).catch(() => null);
+    const p = new URLSearchParams();
+    if (filtroRota) p.set('route', filtroRota);
+    if (filtroCategoria) p.set('categoria', filtroCategoria);
+    const janela = periodo(filtroData);
+    if (janela?.de) p.set('dateFrom', janela.de);
+    if (janela?.ate) p.set('dateTo', janela.ate);
+    const qs = p.toString();
+    const r = await fetch(`/api/crm/consultas${qs ? '?' + qs : ''}`).then((x) => x.json()).catch(() => null);
     if (r?.success) setConsultas(r.consultas);
     setACarregar(false);
-  }, [filtroRota]);
+  }, [filtroRota, filtroCategoria, filtroData]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
@@ -252,6 +280,20 @@ function Consultas({ labelCategoria }: { labelCategoria: (id: string) => string 
         <button onClick={() => setManual(!manual)} style={botao(manual ? 'neutro' : 'primario')}>
           {manual ? 'Cancelar' : 'Consulta manual'}
         </button>
+        <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', width: '100%' }}>
+          {([['sempre', 'Sempre'], ['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7dias', '7 dias']] as const).map(([k, l]) => (
+            <button key={k} onClick={() => setFiltroData(k)} style={{
+              ...botao(filtroData === k ? 'primario' : 'neutro'), padding: '5px 12px', fontSize: 11,
+            }}>{l}</button>
+          ))}
+          <select style={{ ...INPUT, width: 'auto', minWidth: 190, marginLeft: 'auto' }}
+            value={filtroCategoria} onChange={(e) => setFiltroCategoria(e.target.value)}>
+            <option value="">Todas as categorias</option>
+            {categorias
+              .filter((c) => !filtroRota || c.route === filtroRota)
+              .map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </div>
         {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: 0, width: '100%' }}>{erro}</p>}
       </div>
 
@@ -261,8 +303,9 @@ function Consultas({ labelCategoria }: { labelCategoria: (id: string) => string 
       {!aCarregar && !consultas.length && !manual && (
         <div style={CARD}>
           <p style={{ fontSize: 13, color: 'var(--yb-muted)', margin: 0 }}>
-            Sem consultas. Cole o id de uma lead acima para a triar, ou use a consulta manual
-            para um pedido que chegou por telefone.
+            {filtroData !== 'sempre' || filtroCategoria
+              ? 'Nada neste período ou categoria. Alargue o filtro para ver o resto.'
+              : 'Sem consultas. Cole o id de uma lead acima para a triar, ou use a consulta manual para um pedido que chegou por telefone.'}
           </p>
         </div>
       )}
