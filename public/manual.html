@@ -215,9 +215,69 @@
     }
 
     /* ── Print ── */
+    /* ── Capa: só no PDF ── */
+    .capa { display: none; }
+
+    /* ── Impressão / PDF ──
+       O manual e o PDF saem do mesmo ficheiro. Aqui decide-se o que muda: sai a
+       navegação (num papel não se clica), entra a capa, e cada capítulo começa em
+       página nova. As cores das etiquetas têm de ser forçadas — os browsers imprimem
+       fundos a branco por omissão, e um `badge` sem fundo perde o significado. */
     @media print {
-      .topbar, .sidebar { display: none; }
-      .content { margin-left: 0; padding: 0; }
+      @page { size: A4; margin: 17mm 15mm 16mm; }
+
+      html { scroll-behavior: auto; }
+      body {
+        background: #fff; font-size: 10.5pt; line-height: 1.55;
+        -webkit-print-color-adjust: exact; print-color-adjust: exact;
+      }
+
+      .topbar, .sidebar, .doc-footer { display: none !important; }
+      .layout { display: block; padding-top: 0; }
+      .content { margin-left: 0; padding: 0; max-width: none; }
+      .hero { display: none; }
+
+      .capa {
+        display: flex; flex-direction: column; justify-content: center;
+        min-height: 232mm; page-break-after: always; text-align: left;
+      }
+      .capa-marca {
+        font-size: 9pt; letter-spacing: .22em; text-transform: uppercase;
+        color: var(--cyan); margin-bottom: 10mm; font-weight: 700;
+      }
+      .capa h1 { font-size: 30pt; line-height: 1.05; margin: 0 0 6mm; border: 0; padding: 0; }
+      .capa h1 span { color: var(--cyan); }
+      .capa p { font-size: 12pt; color: var(--muted); max-width: 120mm; margin: 0 0 4mm; }
+      .capa-rodape {
+        margin-top: 14mm; padding-top: 5mm; border-top: 2px solid var(--green);
+        font-size: 9.5pt; color: var(--muted);
+      }
+      .capa-indice { margin-top: 12mm; font-size: 10pt; column-count: 2; column-gap: 10mm; }
+      .capa-indice div { break-inside: avoid; margin-bottom: 2mm; color: var(--text); }
+      .capa-indice strong { color: var(--navy); }
+
+      /* Cada capítulo começa em página nova; o primeiro não desperdiça uma. */
+      .section { page-break-before: always; }
+      .section:first-of-type { page-break-before: avoid; }
+
+      h2 {
+        font-size: 17pt; page-break-after: avoid;
+        border-bottom: 2px solid var(--green); padding-bottom: 2mm;
+      }
+      h3 { font-size: 12.5pt; page-break-after: avoid; margin-top: 6mm; }
+      h4 { font-size: 11pt; page-break-after: avoid; }
+      p, li { orphans: 3; widows: 3; }
+
+      /* Nada de partir uma tabela, um aviso ou um cartão a meio. */
+      .table-wrap, .callout, .card, .step, .states { page-break-inside: avoid; }
+      table { page-break-inside: auto; font-size: 9.5pt; }
+      thead { display: table-header-group; }
+      tr { page-break-inside: avoid; }
+      .cards { display: block; }
+      .card { margin-bottom: 4mm; }
+
+      a { color: var(--text); text-decoration: none; }
+      .badge, .state-pill { border: 1px solid rgba(0,0,0,.12); }
     }
   </style>
 </head>
@@ -229,6 +289,7 @@
     YourBox <span>Dashboard</span>
   </a>
   <div class="topbar-links">
+    <a class="topbar-link" href="/manual.pdf" download>Descarregar PDF</a>
     <a class="topbar-link" href="/roadmap.html" target="_blank">Roadmap</a>
     <a class="topbar-link back" href="/dashboard">← Voltar à App</a>
   </div>
@@ -249,6 +310,10 @@
     <a href="#visitas">Visitas ao Site</a>
     <a href="#leads">Leads</a>
     <a href="#clientes">Clientes</a>
+    <a href="#crm">CRM de Parceiros</a>
+    <a href="#crm-parceiros">Parceiros e Capacidades</a>
+    <a href="#angariacao">Angariação de Parceiros</a>
+    <a href="#emails">Emails da Plataforma</a>
     <a href="#precos">Preços e Motor</a>
     <a href="#baseIA">Base IA</a>
     <a href="#agregacoes">Agregações</a>
@@ -281,11 +346,38 @@
 <div class="layout">
   <main class="content">
 
+    <!-- Capa do PDF. Escondida no ecrã: quem lê no browser tem a barra lateral. -->
+    <div class="capa">
+      <div class="capa-marca">Manual de Utilizador &middot; versão 1.8</div>
+      <h1>Dashboard <span>YourBox</span></h1>
+      <p>Guia completo para gestão de leads, conversas, bot IA, preços, CRM de Parceiros
+      e angariação.</p>
+      <p>Tudo o que a plataforma faz, e porque é que faz assim.</p>
+      <div class="capa-indice">
+        <div><strong>1.</strong> Introdução, acesso e navegação</div>
+        <div><strong>2.</strong> Inbox e funil do quiz</div>
+        <div><strong>3.</strong> Visitas, leads e clientes</div>
+        <div><strong>4.</strong> CRM de Parceiros</div>
+        <div><strong>5.</strong> Parceiros e capacidades</div>
+        <div><strong>6.</strong> Angariação de parceiros</div>
+        <div><strong>7.</strong> Emails da plataforma</div>
+        <div><strong>8.</strong> Preços e motor de cálculo</div>
+        <div><strong>9.</strong> Base IA e agregações</div>
+        <div><strong>10.</strong> Relatórios e widgets</div>
+        <div><strong>11.</strong> Configuração e bot</div>
+        <div><strong>12.</strong> Integrações e referência</div>
+      </div>
+      <div class="capa-rodape">
+        YourBox &mdash; estafetas e transportes<br>
+        leads.comgo.pt/dashboard
+      </div>
+    </div>
+
     <!-- Hero -->
     <div class="hero">
-      <div class="hero-badge">MANUAL DE UTILIZADOR v1.7</div>
+      <div class="hero-badge">MANUAL DE UTILIZADOR v1.8</div>
       <h1>Dashboard <span>YourBox</span></h1>
-      <p>Guia completo para gestão de leads, conversas, bot IA, preços e configurações da plataforma.</p>
+      <p>Guia completo para gestão de leads, conversas, bot IA, preços, CRM de Parceiros e angariação. Tudo o que a plataforma faz, e porque é que faz assim.</p>
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
@@ -336,7 +428,13 @@
     <div class="section">
       <h2>Layout e Navegação</h2>
       <h3>Barra lateral (Desktop)</h3>
-      <p>No desktop, a navegação é feita pela barra lateral esquerda com ícones e etiquetas. Cada ícone corresponde a um módulo:</p>
+      <p>No desktop, a navegação é feita pela barra lateral esquerda. Cada ícone vem
+      <strong>acompanhado do nome</strong> — um ícone sozinho obriga a passar o rato por cima
+      para descobrir o que faz, e isso repete-se todos os dias.</p>
+      <p>O botão junto ao logótipo <strong>encolhe a barra</strong> para só ícones, quando fizer
+      falta a largura. A escolha fica guardada no browser e não se perde na sessão seguinte;
+      encolhida, voltam as legendas ao passar o rato.</p>
+      <p>Cada entrada corresponde a um módulo:</p>
       <div class="table-wrap">
         <table>
           <thead><tr><th>Ícone / Etiqueta</th><th>Módulo</th><th>Descrição rápida</th></tr></thead>
@@ -349,10 +447,19 @@
             <tr><td>Base IA</td><td>Situações de conhecimento</td><td>100+ situações para o bot</td></tr>
             <tr><td>Agreg.</td><td>Agregações</td><td>Sugestões de viatura partilhada</td></tr>
             <tr><td>Relatórios</td><td>Analytics</td><td>Gráficos e métricas de performance</td></tr>
+            <tr><td>CRM Parceiros</td><td>Venda de leads não servíveis</td><td>Consultas, parceiros, angariação e emails</td></tr>
             <tr><td>Widgets</td><td>Gestão de widgets</td><td>Formulários para sites externos</td></tr>
+            <tr><td>Atribuição</td><td>Google Ads</td><td>Cobertura de gclid e exportação de conversões</td></tr>
             <tr><td>Perfil</td><td>Configurações</td><td>Conta, notificações, roteamento</td></tr>
           </tbody>
         </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">!</span>
+        <div>O separador aberto fica no endereço. <code>/dashboard?tab=crm</code> abre
+        directamente no CRM, um F5 já não devolve sempre a Inbox, e dá para mandar a alguém o
+        link de um separador.</div>
       </div>
 
       <h3>Barra de navegação móvel</h3>
@@ -660,6 +767,459 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════════════════════ -->
+
+    <!-- ══════════════ CRM DE PARCEIROS ══════════════ -->
+    <span class="section-anchor" id="crm"></span>
+    <div class="section">
+      <h2>CRM de Parceiros</h2>
+      <p>Cerca de metade dos pedidos que chegam ao site <strong>não são serviços que a YourBox
+      faça</strong> — mudanças, transporte de viaturas, cargas fora de gabarito, mercadoria
+      perigosa. Antes, esses pedidos eram recusados e perdiam-se. O CRM de Parceiros existe
+      para os transformar em receita: são vendidos a empresas especializadas que os fazem.</p>
+
+      <div class="callout info">
+        <span class="callout-icon">i</span>
+        <div><strong>Duas linhas, e a diferença é de quem fica o cliente.</strong><br>
+        <strong>Linha A — subcontratação:</strong> a YourBox faz o serviço, com transportadora
+        parceira. O cliente continua nosso e somos nós a facturar.<br>
+        <strong>Linha B — venda de lead:</strong> o pedido é vendido a uma empresa
+        especializada, que contacta o cliente e lhe apresenta o seu próprio preço. A YourBox
+        deixa de tratar desse serviço.</div>
+      </div>
+
+      <h3>Como uma lead chega ao CRM</h3>
+      <p>Assim que uma lead nasce no quiz, a <strong>triagem</strong> lê o que a pessoa
+      preencheu — tipo de material, peso, dimensões, urgência e o texto livre — e decide a
+      que categoria pertence. Se a categoria for da Linha B, abre-se automaticamente uma
+      <strong>consulta</strong> no separador <em>Consultas</em>.</p>
+      <p>Uma lead servível não gera consulta nenhuma: segue o caminho de sempre e não deve
+      ganhar ruído por causa disto.</p>
+
+      <div class="callout tip">
+        <span class="callout-icon">!</span>
+        <div>A triagem nunca faz perder uma lead. Se falhar, a lead entra na mesma e fica
+        carimbada com o motivo da falha — dá para a triar à mão colando o id no campo
+        <em>Triar uma lead existente</em>.</div>
+      </div>
+
+      <h3>Estados de uma consulta</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Estado</th><th>O que significa</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-navy">triada</span></td><td>Classificada. À espera da autorização do cliente.</td></tr>
+            <tr><td><span class="badge badge-cyan">qualificada</span></td><td>Cliente autorizou. Pode ser distribuída.</td></tr>
+            <tr><td><span class="badge badge-green">distribuída</span></td><td>Enviada a um parceiro e cobrada da carteira dele.</td></tr>
+            <tr><td><span class="badge badge-green">entregue</span></td><td>O parceiro recebeu e confirmou.</td></tr>
+            <tr><td><span class="badge">em_reporte</span></td><td>À espera de o parceiro dizer como correu.</td></tr>
+            <tr><td><span class="badge">fechada</span></td><td>Ciclo terminado.</td></tr>
+            <tr><td><span class="badge badge-orange">recusada</span></td><td>O parceiro contestou dentro das 24h e recuperou o crédito. Volta ao mercado.</td></tr>
+            <tr><td><span class="badge badge-red">expirada</span></td><td>Fim de linha: o cliente não autorizou, ou o prazo passou.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>A autorização do cliente — o portão de RGPD</h3>
+      <p>Uma lead da Linha B <strong>não pode ser distribuída sem autorização do cliente</strong>.
+      Não é uma norma que alguém se possa esquecer de cumprir: é um portão no código, e a
+      distribuição recusa-se a correr sem ela.</p>
+      <p>O texto que se lê ao cliente é <strong>fixo e versionado</strong>. Fica copiado dentro
+      de cada autorização, porque demonstrar o consentimento não é dizer "ela autorizou" — é
+      conseguir mostrar o que a pessoa ouviu antes de dizer que sim.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Via</th><th>Como acontece</th><th>Força da prova</th></tr></thead>
+          <tbody>
+            <tr><td><strong>telefone</strong></td><td>A gerente de conta lê o guião na chamada e regista.</td><td>Guião + quem registou + quando.</td></tr>
+            <tr><td><strong>email</strong></td><td>O cliente autorizou por escrito, e a gerente regista esse facto.</td><td>Igual, mas a prova documental fica fora do sistema.</td></tr>
+            <tr><td><strong>link_email</strong></td><td>O próprio cliente carregou no botão do email automático.</td><td><strong>A mais forte.</strong> Ninguém transcreveu nada.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <div><strong>Gravar a chamada não é preciso — e piora.</strong> O RGPD exige que se
+        consiga <em>demonstrar</em> o consentimento, não que se grave a conversa. Gravar
+        obrigaria a pedir consentimento para a própria gravação, com regras de retenção
+        próprias.</div>
+      </div>
+
+      <h4>Autorização automática por email</h4>
+      <p>No cimo do separador <em>Consultas</em> há um interruptor:
+      <strong>Autorização por email</strong>. Ligado, uma lead da Linha B recebe sozinha, no
+      momento em que é classificada, um email a pedir a autorização.</p>
+      <p>Existe para as horas em que não há ninguém: de madrugada e ao fim-de-semana a lead
+      ficava parada até alguém chegar, e um pedido de transporte tem prazo de validade curto.</p>
+      <p><strong>Desligue-o quando estiver ao balcão.</strong> A chamada fecha melhor, e as
+      duas coisas ao mesmo tempo são o cliente a ser abordado duas vezes pelo mesmo assunto.
+      O sistema nunca escreve a quem já autorizou, e nunca insiste: um pedido por lead.</p>
+
+      <div class="callout info">
+        <span class="callout-icon">i</span>
+        <div>O link do email <strong>não autoriza ao ser aberto</strong> — abre uma página onde
+        o texto aparece outra vez e só aí há botões. Muitos servidores de email abrem as
+        ligações das mensagens antes de o destinatário as ler, à procura de malware; um link
+        de um passo daria consentimento por conta de um antivírus.</div>
+      </div>
+
+      <h3>Distribuir e cobrar</h3>
+      <p>Com a autorização registada, o botão <strong>Distribuir</strong> mostra primeiro uma
+      pré-visualização: que parceiros servem esta consulta, por que ordem, e — o mais útil —
+      <strong>quem ficou de fora e porquê</strong>. Sem saldo, não cobre a zona, já contestou
+      esta lead, capacidade inactiva.</p>
+      <p>Ao confirmar, o valor da lead é debitado da carteira do parceiro e a lead segue-lhe
+      por email ou WhatsApp. Se o envio falhar, o valor é estornado — não há cobrança sem
+      entrega.</p>
+      <p>Cada lead vai a <strong>uma empresa só</strong>. Não é um leilão, e é isso que a torna
+      valiosa para quem a compra.</p>
+
+      <h3>Janela de recusa e reporte</h3>
+      <p>O parceiro tem <strong>24 horas</strong> para contestar uma lead inválida — contacto
+      errado, duplicada, fora do âmbito dele — e recupera o crédito. É de propósito fácil:
+      são os negativos que medem a qualidade das leads, e um formulário difícil não produziria
+      dado nenhum.</p>
+      <p>Depois, o parceiro reporta como correu: fechou, não fechou, ou não chegou a
+      realizar-se. Quem reporta sobe no ranking e recebe mais leads.</p>
+
+      <h3>Follow-up ao cliente</h3>
+      <p>48 horas depois da entrega, o cliente recebe uma pergunta de um toque:
+      <em>"Conseguiu resolver o seu transporte?"</em>. É a única medida independente que temos
+      da qualidade do serviço dos parceiros.</p>
+      <p>Quando o parceiro diz que a lead era inválida e o cliente diz que ficou resolvida, a
+      consulta fica marcada como <strong>contradição</strong> — e não age sozinha. O cliente
+      pode ter resolvido com outra empresa qualquer, e cobrar à força por uma inferência
+      estragaria a relação com um parceiro honesto.</p>
+
+      <h3>Reclassificar uma lead</h3>
+      <p>A triagem lê o formulário; a gerente de conta fala com a pessoa. Ao telefone
+      descobrem-se coisas que nenhum formulário apanha — o piano é de cauda, o carro não pega,
+      a mudança é de um quinto andar sem elevador.</p>
+      <p>No detalhe da lead, uma lead servível mostra a linha
+      <em>"Não conseguimos fazer — passar para parceiros"</em>. E uma lead da Linha B mostra o
+      inverso: <em>"Categoria errada, ou afinal fazemos nós"</em>.</p>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>O que se pede</th><th>Porquê</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Categoria</strong>, escolhida à mão</td><td>A triagem já errou uma vez neste caso. E é a categoria que decide que parceiros recebem e quanto custa.</td></tr>
+            <tr><td><strong>Motivo</strong>, obrigatório</td><td>É o único sítio onde fica escrito porque é que a triagem falhou. Ao fim de umas dezenas, as regras corrigem-se com dados.</td></tr>
+            <tr><td>A autorização, logo a seguir</td><td>A gerente está ao telefone com o cliente nesse instante. É o momento certo.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <div>Depois de a lead sair para um parceiro, deixa de se poder reclassificar: há alguém
+        pago e informado do outro lado. O caminho a partir daí é a janela de recusa.</div>
+      </div>
+
+      <h3>Por servir — a lista de compras da angariação</h3>
+      <p>Cada lead que não se conseguiu vender diz, com precisão, que parceiro falta. O
+      separador <strong>Por servir</strong> agrupa-as por <em>categoria × zona</em> e ordena
+      por dinheiro perdido.</p>
+      <p>A coluna que mais decide é a do <strong>motivo</strong>:</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Motivo</th><th>O que fazer</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-red">ninguém cobre</span></td><td>Angariar empresas novas nessa categoria e zona.</td></tr>
+            <tr><td><span class="badge badge-orange">sem saldo</span></td><td>Ligar a quem já é parceiro. Não falta rede, falta carteira.</td></tr>
+            <tr><td><span class="badge">já contestada</span></td><td>Caso isolado, não falta de rede.</td></tr>
+            <tr><td><span class="badge">bloqueio interno</span></td><td>Falta o preço, o interruptor, ou a autorização. Nada disto é do mercado.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>Contar "ninguém cobre" e "sem saldo" juntos mandaria as gerentes de conta atrás de
+      mercado quando o problema era uma carteira vazia.</p>
+
+      <h3>Configuração do CRM</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Definição</th><th>O que faz</th></tr></thead>
+          <tbody>
+            <tr><td><strong>CRM activo</strong></td><td>Desligado, nenhuma lead é entregue nem cobrada.</td></tr>
+            <tr><td><strong>Envio automático</strong></td><td>Ligado, uma lead com autorização e parceiro elegível segue sozinha. A autorização é sempre obrigatória, nos dois casos.</td></tr>
+            <tr><td><strong>Autorização por email</strong></td><td>O interruptor descrito acima. Também está no cimo das Consultas.</td></tr>
+            <tr><td><strong>Preço por categoria</strong></td><td>Quanto custa a lead ao parceiro. Uma categoria a zero <em>não é distribuída</em> — é uma decisão explícita, não um esquecimento.</td></tr>
+            <tr><td><strong>Parceiros por lead</strong></td><td>1 = lead exclusiva, que é o que faz a lead valer.</td></tr>
+            <tr><td><strong>Janela de recusa</strong></td><td>Horas que o parceiro tem para contestar. Por omissão 24.</td></tr>
+            <tr><td><strong>Materiais</strong></td><td>As opções do quiz, com CRUD. Cada material diz se é serviço nosso ou de parceiro.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4>Materiais</h4>
+      <p>As opções do campo <em>tipo de material</em> do quiz vêm da base de dados e editam-se
+      aqui. Cada uma declara a que categoria pertence, e é isso que faz a triagem acertar sem
+      depender de adivinhar pelo texto.</p>
+      <p>Um material em uso não se apaga — desactiva-se. Apagar deixaria leads antigas a
+      apontar para uma opção que já não existe.</p>
+    </div>
+
+    <!-- ══════════════ PARCEIROS ══════════════ -->
+    <span class="section-anchor" id="crm-parceiros"></span>
+    <div class="section">
+      <h2>Parceiros e Capacidades</h2>
+      <p>A ficha de um parceiro tem três partes: <strong>quem é</strong>, <strong>o que
+      faz</strong> e <strong>a carteira</strong>.</p>
+
+      <h3>Quem é</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Para que serve</th></tr></thead>
+          <tbody>
+            <tr><td>Nome, NIF, morada</td><td>Identificação. A morada é onde a empresa está — não confundir com o que ela cobre.</td></tr>
+            <tr><td>Telefone e email</td><td>Sem um dos dois não há canal de entrega, e a ficha não se grava.</td></tr>
+            <tr><td><strong>Zonas que serve</strong></td><td>Escolhidas em botões, não escritas. Sem zonas, conta como nacional.</td></tr>
+            <tr><td>Contactos</td><td>Várias pessoas: quem atende, quem decide, e quem recebe as leads.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout tip">
+        <span class="callout-icon">!</span>
+        <div>As zonas escolhem-se em botões de propósito. A zona é uma chave de cruzamento:
+        "Setúbal", "setubal" e "Setubal " são a mesma coisa para quem escreve e três zonas
+        diferentes para a distribuição — e o parceiro que ficasse com a variante errada
+        deixava de receber leads sem ninguém dar por isso.</div>
+      </div>
+
+      <h3>O que faz — capacidades</h3>
+      <p>Uma <strong>capacidade</strong> é uma linha do tipo <em>"faço mudanças, em Setúbal e
+      Lisboa, até 800 kg"</em>. É o que a distribuição cruza com o pedido. Sem capacidades
+      declaradas, o parceiro nunca aparece numa distribuição.</p>
+      <p><strong>As zonas herdam-se.</strong> Uma capacidade sem zonas usa as do parceiro. Assim
+      a cobertura escreve-se uma vez, e só se repete num serviço com alcance diferente — por
+      exemplo mudanças no país todo mas ADR só no Porto.</p>
+
+      <h3>Estados: quem recebe leads</h3>
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <div><strong>Só <span class="badge badge-green">trial</span> e
+        <span class="badge badge-cyan">ativo</span> entram numa distribuição.</strong> Todos os
+        outros — por contactar, contactado, registado, em avaliação, suspenso, descartado,
+        opôs-se — ficam de fora, mesmo com capacidades declaradas.</div>
+      </div>
+
+      <h3>Carteira e score</h3>
+      <p>O parceiro carrega saldo, e cada lead é debitada no momento da entrega. Abaixo do
+      limite configurado recebe um aviso — sem saldo, as leads da área dele passam ao parceiro
+      seguinte.</p>
+      <p>O <strong>score</strong> ordena a fila de distribuição e sai de quatro fontes: se
+      reporta os resultados, se contesta leads válidas, o que o cliente disse no follow-up, e
+      a rapidez de resposta. <strong>Não se edita à mão</strong> — editável, a torneira de
+      leads passava a ser uma questão de simpatia.</p>
+      <p>Um parceiro em <strong>trial</strong> gasta leads grátis em vez de saldo. Não são
+      grátis para nós: são inventário real, e por isso só deve entrar em trial quem cobre uma
+      categoria e zona onde há procura por servir.</p>
+    </div>
+
+    <!-- ══════════════ ANGARIAÇÃO ══════════════ -->
+    <span class="section-anchor" id="angariacao"></span>
+    <div class="section">
+      <h2>Angariação de Parceiros</h2>
+      <p>Trazer empresas novas para a rede. Os prospectos entram <strong>um a um, à mão</strong>,
+      escolhidos por necessidade e por zona, quase sempre com contacto prévio. Cem ao fim de
+      meses é bom resultado.</p>
+      <p>Nada aqui é feito para volume: não há campanhas, não há envios em série, não há
+      cadências automáticas. O que há é o registo cuidado do que foi feito a cada empresa — que
+      é o que falta quando três pessoas mexem na mesma ficha ao longo de meio ano.</p>
+
+      <div class="callout info">
+        <span class="callout-icon">i</span>
+        <div><strong>Por onde começar:</strong> o separador <em>Por servir</em> diz que
+        categoria e que zona estão a perder dinheiro. É essa a ordem por que se deve procurar
+        empresas. Com cem tentativas ao longo de meses, cada uma tem de contar.</div>
+      </div>
+
+      <h3>O funil</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Estado</th><th>O que aconteceu</th><th>Recebe leads?</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge">Por contactar</span></td><td>Está na ficha, ninguém falou com ele.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-navy">Contactado</span></td><td>Houve chamada, email ou reunião.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-navy">Registou-se</span></td><td>Preencheu o formulário e declarou serviços e zonas.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-orange">Em avaliação</span></td><td>A confirmar NIF, alvará e certificações.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-green">Trial</span></td><td>A gastar as leads grátis.</td><td><strong>Sim</strong></td></tr>
+            <tr><td><span class="badge badge-cyan">Activo</span></td><td>Paga da carteira.</td><td><strong>Sim</strong></td></tr>
+            <tr><td><span class="badge">Suspenso</span></td><td>Fora de circulação, sem perder o histórico.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-red">Descartado</span></td><td>Não serve. O motivo fica escrito.</td><td>Não</td></tr>
+            <tr><td><span class="badge badge-red">Opôs-se</span></td><td>Pediu para não ser contactado.</td><td>Nunca</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Nada muda de estado sem motivo escrito.</strong> Para sair do funil
+      (descartado, opôs-se) o motivo tem de ser explícito — um "não" de três letras é
+      indistinguível de um engano daqui a seis meses.</p>
+      <p>Salta-se para a frente quando faz sentido: uma empresa pode preencher o formulário sem
+      ninguém lhe ter ligado. E <strong>descartado volta atrás</strong> quando o contexto muda
+      — abriu delegação numa zona onde agora há procura. Só <em>opôs-se</em> não tem saída.</p>
+
+      <h3>A ficha do prospecto</h3>
+      <p>Dentro da ficha do parceiro há um bloco <strong>Angariação</strong> com três acções e
+      uma linha do tempo.</p>
+
+      <div class="cards">
+        <div class="card">
+          <div class="card-title">Registar contacto</div>
+          <div class="card-desc">Chamada, reunião, email ou nota, com o que aconteceu por
+          palavras de quem lá esteve. Cada uma que fique escrita é uma que a próxima pessoa
+          não vai repetir.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Mudar estado</div>
+          <div class="card-desc">Só mostra os estados para onde aquela ficha pode ir, cada um
+          com a explicação do que significa. Sempre com motivo.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Enviar carta</div>
+          <div class="card-desc">Escolhe-se a situação, preenchem-se as variáveis, e vê-se a
+          carta montada antes de carregar em enviar.</div>
+        </div>
+      </div>
+
+      <p>Na linha do tempo, um email que tenha falhado aparece a vermelho com
+      <strong>NÃO SAIU</strong>. Sem isso, uma carta que o serviço de email recusou ficava
+      indistinguível de uma que chegou, e ficava-se à espera de uma resposta a um email que
+      nunca existiu.</p>
+
+      <h3>As quatro cartas de apresentação</h3>
+      <p>O miolo — o que é a YourBox, como funciona, o que se paga — é igual nas quatro. É a
+      substância da proposta. O que muda é a abertura, que é onde se ganha ou perde o leitor.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Carta</th><th>Quando usar</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Com procura concreta</strong></td><td>Quando o <em>Por servir</em> diz a categoria, a zona e quantas leads se perderam. A mais forte: fala de trabalho que existe, com números.</td></tr>
+            <tr><td><strong>Sem números ainda</strong></td><td>A empresa interessa mas não há procura medida naquela célula. Fala do problema em geral, sem inventar.</td></tr>
+            <tr><td><strong>Depois de falar ao telefone</strong></td><td>Já houve chamada e ficou combinado enviar por escrito. Retoma a conversa em vez de repetir a apresentação.</td></tr>
+            <tr><td><strong>Por indicação de alguém</strong></td><td>Chegámos por recomendação. Dizer quem indicou na primeira linha é o que separa isto de um email frio.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Quem assina é editável</strong>, e é sempre o nome de uma gerente de conta —
+      nunca "a equipa YourBox". Quem responde, responde a alguém, e quem ligar a seguir é essa
+      pessoa.</p>
+
+      <h4>Reenviar a mesma carta</h4>
+      <p><strong>Não há limite de reenvios, e é de propósito.</strong> O reenvio é a resposta a
+      um pedido da própria empresa — <em>"o meu gerente estava de férias e não viu, podem
+      reenviar para este endereço?"</em> — e um travão automático bloquearia exactamente o caso
+      que o justifica.</p>
+      <p>O que existe em vez do travão é o registo. Cada envio guarda <strong>para quem,
+      quando, por que operadora, com que motivo e com que versão do texto</strong>. Do segundo
+      envio em diante o motivo passa a ser obrigatório: é o que explica, daqui a meses, porque
+      é que aquela empresa levou três emails.</p>
+      <p>O destinatário pode ser outro, e um endereço novo fica guardado como contacto da ficha
+      — o reenvio de hoje é o contacto de amanhã.</p>
+
+      <h3>O formulário de registo</h3>
+      <p>É o botão da carta. Uma página pública, assinada por prospecto, onde a empresa diz o
+      que faz e onde. <strong>As respostas geram capacidades, não texto</strong> — se chegassem
+      como frases, alguém teria de as traduzir à mão, e enquanto isso não acontecesse o parceiro
+      não recebia uma única lead.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Campo</th><th>Porquê</th></tr></thead>
+          <tbody>
+            <tr><td>NIF</td><td>Confirma que a empresa existe, evita fichas duplicadas, e serve para facturar mais tarde.</td></tr>
+            <tr><td>Alvará do IMT <em>(opcional)</em></td><td>Acelera a verificação dos dois lados.</td></tr>
+            <tr><td>Responsável, função, telefone</td><td>Quem trata disto do lado deles.</td></tr>
+            <tr><td>Email para receber os pedidos</td><td>Passa a ser o endereço das leads. Pode ser diferente daquele por onde se falou.</td></tr>
+            <tr><td>Serviços e zonas</td><td>Em caixas e botões. Geram as capacidades.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <div><strong>As capacidades nascem inactivas.</strong> Ficam declaradas e adormecidas
+        até alguém as verificar. Qualquer pessoa marca "ADR" num formulário; uma lead dessas
+        vale €60 e envolve mercadoria perigosa.</div>
+      </div>
+
+      <p>A página diz, no topo, <strong>de que empresa se trata</strong>, com um aviso para quem
+      a receba por engano — a carta pode ter sido reenviada para outro endereço, e não se pode
+      registar capacidades na ficha errada.</p>
+      <p>Preencher outra vez <strong>corrige, não duplica</strong>: as capacidades criadas pelo
+      formulário são substituídas, e as que uma gerente de conta tenha feito à mão não são
+      tocadas.</p>
+
+      <h3>Oposição ao contacto</h3>
+      <p>Todas as cartas levam no rodapé uma ligação para <em>não receber mais contactos</em>.
+      É exigência legal em comunicação comercial não solicitada, mesmo a um email por dia, e
+      respeitá-la é permanente.</p>
+      <div class="callout info">
+        <span class="callout-icon">i</span>
+        <div>A oposição bloqueia <strong>angariação</strong>, não bloqueia
+        <strong>transaccional</strong>. Se essa empresa vier a ser parceira por outra via,
+        continua a receber as leads que compra. Confundir as duas ou deixa alguém sem as leads
+        que pagou, ou continua a incomodar quem pediu para não ser incomodado.</div>
+      </div>
+    </div>
+
+    <!-- ══════════════ EMAILS ══════════════ -->
+    <span class="section-anchor" id="emails"></span>
+    <div class="section">
+      <h2>Emails da Plataforma</h2>
+      <p>O separador <strong>CRM › Emails</strong> mostra todos os emails que a plataforma
+      envia, com o exemplo ao vivo e a explicação de quando cada um sai. Serve para escolher a
+      carta certa, e serve para mostrar a alguém sem ter de reencaminhar um email verdadeiro.</p>
+
+      <div class="callout tip">
+        <span class="callout-icon">!</span>
+        <div>As pré-visualizações <strong>não são cópias</strong>: são montadas pelo mesmo
+        código que produz o email a sério. Se o desenho mudar, a página muda com ele — nunca
+        existe o estado em que a página mostra uma coisa e o cliente recebe outra.</div>
+      </div>
+
+      <h3>O que a plataforma envia</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Para quem</th><th>Email</th><th>Quando</th></tr></thead>
+          <tbody>
+            <tr><td>Cliente</td><td>Confirmação do pedido</td><td>Ao terminar o quiz.</td></tr>
+            <tr><td>Cliente</td><td>Confirmação <em>com</em> pedido de autorização</td><td>Lead fora do âmbito, com o interruptor ligado.</td></tr>
+            <tr><td>Cliente</td><td>Pedido de autorização, sozinho</td><td>Consulta triada mais tarde.</td></tr>
+            <tr><td>Cliente</td><td>Follow-up</td><td>48h depois da entrega.</td></tr>
+            <tr><td>Visitante</td><td>Reengajamento do quiz</td><td>Quiz começado e não terminado.</td></tr>
+            <tr><td>Parceiro</td><td>Nova lead · Cotação · Adjudicação · Saldo baixo</td><td>Ao longo do ciclo da consulta.</td></tr>
+            <tr><td>Parceiro</td><td>Carta de apresentação (4 versões)</td><td>Enviada à mão, na angariação.</td></tr>
+            <tr><td>Equipa</td><td>Nova lead · Nova conversa · Conversa escalada</td><td>Alertas de backoffice.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Quem envia a confirmação ao cliente</h3>
+      <p>A lead é recebida por <strong>duas plataformas</strong> — esta e a YourBox antiga — e
+      as duas sabem enviar a confirmação. Para o cliente não receber duas, só uma envia de cada
+      vez, e isso decide-se em <em>CRM › Configuração › Email de confirmação ao cliente</em>.</p>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Modo</th><th>O que acontece</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Automático</strong> <em>(o normal)</em></td><td>Esta plataforma marca presença de minuto a minuto. Enquanto o sinal estiver fresco, a antiga cala-se; se este servidor cair, a antiga assume sozinha.</td></tr>
+            <tr><td><strong>Só daqui</strong></td><td>A antiga nunca envia. Se este servidor cair, o cliente fica sem confirmação.</td></tr>
+            <tr><td><strong>Só de lá</strong></td><td>Esta cala-se quanto à confirmação. O pedido de autorização continua a sair daqui, no seu email próprio.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>O cartão mostra sempre <strong>qual das duas está a enviar neste momento</strong> e há
+      quanto tempo houve sinal. Sem isso, "automático" era uma palavra que ninguém conseguia
+      verificar.</p>
+      <div class="callout warn">
+        <span class="callout-icon">!</span>
+        <div>Os modos forçados são para manutenção. Volte a pôr em <strong>Automático</strong>
+        quando acabar — é o único que se corrige sozinho, e um "Só daqui" esquecido com este
+        servidor em baixo deixa os clientes sem confirmação nenhuma.</div>
+      </div>
+    </div>
+
     <span class="section-anchor" id="precos"></span>
     <div class="section">
       <h2>Preços e Motor de Cálculo</h2>

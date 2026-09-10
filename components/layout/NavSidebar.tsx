@@ -766,6 +766,16 @@ export default function NavSidebar({
             title: 'Manual de Utilizador',
             path: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
           },
+          {
+            // Ficheiro estatico, gerado do proprio manual por scripts/gerar-manual-pdf.mjs.
+            // Serve para levar para uma reuniao ou dar a quem entra de novo.
+            href: '/manual.pdf', alvo: '_blank', label: 'Manual em PDF',
+            title: 'Descarregar o manual completo em PDF',
+            path: <>
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </>,
+          },
         ] as const).map((l) => (
           <a
             key={l.href}
