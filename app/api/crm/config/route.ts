@@ -58,6 +58,8 @@ export async function PUT(request: NextRequest) {
     const config = await gravarConfig(db, {
       active: body.active,
       envioAutomatico: body.envioAutomatico,
+      pedirAutorizacaoPorEmail: body.pedirAutorizacaoPorEmail,
+      autorizacaoValidadeHoras: body.autorizacaoValidadeHoras,
       cpl,
       pesosScore: body.pesosScore,
       maxParceirosPorLead: body.maxParceirosPorLead,

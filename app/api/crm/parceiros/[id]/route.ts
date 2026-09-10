@@ -4,6 +4,8 @@ import { getDb } from '@/lib/mongodb';
 import { lerCarteira, extracto } from '@/lib/crm/carteira';
 import { metricasDoParceiro, actualizarScore } from '@/lib/crm/outcomes';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
+import { limparZona } from '@/lib/crm/zonas';
+import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
 
 /**
  * Um parceiro do CRM.
@@ -13,7 +15,7 @@ import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
  *   DELETE /api/crm/parceiros/<id>     só quem nunca recebeu nada
  */
 
-const ESTADOS = ['prospect', 'trial', 'ativo', 'suspenso'];
+const ESTADOS: readonly string[] = ESTADOS_PARCEIRO;
 const CANAIS = ['whatsapp', 'email', 'sms', 'push'];
 
 function paraOid(id: string): ObjectId | null {
@@ -68,7 +70,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
 
     const $set: Record<string, unknown> = { updatedAt: new Date() };
 
-    for (const campo of ['nome', 'nif', 'contacto', 'telefone', 'email', 'notas'] as const) {
+    if (Array.isArray(body.zonas)) {
+      $set.zonas = body.zonas.map((z: string) => limparZona(String(z))).filter(Boolean);
+    }
+    for (const campo of ['nome', 'nif', 'contacto', 'telefone', 'email', 'morada', 'notas'] as const) {
       if (typeof body[campo] === 'string') $set[campo] = body[campo].trim();
     }
 

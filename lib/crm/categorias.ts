@@ -230,6 +230,16 @@ export interface SinaisTriagem extends CrmConsultaPedido {
   texto?: string;
   /** Material escolhido no formulário. Sinal estruturado — vale mais do que o texto. */
   material?: string;
+  /**
+   * Categoria que vem declarada na lista de materiais (`crm_materiais`), editável no
+   * dashboard.
+   *
+   * Ganha a tudo o resto, e nem sequer é interpretação: alguém escolheu uma opção de
+   * uma lista que nós controlamos, e essa opção diz a que categoria pertence. Existe
+   * para que uma opção acrescentada pelo CRUD — que as regras de texto nunca poderiam
+   * adivinhar — seja reconhecida na mesma.
+   */
+  categoriaDeclarada?: CrmCategoria | null;
 }
 
 export interface ResultadoTriagem {
@@ -249,6 +259,17 @@ export interface ResultadoTriagem {
  * este texto que fica no `history` da consulta a explicar a classificação.
  */
 export function triar(sinais: SinaisTriagem, limites: LimitesTabela = LIMITES_FALLBACK): ResultadoTriagem {
+  // Categoria declarada na lista de materiais: nao ha nada para decidir.
+  if (sinais.categoriaDeclarada) {
+    return {
+      categoria: sinais.categoriaDeclarada,
+      route: rotaDaCategoria(sinais.categoriaDeclarada),
+      motivo: `declarado no formulário: ${labelDaCategoria(sinais.categoriaDeclarada).toLowerCase()}`,
+      confianca: 'alta',
+      candidatas: [{ categoria: sinais.categoriaDeclarada, forca: 'forte', motivo: 'escolhido no formulário' }],
+    };
+  }
+
   const texto = normalizar([sinais.observacoes, sinais.texto].filter(Boolean).join(' '));
   const candidatas: ResultadoTriagem['candidatas'] = [];
 

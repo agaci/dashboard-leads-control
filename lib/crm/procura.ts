@@ -5,6 +5,8 @@ import {
   capacidadeServe, ordenar,
   type MotivoExclusao, type ParceiroElegivel, type RequisitosServico,
 } from './capacidades';
+import { zonasEfectivas } from './zonas';
+import { podeReceberLeads, ROTULO_ESTADO, type EstadoParceiro } from './angariacao';
 
 /**
  * A procura de parceiros na base de dados.
@@ -53,13 +55,21 @@ export async function procurarParceiros(db: Db, req: RequisitosServico): Promise
       excluidos.push({ partnerId: cap.partnerId, motivo: 'capacidade órfã: parceiro não existe' });
       continue;
     }
-    if (parceiro.estado === 'suspenso') {
-      excluidos.push({ partnerId: cap.partnerId, motivo: 'parceiro suspenso' });
+    // So `trial` e `ativo`. Ate os estados do funil existirem, isto excluia apenas
+    // `suspenso` — e um prospecto com capacidades declaradas podia receber uma lead paga
+    // antes de alguem ter falado com ele. Ver lib/crm/angariacao.ts.
+    if (!podeReceberLeads(parceiro.estado)) {
+      const rotulo = ROTULO_ESTADO[parceiro.estado as EstadoParceiro] ?? parceiro.estado;
+      excluidos.push({ partnerId: cap.partnerId, motivo: `parceiro em "${rotulo}" — so trial e activo recebem leads` });
       continue;
     }
 
-    const veredicto = capacidadeServe(cap, req);
-    if (veredicto.serve) elegiveis.push({ parceiro, capacidade: cap, rank: 0 });
+    // A capacidade sem zonas herda as do parceiro. A resolução acontece aqui, onde o
+    // parceiro é conhecido, e não dentro de `capacidadeServe()` — que se mantém pura e
+    // testável sem base de dados.
+    const comZonas: CrmCapability = { ...cap, zonas: zonasEfectivas(cap.zonas, parceiro.zonas) };
+    const veredicto = capacidadeServe(comZonas, req);
+    if (veredicto.serve) elegiveis.push({ parceiro, capacidade: comZonas, rank: 0 });
     else excluidos.push({ partnerId: cap.partnerId, motivo: veredicto.motivo });
   }
 

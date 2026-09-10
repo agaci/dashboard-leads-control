@@ -26,6 +26,12 @@ export const CONFIG_DEFAULT: CrmConfig = {
   maxParceirosPorLead: 1,
   // A operadora decide, até que os dados mostrem que a triagem merece confiança.
   envioAutomatico: false,
+  // Nasce desligado: liga-se quando não há ninguém de serviço. Ver CrmConfig.
+  pedirAutorizacaoPorEmail: false,
+  // 72h cobre uma lead de sexta à noite respondida na segunda de manhã. Passado isso o
+  // link deixa de valer — um consentimento dado a um pedido que a pessoa já esqueceu
+  // não é consentimento informado.
+  autorizacaoValidadeHoras: 72,
   janelaRecusaHoras: 24,
   followUpHoras: 48,
   limiteAvisoSaldo: 25,
@@ -51,9 +57,10 @@ export async function gravarConfig(db: Db, campos: Partial<CrmConfig>): Promise<
   const $set: Record<string, unknown> = { updatedAt: new Date() };
   if (typeof campos.active === 'boolean') $set.active = campos.active;
   if (typeof campos.envioAutomatico === 'boolean') $set.envioAutomatico = campos.envioAutomatico;
+  if (typeof campos.pedirAutorizacaoPorEmail === 'boolean') $set.pedirAutorizacaoPorEmail = campos.pedirAutorizacaoPorEmail;
   if (campos.cpl && typeof campos.cpl === 'object') $set.cpl = campos.cpl;
   if (campos.pesosScore && typeof campos.pesosScore === 'object') $set.pesosScore = campos.pesosScore;
-  for (const k of ['maxParceirosPorLead', 'janelaRecusaHoras', 'followUpHoras', 'limiteAvisoSaldo', 'leadsGratisTrial'] as const) {
+  for (const k of ['maxParceirosPorLead', 'janelaRecusaHoras', 'followUpHoras', 'limiteAvisoSaldo', 'leadsGratisTrial', 'autorizacaoValidadeHoras'] as const) {
     const v = campos[k];
     if (typeof v === 'number' && isFinite(v) && v >= 0) $set[k] = v;
   }

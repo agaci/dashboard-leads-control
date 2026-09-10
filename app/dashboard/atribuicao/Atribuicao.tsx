@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
 
 // Painel de verificação da captura de gclid.
 //
@@ -51,7 +52,7 @@ function Kpi({ label, value, hint, accent }: { label: string; value: string; hin
   );
 }
 
-export default function AtribuicaoPage() {
+export default function Atribuicao() {
   const [days, setDays] = useState(30);
   const [data, setData] = useState<Stats | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -86,14 +87,14 @@ export default function AtribuicaoPage() {
 
   return (
     <div style={{
-      minHeight: '100vh', background: 'var(--yb-bg)', color: NAVY,
+      flex: 1, height: '100%', overflowY: 'auto',
+      background: 'var(--yb-bg)', color: NAVY,
       fontFamily: 'Inter, Nunito, system-ui, sans-serif', padding: '20px 22px 40px',
     }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ maxWidth: LARGURA_CONTEUDO, margin: '0 auto' }}>
 
-        <header style={{ display: 'flex', alignItems: 'baseline', gap: 14, flexWrap: 'wrap', marginBottom: 4 }}>
+        <header style={{ marginBottom: 4 }}>
           <h1 style={{ margin: 0, fontSize: 20, fontWeight: 800 }}>Atribuição Google Ads</h1>
-          <a href="/dashboard" style={{ fontSize: 12, color: CYAN, textDecoration: 'none' }}>voltar ao dashboard</a>
         </header>
         <p style={{ margin: '2px 0 18px', fontSize: 12, color: TEXT2, maxWidth: 720 }}>
           Cobertura da captura de identificadores de clique e exportação de conversões offline.

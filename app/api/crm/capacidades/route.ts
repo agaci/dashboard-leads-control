@@ -81,9 +81,12 @@ export async function POST(request: NextRequest) {
     // Zonas em minúsculas e sem acentos, como as que saem de zonaDeMorada(): se os dois
     // lados não normalizarem igual, "Évora" nunca casa com "evora" e ninguém percebe
     // porque é que o parceiro não recebe nada.
-    const zonas = Array.isArray(body.zonas) && body.zonas.length
+    //
+    // Vazio deixou de querer dizer "nacional" e passou a querer dizer "as do parceiro"
+    // (ver lib/crm/zonas.ts). Sem zonas em lado nenhum, continua a ser nacional.
+    const zonas = Array.isArray(body.zonas)
       ? body.zonas.map((z: string) => normalizar(String(z))).filter(Boolean)
-      : ['nacional'];
+      : [];
 
     const doc: Omit<CrmCapability, '_id'> = {
       partnerId,

@@ -3,7 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { lerConsulta } from '@/lib/crm/consultas';
 import { registarOutcome } from '@/lib/crm/outcomes';
-import { paginaEscolha, paginaHtml } from '@/lib/crm/pagina';
+import { paginaEscolha, paginaHtml } from '@/lib/pagina';
 import { validar } from '@/lib/crm/tokens';
 
 /**

@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { consultaDeLead } from './consultas';
 import { lerConfig } from './config';
 import { limitesDeTabela, triar } from './triagem';
+import { categoriaDoMaterialBD } from './materiais';
 
 /**
  * A porta de entrada do CRM: uma lead acaba de nascer.
@@ -37,7 +38,11 @@ export async function triarLeadNova(db: Db, leadId: string, leadData: any): Prom
     if (!cfg.active) return await marcar(db, leadId, { triada: false, motivo: 'CRM inactivo' });
 
     const limites = await limitesDeTabela(db);
+    // A mesma resolucao que a `criarConsulta` faz: a lista de materiais e que sabe a
+    // categoria de uma opcao criada pelo CRUD, que as regras de texto nao adivinham.
+    const categoriaDeclarada = await categoriaDoMaterialBD(db, leadData?.material);
     const r = triar({
+      categoriaDeclarada: categoriaDeclarada ?? undefined,
       origem: leadData?.origem,
       destino: leadData?.destino,
       urgencia: leadData?.urgencia,

@@ -5,6 +5,8 @@ import type {
 } from '@/types/crm';
 import { parseNVolumesFromText, parseTotalCm, parseWeightKgFromText } from '@/lib/agent/partnerPricing';
 import { normalizar } from './categorias';
+import { zonaDeMorada } from './zonas';
+import { categoriaDoMaterialBD } from './materiais';
 import { cplDaCategoria, lerConfig } from './config';
 import { debitar, estornar, lerCarteira, lerCarteirasEmLote } from './carteira';
 import { canaisUtilizaveis, enviar, envioDaConsulta, marcarEstado, type ResultadoEnvio } from './dispatch';
@@ -13,6 +15,7 @@ import { procurarParceiros } from './procura';
 import { podeTransitarDispatch, transicao } from './estados';
 import { registarOutcome } from './outcomes';
 import { garantirIndices } from './indices';
+import { classificarFalha, type SemParceiro } from './procuraNaoServida';
 import { limitesDeTabela, triar, type SinaisTriagem } from './triagem';
 
 /**
@@ -43,7 +46,14 @@ export async function criarConsulta(db: Db, entrada: EntradaConsulta, actor: str
   await garantirIndices(db);
 
   const limites = await limitesDeTabela(db);
-  const sinais: SinaisTriagem = { ...entrada.pedido, texto: entrada.texto };
+  // A lista de materiais e editavel: e ela que sabe a que categoria pertence uma opcao
+  // criada depois de as regras de texto terem sido escritas.
+  const categoriaDeclarada = await categoriaDoMaterialBD(db, entrada.pedido.material);
+  const sinais: SinaisTriagem = {
+    ...entrada.pedido,
+    texto: entrada.texto,
+    categoriaDeclarada: categoriaDeclarada ?? undefined,
+  };
   const resultado = triar(sinais, limites);
 
   const agora = new Date();
@@ -156,6 +166,34 @@ export async function mudarEstado(
   return { ok: true, consulta: (await lerConsulta(db, id)) ?? undefined };
 }
 
+/**
+ * Grava na consulta porque e que ela nao foi vendida.
+ *
+ * E o dado que alimenta o quadro de procura por servir (SPECS-Angariacao-Parceiros §2):
+ * sem ele, saber que parceiros faltam e adivinhacao. Antes disto o motivo era calculado,
+ * devolvido na resposta HTTP, e perdido.
+ *
+ * Nunca lanca: falhar a registar o motivo nao pode transformar-se em falhar a responder.
+ */
+async function marcarSemParceiro(
+  db: Db,
+  id: string,
+  erro: string | undefined,
+  elegiveis: number,
+  falhados: { motivo: string }[],
+): Promise<void> {
+  try {
+    const { motivo, detalhe } = classificarFalha(erro, elegiveis, falhados);
+    const sp: SemParceiro = { em: new Date(), motivo, detalhe, elegiveis };
+    await db.collection('crm_consultas').updateOne(
+      { _id: paraOid(id) as any },
+      { $set: { semParceiro: sp, updatedAt: new Date() } },
+    );
+  } catch (err: any) {
+    console.error('[crm/consultas] falha a registar o motivo de nao venda', id, err?.message ?? err);
+  }
+}
+
 // ── Distribuição (Linha B) ───────────────────────────────────────────────────
 
 export interface ResultadoDistribuicao {
@@ -224,6 +262,7 @@ export async function distribuir(
 
   const { elegiveis, excluidos } = await procurarParceiros(db, requisitosDoPedido(consulta.categoria, consulta.pedido));
   if (!elegiveis.length) {
+    await marcarSemParceiro(db, id, 'nenhum parceiro cobre esta consulta', 0, []);
     return { ok: false, erro: 'nenhum parceiro cobre esta consulta', entregues: [], falhados: [], excluidos };
   }
 
@@ -328,6 +367,7 @@ export async function distribuir(
   }
 
   if (!entregues.length) {
+    await marcarSemParceiro(db, id, 'nenhum parceiro recebeu a lead', elegiveis.length, falhados);
     return { ok: false, erro: 'nenhum parceiro recebeu a lead', entregues, falhados, excluidos, valorLead };
   }
 
@@ -338,6 +378,9 @@ export async function distribuir(
   await mudarEstado(db, id, 'entregue', 'sistema', `entregue por ${entregues.map((e) => e.canal).join(', ')}`, {
     entregueAt: agora,
     recusaExpiraEm,
+    // A lead deixou de estar por servir: a marca sai, senao o quadro de procura conta
+    // como falta de parceiro uma tentativa que acabou por resultar.
+    semParceiro: null,
   });
 
   return { ok: true, entregues, falhados, excluidos, valorLead };
@@ -404,7 +447,7 @@ export async function parceirosQueRecusaram(db: Db, consultaId: string): Promise
 export async function registarConsentimento(
   db: Db,
   consultaId: string,
-  via: 'quiz' | 'telefone' | 'email',
+  via: 'quiz' | 'telefone' | 'email' | 'link_email',
   actor: string,
   guiao?: { versao: string; texto: string },
 ): Promise<{ ok: boolean; erro?: string; consulta?: CrmConsulta }> {
@@ -493,17 +536,6 @@ export async function registarRecusa(
 }
 
 // ── Auxiliares ───────────────────────────────────────────────────────────────
-
-/**
- * Zona do serviço, para o cruzamento com as capacidades: a cidade da morada de recolha,
- * em minúsculas e sem acentos. Grosseiro de propósito — a alternativa é geocodificar,
- * e a triagem não pode esperar por uma chamada de rede.
- */
-export function zonaDeMorada(morada?: string): string | undefined {
-  const cidade = String(morada ?? '').split(',')[0].trim();
-  if (!cidade) return undefined;
-  return normalizar(cidade);
-}
 
 /** O `_id` de `messages` tanto é string do Meteor como ObjectId — ver leads-partilha.md 5.1. */
 function idDeLead(leadId: string): string | ObjectId {

@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useEffect, useState } from 'react';
+import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
 
 const CYAN   = 'var(--yb-cyan)';
 const NAVY   = 'var(--yb-fg)';
@@ -382,7 +383,7 @@ export default function RelatoriosPage() {
 
   return (
     <div style={{ overflowY: 'auto', height: '100%', background: 'var(--yb-bg)', padding: 24 }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s ease' }}>
+      <div style={{ maxWidth: LARGURA_CONTEUDO, margin: '0 auto', opacity: loading ? 0.5 : 1, transition: 'opacity 0.15s ease' }}>
 
         {/* Header */}
         <div className="flex items-start justify-between mb-6 flex-wrap gap-3">

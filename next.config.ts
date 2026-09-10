@@ -8,6 +8,17 @@ const nextConfig: NextConfig = {
     // O tsc --noEmit verifica o código real; este flag ignora o validator auto-gerado pelo Next.js 16
     ignoreBuildErrors: true,
   },
+  async redirects() {
+    return [
+      {
+        // A Atribuicao era rota propria e abria sem o menu lateral. Passou a separador
+        // do dashboard; quem tiver o endereco antigo guardado cai no separador certo.
+        source: '/dashboard/atribuicao',
+        destination: '/dashboard?tab=atribuicao',
+        permanent: false,
+      },
+    ];
+  },
   async headers() {
     return [
       {

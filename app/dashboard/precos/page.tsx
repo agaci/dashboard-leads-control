@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
 
 type Precedence = { priceMin: number; priceKm: number; pricePoint: number };
 type VehicleType = { precedence1: Precedence; precedence4: Precedence };
@@ -195,7 +196,7 @@ export default function PrecosPage() {
 
   return (
     <div className="overflow-y-auto h-full p-6" style={{ background: 'var(--yb-bg)' }}>
-      <div className="max-w-3xl mx-auto">
+      <div className="mx-auto" style={{ maxWidth: LARGURA_CONTEUDO }}>
 
         {/* Header */}
         <div className="flex items-center justify-between mb-6">

@@ -46,7 +46,33 @@ export type CrmTemplate = 'nova_lead' | 'nova_consulta' | 'adjudicacao' | 'saldo
 
 // ── crm_partners ─────────────────────────────────────────────────────────────
 
-export type EstadoParceiro = 'prospect' | 'trial' | 'ativo' | 'suspenso';
+/**
+ * Estados do parceiro, do primeiro contacto ao trabalho.
+ *
+ * Os quatro originais mantêm-se com o mesmo significado; os cinco do meio são os passos
+ * da angariação, que antes viviam todos dentro de `prospect`. A lista viva, com as
+ * transições legítimas e os rótulos, está em lib/crm/angariacao.ts — este tipo existe só
+ * para o TypeScript, e as duas têm de andar a par.
+ */
+export type EstadoParceiro =
+  | 'prospect' | 'contactado' | 'registado' | 'em_avaliacao'
+  | 'trial' | 'ativo' | 'suspenso' | 'descartado' | 'opos_se';
+
+/**
+ * Uma pessoa da empresa parceira.
+ *
+ * `recebeLeads` marca quem recebe as leads por email. Só um é que a tem — se ninguém a
+ * tiver, vale o `email` da ficha, que é o comportamento que havia antes de existirem
+ * contactos. Duas pessoas a receber a mesma lead seria duas pessoas a ligar ao cliente.
+ */
+export interface CrmContacto {
+  nome: string;
+  cargo?: string;
+  email?: string;
+  telefone?: string;
+  recebeLeads?: boolean;
+  notas?: string;
+}
 
 export interface CrmPartner {
   _id?: string;
@@ -55,6 +81,39 @@ export interface CrmPartner {
   contacto?: string;              // pessoa de contacto
   telefone?: string;              // com indicativo; usado pelos canais whatsapp/sms
   email?: string;
+  /** Morada da empresa. Onde ela está — não confundir com o que cobre. */
+  morada?: string;
+  /**
+   * As pessoas da empresa.
+   *
+   * Os campos `contacto`, `telefone` e `email` continuam a existir e assumem uma pessoa
+   * só — o que chega para um parceiro já feito e não chega para a angariação, onde há
+   * quem atende o telefone, o gerente que decide, e o endereço para onde enviar leads.
+   * Quando esta lista tem alguém marcado com `recebeLeads`, é esse o endereço da
+   * distribuição; sem ela, continua a valer o `email` de sempre.
+   */
+  contactos?: CrmContacto[];
+  /** A que gerente de conta pertence. Sem isto, duas ligam à mesma empresa. */
+  atribuidoA?: string;
+  atribuidoEm?: Date;
+  /** De onde veio: lista, indicação, feira, entrada espontânea. Diz que fontes repetir. */
+  origem?: string;
+  /** Próximo toque combinado. É o que ordena a fila de trabalho do dia. */
+  followUpEm?: Date | null;
+  /** NIF já existe acima; aqui fica a prova de que a empresa pode transportar. */
+  alvara?: string;
+  /** Porque é que saiu do funil. Obrigatório em `descartado` e `opos_se`. */
+  motivoSaida?: string;
+  /**
+   * Zonas que a empresa cobre, declaradas uma vez na ficha.
+   *
+   * As capacidades herdam-nas quando não declaram as suas (ver lib/crm/zonas.ts): assim
+   * a cobertura escreve-se uma vez, e só se repete num serviço com alcance diferente —
+   * mudanças no país todo mas ADR só no Porto, por exemplo.
+   *
+   * Vazio = nacional, que era o comportamento antes de este campo existir.
+   */
+  zonas?: string[];
   canaisPreferidos: CrmCanal[];   // ordem de preferência; a política escolhe o primeiro utilizável
   deviceTokens: string[];         // fase 2 (push) — o campo existe desde já para evitar migração
   estado: EstadoParceiro;
@@ -133,10 +192,32 @@ export interface CrmConsulta {
    * §11) e não pode ser uma norma que alguém se esqueça de cumprir — tem de ser um
    * portão no código, como o CPL a zero já é.
    *
-   * `via` diz onde foi dado: 'telefone' quando a operadora o recolhe na chamada e o
-   * regista, 'quiz' quando a pessoa carrega no botão do ecrã de sucesso.
+   * `via` diz onde foi dado:
+   *   'telefone'    a gerente de conta recolhe-o na chamada e regista-o
+   *   'email'       a gerente regista que o cliente autorizou por escrito, fora daqui
+   *   'link_email'  o próprio cliente carregou no botão do email automático
+   *   'quiz'        a pessoa carregou no botão do ecrã de sucesso
+   *
+   * 'link_email' vale mais do que os outros como prova: ninguém teve de o transcrever,
+   * e fica registado o momento exacto e o texto que estava no ecrã. Por isso é uma via
+   * própria e não se confunde com 'email'.
    */
-  consentimento?: { em: Date; via: 'quiz' | 'telefone' | 'email'; actor: string; guiao?: { versao: string; texto: string } | null } | null;
+  consentimento?: { em: Date; via: 'quiz' | 'telefone' | 'email' | 'link_email'; actor: string; guiao?: { versao: string; texto: string } | null } | null;
+  /**
+   * Pedido de autorização enviado ao cliente por email, à espera de resposta.
+   *
+   * Existe separado do `consentimento` porque são coisas diferentes: isto é a pergunta,
+   * aquilo é a resposta. Uma consulta pode ter pergunta sem resposta durante dias, e é
+   * preciso saber distinguir "ainda não perguntámos" de "perguntámos e não respondeu" —
+   * a primeira pede uma chamada, a segunda já não.
+   */
+  autorizacao?: {
+    pedidaEm: Date;
+    para: string;                 // email para onde foi
+    expiraEm: Date;
+    respondidaEm?: Date | null;
+    resposta?: 'sim' | 'nao' | null;
+  } | null;
   entregueAt?: Date | null;
   recusaExpiraEm?: Date | null;   // janela de recusa de 24h (spec §6.3)
   followUpEnviadoAt?: Date | null;
@@ -148,6 +229,20 @@ export interface CrmConsulta {
    * um parceiro honesto por causa de um caso ambiguo. Ver lib/crm/score.ts.
    */
   contradicao?: { at: Date; motivo: string } | null;
+  /**
+   * A gerente de conta corrigiu a triagem, depois de falar com o cliente.
+   *
+   * Fica ao lado de `triagem` e não por cima dela: `triagem` é o que a máquina decidiu, e
+   * reescrevê-lo apagava a prova de que errou. É a diferença entre os dois que diz onde
+   * as regras de lib/crm/categorias.ts precisam de trabalho.
+   */
+  reclassificacao?: {
+    em: Date;
+    actor: string;
+    motivo: string;
+    de: { route: CrmRoute; categoria: CrmCategoria };
+    para: { route: CrmRoute; categoria: CrmCategoria };
+  } | null;
   history: CrmHistoryEntry[];
   createdAt: Date;
   updatedAt: Date;
@@ -255,6 +350,20 @@ export interface CrmConfig {
    * acerta. Uma lead vendida por engano não se desvende.
    */
   envioAutomatico: boolean;
+  /**
+   * Pedir a autorização ao cliente por email, sozinho, mal a lead é classificada.
+   *
+   * Existe para as horas em que não há ninguém: de madrugada e ao fim-de-semana uma lead
+   * da Linha B ficava parada até alguém chegar, e um pedido de transporte tem prazo de
+   * validade curto. Com isto ligado, a pergunta é feita na hora.
+   *
+   * Feito para se desligar quando há gerentes de conta à frente da plataforma: a chamada
+   * fecha melhor do que um email, e as duas coisas ao mesmo tempo são o cliente a ser
+   * abordado duas vezes pela mesma coisa.
+   */
+  pedirAutorizacaoPorEmail: boolean;
+  /** Quanto tempo o link de autorização se mantém válido. */
+  autorizacaoValidadeHoras: number;
   janelaRecusaHoras: number;
   followUpHoras: number;
   limiteAvisoSaldo: number;

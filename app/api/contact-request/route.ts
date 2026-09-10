@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth';
 import { getDb } from '@/lib/mongodb';
 import { contactToken } from '@/lib/contactToken';
 import { ObjectId } from 'mongodb';
+import { paginaHtml } from '@/lib/pagina';
 
 // Pedido de contacto ("Contactem-me") vindo do email/WhatsApp de reengajamento.
 //   GET ?c=<id>&t=<token>&ch=<canal>  (PÚBLICO) — o utilizador clicou: regista o pedido
@@ -11,20 +12,10 @@ import { ObjectId } from 'mongodb';
 //   GET ?open=1  (AUTENTICADO) — lista os pedidos abertos, para o alarme do inbox.
 //   POST { convId }  (AUTENTICADO) — a operadora "atendeu": desliga o alarme.
 
-function htmlPage(title: string, body: string, ok = true) {
-  const mark = ok ? '&#10003;' : '&#33;';
-  return new Response(
-    `<!doctype html><html lang="pt"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title></head>
-<body style="font-family:system-ui,-apple-system,sans-serif;background:#f5f6fa;margin:0;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:20px">
-<div style="background:#fff;border-radius:16px;padding:40px 32px;max-width:420px;text-align:center;box-shadow:0 8px 30px rgba(0,0,0,.08)">
-<div style="width:64px;height:64px;border-radius:50%;margin:0 auto 20px;background:${ok ? '#bed62f' : '#e5e7eb'};display:flex;align-items:center;justify-content:center;font-size:30px;color:#1a2332;font-weight:700">${mark}</div>
-<h1 style="font-size:20px;color:#1a2332;margin:0 0 12px">${title}</h1>
-<p style="color:#555;font-size:14px;line-height:1.6;margin:0">${body}</p>
-</div></body></html>`,
-    { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8' } },
-  );
-}
+// A pagina de confirmacao e a mesma dos links do CRM: quem chega aqui vem de um email
+// nosso, e duas identidades diferentes na mesma accao fazem qualquer uma delas parecer
+// falsa. Ver lib/pagina.ts.
+const htmlPage = paginaHtml;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);

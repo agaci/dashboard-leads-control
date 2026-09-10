@@ -1,6 +1,12 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { DISTRITOS, limparZona, ZONA_NACIONAL } from '@/lib/crm/zonas';
+import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
+import Materiais from './Materiais';
+import Procura from './Procura';
+import Emails from './Emails';
+import Prospecto from './Prospecto';
 
 /**
  * CRM de Parceiros — painel da operadora (spec §12, fase 1).
@@ -33,6 +39,7 @@ type Consulta = {
   recusaExpiraEm?: string | null;
   contradicao?: { at: string; motivo: string } | null;
   consentimento?: { em: string; via: string; actor: string; guiao?: { versao: string; texto: string } | null } | null;
+  autorizacao?: { pedidaEm: string; para: string; expiraEm: string; respondidaEm?: string | null; resposta?: 'sim' | 'nao' | null; falhouEm?: string } | null;
   history: { estado: string; timestamp: string; actor: string; motivo: string }[];
   createdAt: string;
 };
@@ -40,6 +47,7 @@ type Consulta = {
 type Parceiro = {
   _id: string; nome: string; estado: string; score: number; saldo: number;
   telefone?: string; email?: string; contacto?: string; nif?: string;
+  morada?: string; zonas?: string[]; motivoSaida?: string;
   canaisPreferidos: string[]; leadsGratisRestantes: number; notas?: string;
 };
 
@@ -71,7 +79,8 @@ type Outcome = {
 };
 
 type Config = {
-  active: boolean; envioAutomatico: boolean; cpl: Record<string, number>; maxParceirosPorLead: number;
+  active: boolean; envioAutomatico: boolean; pedirAutorizacaoPorEmail: boolean;
+  autorizacaoValidadeHoras: number; cpl: Record<string, number>; maxParceirosPorLead: number;
   janelaRecusaHoras: number; followUpHoras: number; limiteAvisoSaldo: number; leadsGratisTrial: number;
 };
 
@@ -146,7 +155,7 @@ const ROTULO_OUTCOME: Record<string, string> = {
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function CrmPage() {
-  const [aba, setAba] = useState<'consultas' | 'parceiros' | 'config'>('consultas');
+  const [aba, setAba] = useState<'consultas' | 'parceiros' | 'procura' | 'emails' | 'config'>('consultas');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [config, setConfig] = useState<Config | null>(null);
   const [limites, setLimites] = useState<{ maxKg: number; maxCm: number } | null>(null);
@@ -162,7 +171,7 @@ export default function CrmPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', height: '100%', background: 'var(--yb-bg)', padding: '20px 24px' }}>
-      <div style={{ maxWidth: 1100, margin: '0 auto' }}>
+      <div style={{ maxWidth: LARGURA_CONTEUDO, margin: '0 auto' }}>
         <header style={{ marginBottom: 18 }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--yb-fg)', margin: 0 }}>CRM de Parceiros</h1>
           <p style={{ fontSize: 12, color: 'var(--yb-muted)', margin: '4px 0 0' }}>
@@ -177,6 +186,8 @@ export default function CrmPage() {
           {([
             ['consultas', 'Consultas'],
             ['parceiros', 'Parceiros'],
+            ['procura', 'Por servir'],
+            ['emails', 'Emails'],
             ['config', 'Configuração'],
           ] as const).map(([id, label]) => (
             <button key={id} onClick={() => setAba(id)} style={{
@@ -186,8 +197,13 @@ export default function CrmPage() {
           ))}
         </nav>
 
-        {aba === 'consultas' && <Consultas labelCategoria={labelCategoria} categorias={categorias} />}
+        {aba === 'consultas' && (
+          <Consultas labelCategoria={labelCategoria} categorias={categorias}
+            config={config} aoMudarConfig={carregarConfig} />
+        )}
         {aba === 'parceiros' && <Parceiros categorias={categorias} />}
+        {aba === 'procura' && <Procura />}
+        {aba === 'emails' && <Emails />}
         {aba === 'config' && (
           <Configuracao config={config} categorias={categorias} limites={limites} aoGravar={carregarConfig} />
         )}
@@ -218,7 +234,12 @@ function periodo(chave: string): { de?: string; ate?: string } | null {
   return null;
 }
 
-function Consultas({ labelCategoria, categorias }: { labelCategoria: (id: string) => string; categorias: Categoria[] }) {
+function Consultas({ labelCategoria, categorias, config, aoMudarConfig }: {
+  labelCategoria: (id: string) => string;
+  categorias: Categoria[];
+  config: Config | null;
+  aoMudarConfig: () => void;
+}) {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [filtroRota, setFiltroRota] = useState<'' | 'lead_sale' | 'subcontract'>('lead_sale');
   const [filtroData, setFiltroData] = useState('sempre');
@@ -280,6 +301,7 @@ function Consultas({ labelCategoria, categorias }: { labelCategoria: (id: string
         <button onClick={() => setManual(!manual)} style={botao(manual ? 'neutro' : 'primario')}>
           {manual ? 'Cancelar' : 'Consulta manual'}
         </button>
+        {config && <InterruptorAutorizacao config={config} aoMudar={aoMudarConfig} />}
         <div style={{ display: 'flex', gap: 6, alignItems: 'flex-end', flexWrap: 'wrap', width: '100%' }}>
           {([['sempre', 'Sempre'], ['hoje', 'Hoje'], ['ontem', 'Ontem'], ['7dias', '7 dias']] as const).map(([k, l]) => (
             <button key={k} onClick={() => setFiltroData(k)} style={{
@@ -321,6 +343,59 @@ function Consultas({ labelCategoria, categorias }: { labelCategoria: (id: string
         />
       ))}
     </>
+  );
+}
+
+
+/**
+ * Interruptor do pedido automático de autorização, à mão de quem está ao balcão.
+ *
+ * Vive aqui e não só na Configuração porque a decisão de o ligar ou desligar muda várias
+ * vezes por dia — desliga-se ao entrar de manhã, liga-se ao sair. Um interruptor que
+ * obriga a mudar de separador para se usar acaba por ficar sempre na mesma posição.
+ */
+function InterruptorAutorizacao({ config, aoMudar }: { config: Config; aoMudar: () => void }) {
+  const [aGravar, setAGravar] = useState(false);
+  const ligado = !!config.pedirAutorizacaoPorEmail;
+
+  async function alternar() {
+    setAGravar(true);
+    await fetch('/api/crm/config', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...config, pedirAutorizacaoPorEmail: !ligado }),
+    }).catch(() => null);
+    setAGravar(false);
+    aoMudar();
+  }
+
+  return (
+    <button onClick={alternar} disabled={aGravar} title="Pedir a autorização ao cliente por email, sem operadora"
+      style={{
+        display: 'flex', alignItems: 'center', gap: 8, marginLeft: 'auto',
+        background: ligado ? 'rgba(0,188,212,0.12)' : 'var(--yb-input)',
+        border: `1px solid ${ligado ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
+        borderRadius: 20, padding: '5px 12px 5px 8px', cursor: aGravar ? 'wait' : 'pointer',
+        opacity: aGravar ? 0.6 : 1,
+      }}>
+      <span style={{
+        width: 30, height: 17, borderRadius: 10, flexShrink: 0, position: 'relative',
+        background: ligado ? 'var(--yb-cyan)' : 'var(--yb-border)', transition: 'background 0.15s',
+      }}>
+        <span style={{
+          position: 'absolute', top: 2, left: ligado ? 15 : 2,
+          width: 13, height: 13, borderRadius: '50%', background: '#fff',
+          transition: 'left 0.15s',
+        }} />
+      </span>
+      <span style={{ textAlign: 'left' }}>
+        <span style={{ fontSize: 11.5, fontWeight: 700, color: ligado ? 'var(--yb-cyan)' : 'var(--yb-muted)', display: 'block' }}>
+          Autorização por email {ligado ? 'ligada' : 'desligada'}
+        </span>
+        <span style={{ fontSize: 10, color: 'var(--yb-subtle)', display: 'block' }}>
+          {ligado ? 'as leads novas recebem o pedido sozinhas' : 'a autorização é pedida ao telefone'}
+        </span>
+      </span>
+    </button>
   );
 }
 
@@ -553,6 +628,20 @@ function DetalheConsulta({ consulta, aoMudar }: { consulta: Consulta; aoMudar: (
       {consulta.route === 'lead_sale' && !consulta.consentimento
         && ['triada', 'qualificada', 'recusada'].includes(consulta.estado) && (
         <Consentimento consultaId={consulta._id} aoRegistar={() => { carregarDetalhe(); aoMudar(); }} />
+      )}
+
+      {/* Perguntado e sem resposta e diferente de nao perguntado: o primeiro ja nao
+          precisa de chamada, o segundo precisa. Sem esta linha eram indistinguiveis. */}
+      {!consulta.consentimento && consulta.autorizacao && (
+        <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '0 0 8px', lineHeight: 1.5 }}>
+          {consulta.autorizacao.falhouEm
+            ? <strong style={{ color: 'var(--yb-error)' }}>O pedido de autorizacao nao chegou a sair (o email falhou). Ligue ao cliente.</strong>
+            : consulta.autorizacao.resposta === 'nao'
+              ? <strong style={{ color: 'var(--yb-error)' }}>O cliente respondeu que nao autoriza. A consulta fica fechada.</strong>
+              : <>Pedido de autorizacao enviado para {consulta.autorizacao.para} em{' '}
+                  {new Date(consulta.autorizacao.pedidaEm).toLocaleString('pt-PT')}. Sem resposta ate agora;
+                  o link expira a {new Date(consulta.autorizacao.expiraEm).toLocaleString('pt-PT')}.</>}
+        </p>
       )}
 
       {consulta.consentimento && (
@@ -946,15 +1035,79 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
   );
 }
 
+/**
+ * Zonas que uma empresa cobre.
+ *
+ * Botões e não caixa de texto porque a zona é uma chave de cruzamento: "Setúbal",
+ * "setubal" e "Setubal " são a mesma coisa para quem escreve e três zonas diferentes
+ * para a distribuição — e o parceiro que ficasse com a variante errada deixava de
+ * receber leads sem ninguém dar por isso.
+ *
+ * Fica na mesma a hipótese de acrescentar uma zona fora da lista (concelhos, sobretudo),
+ * já normalizada da mesma maneira que o lado da lead.
+ */
+function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: string[]) => void }) {
+  const [extra, setExtra] = useState('');
+  const nacional = !valor.length;
+  const fora = valor.filter((z) => !(DISTRITOS as readonly string[]).includes(z));
+
+  function alternar(z: string) {
+    aoMudar(valor.includes(z) ? valor.filter((v) => v !== z) : [...valor, z]);
+  }
+
+  function acrescentar() {
+    const z = limparZona(extra);
+    if (z && z !== ZONA_NACIONAL && !valor.includes(z)) aoMudar([...valor, z]);
+    setExtra('');
+  }
+
+  const chip = (activo: boolean): React.CSSProperties => ({
+    background: activo ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)',
+    color: activo ? 'var(--yb-cyan)' : 'var(--yb-muted)',
+    border: `1px solid ${activo ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
+    borderRadius: 20, padding: '3px 10px', fontSize: 11,
+    fontWeight: activo ? 700 : 500, cursor: 'pointer', textTransform: 'capitalize',
+  });
+
+  return (
+    <div>
+      <label style={LABEL}>Zonas que serve</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+        <button type="button" onClick={() => aoMudar([])} style={chip(nacional)}>
+          todo o país
+        </button>
+        {DISTRITOS.map((d) => (
+          <button type="button" key={d} onClick={() => alternar(d)} style={chip(valor.includes(d))}>{d}</button>
+        ))}
+        {fora.map((z) => (
+          <button type="button" key={z} onClick={() => alternar(z)} style={{ ...chip(true), fontStyle: 'italic' }}>{z}</button>
+        ))}
+      </div>
+      <div style={{ display: 'flex', gap: 6 }}>
+        <input style={{ ...INPUT, flex: 1 }} placeholder="outra zona (concelho, ilha...)"
+          value={extra} onChange={(e) => setExtra(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); acrescentar(); } }} />
+        <button type="button" onClick={acrescentar} style={botao('neutro')}>juntar</button>
+      </div>
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0' }}>
+        {nacional
+          ? 'Sem zonas escolhidas o parceiro conta como nacional e entra em qualquer distribuição.'
+          : `${valor.length} zona(s). Cada capacidade herda estas zonas, a não ser que declare as suas.`}
+      </p>
+    </div>
+  );
+}
+
 function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
-  const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', estado: 'trial' });
+  const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial' });
+  const [zonas, setZonas] = useState<string[]>([]);
   const [erro, setErro] = useState('');
 
   async function gravar() {
     setErro('');
     const r = await fetch('/api/crm/parceiros', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...dados, canaisPreferidos: ['whatsapp', 'email'] }),
+      body: JSON.stringify({ ...dados, zonas, canaisPreferidos: ['whatsapp', 'email'] }),
     }).then((x) => x.json()).catch(() => null);
     if (r?.success) aoCriar();
     else setErro(r?.error ?? 'não foi possível criar');
@@ -967,6 +1120,7 @@ function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
         {([
           ['nome', 'Nome da empresa'], ['contacto', 'Pessoa de contacto'],
           ['telefone', 'Telefone (WhatsApp)'], ['email', 'Email'], ['nif', 'NIF'],
+          ['morada', 'Morada da empresa'],
         ] as const).map(([campo, label]) => (
           <div key={campo}>
             <label style={LABEL}>{label}</label>
@@ -983,6 +1137,7 @@ function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
           </select>
         </div>
       </div>
+      <div style={{ marginBottom: 12 }}><SelectorZonas valor={zonas} aoMudar={setZonas} /></div>
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
       <button onClick={gravar} style={botao('primario')}>Criar</button>
     </div>
@@ -1003,10 +1158,12 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
     telefone: parceiro.telefone ?? '',
     email: parceiro.email ?? '',
     nif: parceiro.nif ?? '',
+    morada: parceiro.morada ?? '',
     estado: parceiro.estado,
     leadsGratisRestantes: parceiro.leadsGratisRestantes ?? 0,
     notas: parceiro.notas ?? '',
   });
+  const [zonas, setZonas] = useState<string[]>(parceiro.zonas ?? []);
   const [erro, setErro] = useState('');
   const [aGravar, setAGravar] = useState(false);
 
@@ -1020,7 +1177,7 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
     setAGravar(true);
     const r = await fetch(`/api/crm/parceiros/${parceiro._id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(dados),
+      body: JSON.stringify({ ...dados, zonas }),
     }).then((x) => x.json()).catch(() => null);
     setAGravar(false);
     if (r?.success) aoGravar();
@@ -1032,6 +1189,7 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
       {([
         ['nome', 'Nome da empresa'], ['contacto', 'Pessoa de contacto'],
         ['telefone', 'Telefone (WhatsApp)'], ['email', 'Email'], ['nif', 'NIF'],
+        ['morada', 'Morada da empresa'],
       ] as const).map(([campo, label]) => (
         <div key={campo}>
           <label style={LABEL}>{label}</label>
@@ -1039,6 +1197,8 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
             onChange={(e) => setDados({ ...dados, [campo]: e.target.value })} />
         </div>
       ))}
+
+      <SelectorZonas valor={zonas} aoMudar={setZonas} />
 
       <div>
         <label style={LABEL}>Estado</label>
@@ -1076,7 +1236,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
   const [movimentos, setMovimentos] = useState<any[]>([]);
   const [metricas, setMetricas] = useState<any>(null);
   const [valor, setValor] = useState('');
-  const [novaCap, setNovaCap] = useState({ categoria: '', zonas: 'nacional', maxWeightKg: '', maxDimensionCm: '', adr: false, temperatura: false });
+  const [novaCap, setNovaCap] = useState({ categoria: '', zonas: '', maxWeightKg: '', maxDimensionCm: '', adr: false, temperatura: false });
   const [aEditar, setAEditar] = useState(false);
   const [erro, setErro] = useState('');
 
@@ -1145,6 +1305,8 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
               <Campo k="Telefone" v={parceiro.telefone} />
               <Campo k="Email" v={parceiro.email} />
               <Campo k="NIF" v={parceiro.nif} />
+              <Campo k="Morada" v={parceiro.morada} />
+              <Campo k="Zonas" v={parceiro.zonas?.length ? parceiro.zonas.join(', ') : 'todo o país'} />
               <Campo k="Estado" v={parceiro.estado} />
               <Campo k="Leads de trial" v={String(parceiro.leadsGratisRestantes)} />
             </>
@@ -1169,7 +1331,9 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
                 {categorias.find((k) => k.id === c.categoria)?.label ?? c.categoria}
               </span>
               <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>
-                {c.zonas.join(', ')}
+                {c.zonas?.length
+                  ? c.zonas.join(', ')
+                  : (parceiro.zonas?.length ? `${parceiro.zonas.join(', ')} (do parceiro)` : 'todo o país')}
                 {c.maxWeightKg ? ` · max ${c.maxWeightKg} kg` : ''}
                 {c.maxDimensionCm ? ` · max ${c.maxDimensionCm} cm` : ''}
                 {c.adr ? ' · ADR' : ''}
@@ -1195,7 +1359,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
             </select>
             {novaCap.categoria && (
               <>
-                <input style={INPUT} placeholder="zonas separadas por vírgula (ou nacional)"
+                <input style={INPUT} placeholder="zonas separadas por vírgula (vazio = as do parceiro)"
                   value={novaCap.zonas} onChange={(e) => setNovaCap({ ...novaCap, zonas: e.target.value })} />
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input style={INPUT} placeholder="max kg (vazio = sem limite)"
@@ -1251,11 +1415,118 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
       </div>
 
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '10px 0 0' }}>{erro}</p>}
+
+      {/* A angariacao vive dentro da ficha do parceiro e nao num ecra proprio: um
+          prospecto e um parceiro num estado inicial, e separa-los obrigaria a migrar o
+          registo no momento em que ele adere — perdendo o historial exactamente quando
+          ele passa a valer alguma coisa. */}
+      <Prospecto parceiro={parceiro} aoMudar={() => { carregar(); aoMudar(); }} />
     </div>
   );
 }
 
 // ── Configuração ─────────────────────────────────────────────────────────────
+
+
+/**
+ * Quem envia o email de confirmacao ao cliente.
+ *
+ * O que importa nesta ficha nao e o selector — e a linha que diz o que a plataforma
+ * antiga esta a decidir NESTE momento. Sem ela, "auto" e uma palavra que nao se pode
+ * verificar, e ninguem saberia dizer se o cliente esta a receber um email ou dois.
+ */
+function EmailDoCliente() {
+  const [dados, setDados] = useState<{
+    estado: { modo: string; pulsoEm: string | null; idadeSegundos: number | null; nodechefEnvia: boolean; actor?: string };
+    validadeMinutos: number;
+  } | null>(null);
+  const [aGravar, setAGravar] = useState(false);
+
+  const carregar = useCallback(async () => {
+    const r = await fetch('/api/crm/email-cliente', { cache: 'no-store' }).then((x) => x.json()).catch(() => null);
+    if (r?.success) setDados(r);
+  }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
+
+  async function mudar(modo: string) {
+    setAGravar(true);
+    const r = await fetch('/api/crm/email-cliente', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ modo }),
+    }).then((x) => x.json()).catch(() => null);
+    setAGravar(false);
+    if (r?.success) setDados(r);
+  }
+
+  if (!dados) return null;
+  const { estado, validadeMinutos } = dados;
+  const idade = estado.idadeSegundos;
+  const pulsoVivo = idade !== null && idade <= validadeMinutos * 60;
+
+  const OPCOES: [string, string, string][] = [
+    ['auto', 'Automatico', `A plataforma antiga so envia se este servidor deixar de dar sinal durante ${validadeMinutos} minutos.`],
+    ['leads', 'So daqui', 'A plataforma antiga nunca envia. Se este servidor cair, o cliente fica sem confirmacao.'],
+    ['nodechef', 'So de la', 'Esta aplicacao continua a enviar, e a antiga tambem. Para manutencao ou teste.'],
+  ];
+
+  return (
+    <div style={CARD}>
+      <p style={TITULO}>Email de confirmacao ao cliente</p>
+      <p style={{ fontSize: 12, color: 'var(--yb-muted)', margin: '0 0 12px', lineHeight: 1.6 }}>
+        A lead e recebida por duas plataformas — esta e a YourBox antiga, no nodechef — e as
+        duas sabem enviar a confirmacao. Para o cliente nao receber duas, so uma envia de cada vez.
+      </p>
+
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 9, flexWrap: 'wrap',
+        background: pulsoVivo ? 'rgba(0,188,212,0.08)' : 'rgba(234,179,8,0.10)',
+        border: `1px solid ${pulsoVivo ? 'rgba(0,188,212,0.28)' : 'rgba(234,179,8,0.35)'}`,
+        borderRadius: 9, padding: '10px 12px', marginBottom: 14,
+      }}>
+        <span style={{
+          width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+          background: pulsoVivo ? 'var(--yb-cyan)' : '#eab308',
+        }} />
+        <span style={{ fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
+          {estado.nodechefEnvia
+            ? 'A plataforma antiga esta a enviar a confirmacao'
+            : 'A confirmacao esta a sair daqui'}
+        </span>
+        <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>
+          {idade === null
+            ? 'nunca houve pulso — falta o cron'
+            : `ultimo pulso ha ${idade < 90 ? `${idade}s` : `${Math.round(idade / 60)} min`}`}
+        </span>
+      </div>
+
+      <div style={{ display: 'grid', gap: 7 }}>
+        {OPCOES.map(([id, label, nota]) => (
+          <label key={id} style={{
+            display: 'flex', gap: 9, alignItems: 'flex-start', cursor: aGravar ? 'wait' : 'pointer',
+            opacity: aGravar ? 0.6 : 1,
+          }}>
+            <input type="radio" name="modoEmailCliente" checked={estado.modo === id}
+              disabled={aGravar} onChange={() => mudar(id)} style={{ marginTop: 3 }} />
+            <span>
+              <span style={{ fontSize: 13, color: 'var(--yb-fg)' }}>{label}</span>
+              <span style={{ fontSize: 11, color: 'var(--yb-subtle)', display: 'block', lineHeight: 1.5, marginTop: 1 }}>
+                {nota}
+              </span>
+            </span>
+          </label>
+        ))}
+      </div>
+
+      {estado.modo !== 'auto' && (
+        <p style={{ fontSize: 11, color: '#eab308', margin: '11px 0 0', lineHeight: 1.5 }}>
+          Fora do automatico{estado.actor ? `, por ${estado.actor}` : ''}. Volte a por em
+          Automatico quando acabar — e o unico modo que se corrige sozinho.
+        </p>
+      )}
+    </div>
+  );
+}
 
 function Configuracao({
   config, categorias, limites, aoGravar,
@@ -1302,7 +1573,26 @@ function Configuracao({
           </span>
         </label>
 
+        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', cursor: 'pointer', marginBottom: 14 }}>
+          <input type="checkbox" checked={local.pedirAutorizacaoPorEmail} style={{ marginTop: 3 }}
+            onChange={(e) => setLocal({ ...local, pedirAutorizacaoPorEmail: e.target.checked })} />
+          <span>
+            <span style={{ fontSize: 13, color: 'var(--yb-fg)' }}>Pedir a autorizacao por email</span>
+            <span style={{ fontSize: 11, color: 'var(--yb-subtle)', display: 'block', lineHeight: 1.5, marginTop: 2 }}>
+              Ligado, uma lead da Linha B recebe sozinha, mal e classificada, um email a pedir
+              autorizacao para o pedido seguir para outra empresa. E para as horas em que nao ha
+              ninguem: de madrugada e ao fim-de-semana a lead ficava parada ate alguem chegar.
+              <strong> Desligue-o quando estiver ao balcao</strong> — a chamada fecha melhor, e as
+              duas coisas ao mesmo tempo sao o cliente a ser abordado duas vezes pelo mesmo.
+              Nunca escreve a quem ja autorizou, e nunca insiste: um pedido por lead.
+            </span>
+          </span>
+        </label>
+
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
+          <Numero label="Validade do link (h)" valor={local.autorizacaoValidadeHoras}
+            aoMudar={(v) => setLocal({ ...local, autorizacaoValidadeHoras: v })}
+            nota="72h cobre sexta a segunda" />
           <Numero label="Parceiros por lead" valor={local.maxParceirosPorLead}
             aoMudar={(v) => setLocal({ ...local, maxParceirosPorLead: v })}
             nota="1 = lead exclusiva" />
@@ -1330,6 +1620,10 @@ function Configuracao({
           ))}
         </div>
       </div>
+
+      <EmailDoCliente />
+
+      <Materiais categorias={categorias} />
 
       {limites && (
         <div style={CARD}>

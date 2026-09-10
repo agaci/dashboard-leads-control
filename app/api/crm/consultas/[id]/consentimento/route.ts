@@ -2,6 +2,10 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { registarConsentimento } from '@/lib/crm/consultas';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
+// O texto passou a viver em lib/crm/guiao.ts: o email automatico precisa do mesmo,
+// e uma rota nao e sitio de onde outra parte do sistema deva importar.
+import { GUIAO_CONSENTIMENTO } from '@/lib/crm/guiao';
+export { GUIAO_CONSENTIMENTO };
 
 /**
  * Autorização do cliente para o pedido seguir para uma empresa especializada.
@@ -17,19 +21,6 @@ import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
  * exacto que foi lido. Sem o texto não se prova o que a pessoa ouviu, e é sobre isso que
  * uma reclamação se debruça.
  */
-
-/**
- * A frase que a operadora lê. Fixa de propósito: se cada uma disser à sua maneira, não
- * há forma de demonstrar o que foi dito. Ao mudar o texto, muda-se também a versão — as
- * autorizações antigas continuam a apontar para o guião que os clientes ouviram.
- */
-export const GUIAO_CONSENTIMENTO = {
-  versao: 'v1',
-  texto:
-    'Este transporte não é dos que fazemos. Temos empresas especializadas que o fazem — '
-    + 'quer que lhes passemos o seu pedido, com o seu contacto, para lhe apresentarem uma proposta? '
-    + 'A YourBox deixa de tratar deste serviço a partir daí.',
-};
 
 const VIAS = ['telefone', 'email'];
 

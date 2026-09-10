@@ -3,7 +3,7 @@ import { getDb } from '@/lib/mongodb';
 import { lerConsulta, mudarEstado } from '@/lib/crm/consultas';
 import { actualizarScore, registarOutcome } from '@/lib/crm/outcomes';
 import { marcarEstado, envioDaConsulta } from '@/lib/crm/dispatch';
-import { paginaEscolha, paginaHtml } from '@/lib/crm/pagina';
+import { paginaEscolha, paginaHtml } from '@/lib/pagina';
 import { operadorDaSessao } from '@/lib/crm/sessao';
 import { validar } from '@/lib/crm/tokens';
 

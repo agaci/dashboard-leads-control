@@ -1,6 +1,7 @@
 import type { CrmConsulta, CrmPartner, CrmTemplate } from '@/types/crm';
 import { labelDaCategoria } from './categorias';
-import { linkFollowUp, linkRecusa, linkReporte, urlBase } from './tokens';
+import { linkFollowUp, linkRecusa, linkReporte } from './tokens';
+import { botao as botaoEmail, cartao, COR, envelope, lista } from '@/lib/email/layout';
 
 /**
  * Templates de mensagem (spec §9.3).
@@ -202,23 +203,17 @@ function followUpCliente({ consulta }: ContextoTemplate): Mensagem {
   return {
     assunto: 'Conseguiu resolver o seu transporte?',
     texto,
-    html: `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  ${cabecalho('YourBox')}
-  <div style="padding:24px;color:#333;font-size:14px;line-height:1.6">
-    <p style="margin:0 0 18px">Olá${nome ? ` ${escapar(nome)}` : ''}, conseguiu resolver o seu transporte?</p>
-    <div>
-      <a href="${linkFollowUp(id, true)}" style="display:inline-block;background:#bed62f;color:#1a2332;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px;margin-right:8px">Sim</a>
-      <a href="${linkFollowUp(id, false)}" style="display:inline-block;background:#eef0f3;color:#1a2332;font-weight:700;padding:12px 28px;border-radius:8px;text-decoration:none;font-size:14px">Não</a>
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:14px 24px;font-size:11px;color:#999;line-height:1.5;border-top:1px solid #eef0f3">
-    <strong style="color:#777">YourBox &ndash; estafetas e transportes</strong><br/>
-    Um único contacto para sabermos se ficou bem servido. Para aceder, corrigir ou apagar os seus dados,
-    responda a este email &mdash; ver a
-    <a href="https://yourbox.com.pt/politica_de_privacidade.html" style="color:#999">Política de Privacidade</a>.
-  </div>
-</div>`,
+    // Os dois botoes com o mesmo peso: a pergunta e se resolveu, nao um convite a dizer
+    // que sim. Um "Sim" em destaque e um "Nao" apagado enviesava a unica medida que
+    // temos da qualidade das leads.
+    html: envelope({
+      resumo: 'Uma pergunta rapida sobre o transporte que nos pediu.',
+      titulo: `Conseguiu resolver o seu transporte${nome ? `, ${escapar(nome)}` : ''}?`,
+      subtitulo: 'Uma resposta de um toque, e ficamos a saber se ficou bem servido.',
+      corpo: botaoEmail('Sim, resolvi', linkFollowUp(id, true))
+        + botaoEmail('Nao, ainda nao', linkFollowUp(id, false)),
+      rodape: 'Um unico contacto para sabermos se ficou bem servido.',
+    }),
   };
 }
 
@@ -262,38 +257,32 @@ function escapar(s: string): string {
  * ate o leitor as pedir, portanto o nome vai em texto ao lado e nao dentro da imagem:
  * com ou sem imagem, le-se sempre quem esta a escrever.
  */
-function cabecalho(titulo: string): string {
-  return `
-  <div style="background:#1a2332;padding:16px 24px">
-    <img src="${urlBase()}/icons/icon-64x64.png" width="26" height="26" alt=""
-         style="border-radius:6px;vertical-align:middle;display:inline-block">
-    <span style="color:#fff;font-weight:700;font-size:16px;vertical-align:middle;margin-left:10px">${escapar(titulo)}</span>
-  </div>`;
-}
-
+/**
+ * O molde destes cinco emails.
+ *
+ * Passou a delegar em lib/email/layout.ts: tinha o seu proprio cabecalho azul-escuro e o
+ * seu proprio botao turquesa, e o resultado eram emails da mesma empresa com desenhos
+ * diferentes conforme a parte do sistema que os tinha enviado.
+ *
+ * O primeiro botao fica primario e os restantes neutros — excepto quando o chamador diz
+ * `secundario`, que e como a recusa e o reporte aparecem lado a lado sem que um pareca a
+ * resposta certa.
+ */
 function emailBase(
   titulo: string,
   linhas: [string, string][],
   botoes: { texto: string; url: string; secundario?: boolean }[],
   rodape?: string,
 ): string {
-  const tr = linhas
-    .map(([k, v]) => `<tr><td style="padding:6px 0;color:#888;width:120px;vertical-align:top">${escapar(k)}</td><td style="color:#333">${escapar(v)}</td></tr>`)
-    .join('');
   const cta = botoes
-    .map((b) => `<a href="${b.url}" style="display:inline-block;background:${b.secundario ? '#eef0f3' : '#00bcd4'};color:${b.secundario ? '#1a2332' : '#fff'};font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px;margin-right:8px">${escapar(b.texto)}</a>`)
+    .map((b, i) => botaoEmail(b.texto, b.url, b.secundario || i > 0 ? 'neutro' : 'primario'))
     .join('');
 
-  return `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  ${cabecalho(titulo)}
-  <div style="padding:24px">
-    <table style="width:100%;border-collapse:collapse;font-size:13px">${tr}</table>
-    ${rodape ? `<p style="margin:18px 0 0;font-size:13px;color:#555">${escapar(rodape)}</p>` : ''}
-    ${cta ? `<div style="margin-top:20px">${cta}</div>` : ''}
-  </div>
-  <div style="background:#f9fafb;padding:10px 24px;font-size:11px;color:#aaa">
-    YourBox CRM de Parceiros · ${new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-  </div>
-</div>`;
+  return envelope({
+    resumo: `${titulo}${linhas[0] ? ` — ${linhas[0][1]}` : ''}`,
+    titulo,
+    corpo: cartao(lista(linhas.filter(([, v]) => v && v !== '—')))
+      + (rodape ? `<p style="margin:0 0 14px;font-family:Helvetica,Arial,sans-serif;font-size:13.5px;line-height:1.6;color:${COR.texto}">${escapar(rodape)}</p>` : '')
+      + cta,
+  });
 }

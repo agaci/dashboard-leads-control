@@ -1,4 +1,6 @@
 import { Resend } from 'resend';
+import { esc } from '@/lib/html';
+import { botao, cartao, COR, envelope, lista, paragrafo, passos } from './layout';
 
 const FROM    = process.env.ALERT_FROM_EMAIL ?? 'YourBox <noreply@yourbox.com.pt>';
 const TO      = (process.env.ALERT_EMAIL ?? '').split(',').map(e => e.trim()).filter(Boolean);
@@ -18,37 +20,15 @@ export async function sendQuizNudgeEmail(opts: {
   if (!process.env.RESEND_API_KEY || !opts.to) return false;
   const resend = new Resend(process.env.RESEND_API_KEY);
 
-  // CTA principal: pedir que a YourBox contacte (regista o pedido no inbox).
-  // Fallback (sem ctaUrl): mantem o telefone clicavel.
-  const cta = opts.ctaUrl
-    ? `<a href="${opts.ctaUrl}" style="display:inline-block;background:#bed62f;color:#1a2332;font-weight:700;padding:12px 26px;border-radius:8px;text-decoration:none;font-size:14px">
-        Sim, contactem-me
-      </a>
-      <p style="margin:10px 0 0;font-size:12px;color:#888">ou ligue <a href="tel:+351214304546" style="color:#1a2332;font-weight:700;text-decoration:none">214 304 546</a></p>`
-    : `<a href="tel:+351214304546" style="display:inline-block;background:#bed62f;color:#1a2332;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px">
-        214 304 546
-      </a>`;
-
-  const html = `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#1a2332;padding:18px 24px">
-    <span style="color:#fff;font-weight:700;font-size:16px">YourBox</span>
-  </div>
-  <div style="padding:24px;color:#333;font-size:14px;line-height:1.6">
-    <p>${opts.texto.replace(/\n/g, '<br/>')}</p>
-    <div style="margin-top:20px">
-      ${cta}
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:14px 24px;font-size:11px;color:#999;line-height:1.5;border-top:1px solid #eef0f3">
-    <strong style="color:#777">YourBox &ndash; estafetas e transportes</strong><br/>
-    <strong style="color:#777">Este é um contacto único &mdash; não lhe enviaremos mais nenhuma mensagem deste género.</strong><br/>
-    Usamos os seus dados <strong>apenas</strong> para tratar o seu pedido de orçamento e contactá-lo. Não são vendidos nem
-    partilhados com terceiros para fins de marketing. Para <strong>aceder, corrigir ou apagar</strong> os seus dados, basta
-    responder a este email ou contactar-nos &mdash; ver a
-    <a href="https://yourbox.com.pt/politica_de_privacidade.html" style="color:#999">Política de Privacidade</a>.
-  </div>
-</div>`;
+  const html = envelope({
+    resumo: 'Ficou a meio o seu pedido de orcamento. Continuamos?',
+    titulo: `${opts.nome}, continuamos o seu orcamento?`,
+    subtitulo: esc(opts.rota),
+    corpo: paragrafo(esc(opts.texto).replace(/\n/g, '<br/>'))
+      + (opts.ctaUrl ? botao('Sim, contactem-me', opts.ctaUrl) : '')
+      + paragrafo(`ou ligue <a href="tel:+351214304546" style="color:${COR.escuro};font-weight:700;text-decoration:none">214 304 546</a>`),
+    rodape: 'Este e um contacto unico — nao lhe enviaremos mais nenhuma mensagem deste genero.',
+  });
 
   const r = await resend.emails.send({
     from:    FROM,
@@ -77,29 +57,21 @@ export async function sendEscalationEmail(opts: {
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
   const link = `${APP_URL}/dashboard?conv=${opts.convId}`;
 
-  const html = `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#1a2332;padding:18px 24px;display:flex;align-items:center;gap:10px">
-    <span style="color:#fff;font-weight:700;font-size:16px">Conversa escalada para humano</span>
-  </div>
-  <div style="padding:24px">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">
-      <tr><td style="padding:6px 0;color:#888;width:110px">Referência</td><td style="font-weight:700;color:#1a2332">${ref}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Lead</td><td>${nome}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Telefone</td><td>${opts.telemovel}</td></tr>
-      ${rota ? `<tr><td style="padding:6px 0;color:#888">Rota</td><td>${rota}</td></tr>` : ''}
-      ${opts.lastMsg ? `<tr><td style="padding:6px 0;color:#888;vertical-align:top">Última msg</td><td style="color:#555;font-style:italic">"${opts.lastMsg.slice(0, 120).replace(/\*/g, '')}"</td></tr>` : ''}
-    </table>
-    <div style="margin-top:20px">
-      <a href="${link}" style="display:inline-block;background:#00bcd4;color:#fff;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px">
-        Abrir Inbox →
-      </a>
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:10px 24px;font-size:11px;color:#aaa">
-    YourBox BackOffice · ${new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-  </div>
-</div>`;
+  const html = envelope({
+    interno: true,
+    resumo: `${ref} — ${nome} pediu para falar com uma pessoa.`,
+    titulo: 'Conversa escalada para humano',
+    corpo: cartao(lista([
+      ['Referencia', ref],
+      ['Lead', nome],
+      ['Telefone', opts.telemovel],
+      ['Rota', rota],
+      // Sem `esc`: a `lista` escapa tudo o que recebe. Isto e texto escrito por quem
+      // esta do outro lado do chat, e ate aqui entrava no HTML sem passar por lado nenhum.
+      ['Ultima mensagem', opts.lastMsg ? `"${opts.lastMsg.slice(0, 160).replace(/\*/g, '')}"` : null],
+    ]))
+    + botao('Abrir Inbox', link),
+  });
 
   await resend.emails.send({
     from:    FROM,
@@ -126,28 +98,18 @@ export async function sendConversationEmail(opts: {
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
   const link = `${APP_URL}/dashboard?conv=${opts.convId}`;
 
-  const html = `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#1a2332;padding:18px 24px">
-    <span style="color:#fff;font-weight:700;font-size:16px">Nova conversa iniciada</span>
-  </div>
-  <div style="padding:24px">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">
-      <tr><td style="padding:6px 0;color:#888;width:110px">Referência</td><td style="font-weight:700;color:#1a2332">${ref}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Lead</td><td>${nome}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Telefone</td><td>${opts.telemovel}</td></tr>
-      ${rota ? `<tr><td style="padding:6px 0;color:#888">Rota</td><td>${rota}</td></tr>` : ''}
-    </table>
-    <div style="margin-top:20px">
-      <a href="${link}" style="display:inline-block;background:#00bcd4;color:#fff;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px">
-        Abrir Inbox →
-      </a>
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:10px 24px;font-size:11px;color:#aaa">
-    YourBox BackOffice · ${new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-  </div>
-</div>`;
+  const html = envelope({
+    interno: true,
+    resumo: `${ref} — ${nome} comecou uma conversa.`,
+    titulo: 'Nova conversa iniciada',
+    corpo: cartao(lista([
+      ['Referencia', ref],
+      ['Lead', nome],
+      ['Telefone', opts.telemovel],
+      ['Rota', rota],
+    ]))
+    + botao('Abrir Inbox', link),
+  });
 
   await resend.emails.send({
     from:    FROM,
@@ -176,29 +138,19 @@ export async function sendLeadEmail(opts: {
   const rota = opts.origem ? `${opts.origem.split(',')[0]} → ${(opts.destino ?? '...').split(',')[0]}` : null;
   const link = opts.leadId ? `${APP_URL}/dashboard?lead=${opts.leadId}` : `${APP_URL}/dashboard`;
 
-  const html = `
-<div style="font-family:sans-serif;max-width:520px;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden">
-  <div style="background:#1a2332;padding:18px 24px;display:flex;align-items:center;gap:10px">
-    <span style="color:#fff;font-weight:700;font-size:16px">Nova lead registada</span>
-  </div>
-  <div style="padding:24px">
-    <table style="width:100%;border-collapse:collapse;font-size:13px;color:#333">
-      <tr><td style="padding:6px 0;color:#888;width:110px">Referência</td><td style="font-weight:700;color:#1a2332">${ref}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Lead</td><td>${nome}</td></tr>
-      <tr><td style="padding:6px 0;color:#888">Telefone</td><td>${opts.telemovel}</td></tr>
-      ${rota ? `<tr><td style="padding:6px 0;color:#888">Rota</td><td>${rota}</td></tr>` : ''}
-      ${opts.price != null ? `<tr><td style="padding:6px 0;color:#888">Preço</td><td style="font-weight:700;color:#2e7d32">€${opts.price.toFixed(2)}</td></tr>` : ''}
-    </table>
-    <div style="margin-top:20px">
-      <a href="${link}" style="display:inline-block;background:#00bcd4;color:#fff;font-weight:700;padding:10px 22px;border-radius:8px;text-decoration:none;font-size:13px">
-        Abrir Dashboard →
-      </a>
-    </div>
-  </div>
-  <div style="background:#f9fafb;padding:10px 24px;font-size:11px;color:#aaa">
-    YourBox BackOffice · ${new Date().toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })}
-  </div>
-</div>`;
+  const html = envelope({
+    interno: true,
+    resumo: `${ref} — ${nome}${opts.price != null ? ` · ${opts.price.toFixed(2)} EUR` : ''}`,
+    titulo: 'Nova lead registada',
+    corpo: cartao(lista([
+      ['Referencia', ref],
+      ['Lead', nome],
+      ['Telefone', opts.telemovel],
+      ['Rota', rota],
+      ['Preco', opts.price != null ? `${opts.price.toFixed(2)} EUR` : null],
+    ]))
+    + botao('Abrir Dashboard', link),
+  });
 
   await resend.emails.send({
     from:    FROM,
@@ -206,4 +158,217 @@ export async function sendLeadEmail(opts: {
     subject: `${ref} — Nova lead · ${nome}`,
     html,
   }).catch(err => console.error('[Resend] falha ao enviar email de lead:', err));
+}
+
+/**
+ * Pedido de autorização ao cliente — o pedido dele pode seguir para outra empresa?
+ *
+ * Enviado sozinho quando não há gerentes de conta de serviço (ver lib/crm/autorizacao.ts).
+ * É o único email nosso que pede uma decisão sobre os dados da pessoa, e por isso foge
+ * ao formato dos outros em três pontos:
+ *
+ *   - O texto da pergunta vai citado, palavra por palavra, tal como fica gravado como
+ *     prova. Um email que resuma o que se está a pedir não demonstra consentimento.
+ *   - Os dois botões têm o mesmo peso visual. Pôr o "sim" em destaque e o "não" em letra
+ *     pequena é desenhar para obter uma resposta, e um consentimento assim obtido não é
+ *     livre — que é exactamente o que o RGPD exige que seja.
+ *   - Diz o que acontece se não responder. Silêncio não é autorização, e a pessoa tem de
+ *     saber que pode simplesmente ignorar o email.
+ */
+export async function sendPedidoAutorizacaoEmail(opts: {
+  to: string;
+  nome: string;
+  servico: string;
+  guiao: { versao: string; texto: string };
+  url: string;
+  validadeHoras: number;
+}) {
+  if (!process.env.RESEND_API_KEY || !opts.to) return false;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const html = envelope({
+    resumo: 'Precisamos de uma resposta sua para avancar com o seu pedido.',
+    titulo: `${opts.nome}, precisamos da sua autorizacao`,
+    subtitulo: `Sobre o pedido que nos fez: <strong>${esc(opts.servico)}</strong>.`,
+    corpo: cartao(
+      `<strong style="color:${COR.escuro}">${esc(opts.guiao.texto)}</strong>`
+      + `<div style="margin-top:12px">${botao('Responder ao pedido', opts.url)}</div>`
+      + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">`
+      + `A ligacao abre uma pagina onde escolhe autorizar ou nao autorizar. `
+      + `E valida durante ${opts.validadeHoras} horas.</div>`,
+      'aviso',
+    )
+    + paragrafo('Se nao responder, nao acontece nada: o seu pedido nao e passado a ninguem.'),
+    rodape: 'So partilhamos o seu pedido com outra empresa se autorizar aqui. Nesse caso, e essa '
+      + 'empresa que passa a ser responsavel pelos dados que lhe entregamos.',
+  });
+
+  const r = await resend.emails.send({
+    from:    FROM,
+    to:      [opts.to],
+    subject: 'O seu pedido de transporte — precisamos da sua autorizacao',
+    html,
+  }).catch(err => { console.error('[Resend] falha no pedido de autorizacao:', err); return null; });
+  return !!r;
+}
+
+/**
+ * Confirmação do pedido, para o cliente. O primeiro email que ele recebe de nós.
+ *
+ * Duas versões, decididas pela triagem que corre no mesmo instante em que isto é
+ * enviado (ver app/api/quiz-progress/route.ts):
+ *
+ *   - **servível** — recebemos, analisamos, ligamos. É a esmagadora maioria.
+ *   - **fora do âmbito** — o mesmo, mais o pedido de autorização para o pedido seguir
+ *     para uma empresa especializada.
+ *
+ * A segunda versão existe para não haver dois emails sobre o mesmo assunto com minutos
+ * de diferença. Uma pessoa que acabou de pedir um orçamento e recebe logo duas mensagens
+ * nossas fica com a impressão de que não sabemos o que estamos a fazer — e a segunda
+ * mensagem trazia uma pergunta que contradizia a promessa da primeira.
+ *
+ * O botão da autorização aponta para a página de escolha e nunca para o "sim" directo:
+ * varredores de segurança abrem as ligações dos emails antes do destinatário (ver
+ * app/api/crm/autorizacao/route.ts).
+ */
+export async function sendConfirmacaoPedidoEmail(opts: {
+  to: string;
+  nome: string;
+  resumo: [string, string | null | undefined][];
+  /** Só nas leads fora do âmbito e com o pedido de autorização preparado. */
+  autorizacao?: { texto: string; url: string; validadeHoras: number } | null;
+}) {
+  if (!process.env.RESEND_API_KEY || !opts.to) return false;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const nome = String(opts.nome ?? '').trim().split(/\s+/)[0];
+  const trata = nome ? `, ${nome}` : '';
+  const a = opts.autorizacao;
+
+  const corpo = a
+    ? [
+        cartao(
+          `<strong style="color:${COR.escuro}">${esc(a.texto)}</strong>`
+          + `<div style="margin-top:12px">${botao('Responder ao pedido', a.url)}</div>`
+          + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">`
+          + `A ligacao abre uma pagina onde escolhe autorizar ou nao autorizar. `
+          + `E valida durante ${a.validadeHoras} horas.</div>`,
+          'aviso',
+        ),
+        paragrafo('Enquanto nao responder, o seu pedido fica connosco e nao e passado a ninguem. '
+          + 'Se preferir falar primeiro, ligue-nos.'),
+        cartao(`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:${COR.suave};margin-bottom:10px">O seu pedido</div>`
+          + lista(opts.resumo)),
+      ].join('')
+    : [
+        passos([
+          { titulo: 'Analise do pedido', texto: 'Estamos a ver os detalhes do que nos pediu.' },
+          { titulo: 'Contacto', texto: 'Falamos consigo para confirmar o que faltar.' },
+          { titulo: 'Orcamento', texto: 'Apresentamos o preco para o seu caso.' },
+        ]),
+        `<div style="height:6px"></div>`,
+        cartao(`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:${COR.suave};margin-bottom:10px">O seu pedido</div>`
+          + lista(opts.resumo)),
+      ].join('');
+
+  const html = envelope({
+    resumo: a
+      ? 'Recebemos o seu pedido. Precisamos de uma resposta sua para avancar.'
+      : 'Recebemos o seu pedido e entramos em contacto consigo em breve.',
+    titulo: `Pedido recebido${trata}`,
+    subtitulo: a
+      ? 'Para este transporte em concreto precisamos de uma resposta sua antes de avancar.'
+      : 'Ja o temos connosco. Entramos em contacto consigo em breve.',
+    corpo,
+    rodape: a ? 'Se nao responder, nao acontece nada: o seu pedido nao e partilhado com ninguem.' : undefined,
+  });
+
+  const r = await resend.emails.send({
+    from:    FROM,
+    to:      [opts.to],
+    subject: a ? 'O seu pedido — precisamos da sua autorizacao' : 'Recebemos o seu pedido',
+    html,
+  }).catch(err => { console.error('[Resend] falha na confirmacao do pedido:', err); return null; });
+  return !!r;
+}
+
+/**
+ * A carta de apresentação a um parceiro. O primeiro email que aquela empresa recebe de nós.
+ *
+ * Enviado à mão, um a um, por uma gerente de conta que já escolheu aquela empresa por uma
+ * razão concreta — nunca em série. O texto e as razões de cada parte estão em
+ * lib/crm/apresentacao.ts.
+ *
+ * Duas coisas que este email tem e os outros não:
+ *
+ *   - **Um mecanismo de oposição.** Mesmo a este volume é exigência legal para
+ *     comunicação comercial não solicitada, e respeitá-lo é permanente.
+ *   - **O nome de quem assina.** Uma empresa não escreve a outra a partir de um sistema.
+ */
+export async function sendApresentacaoParceiroEmail(opts: {
+  to: string;
+  empresa: string;
+  assunto: string;
+  corpo: {
+    intro: string;
+    oQueE: string[];
+    comoFunciona: { titulo: string; texto: string }[];
+    fecho: string;
+  };
+  urlFormulario: string;
+  urlOposicao: string;
+  rodapeOposicao: string;
+  assinatura: string;
+}) {
+  if (!process.env.RESEND_API_KEY || !opts.to) return false;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
+  const html = envelope({
+    resumo: 'Temos pedidos de transporte na vossa zona que nao conseguimos servir.',
+    titulo: opts.assunto,
+    subtitulo: opts.corpo.intro,
+    corpo: [
+      opts.corpo.oQueE.map((p) => paragrafo(esc(p))).join(''),
+
+      cartao(
+        `<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:${COR.suave};margin-bottom:12px">Como funciona</div>`
+        + passos(opts.corpo.comoFunciona.map((p) => ({ titulo: p.titulo, texto: esc(p.texto) }))),
+      ),
+
+      paragrafo(opts.corpo.fecho),
+      botao('Dizer o que fazemos e onde', opts.urlFormulario),
+      `<p style="margin:6px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${COR.suave}">`
+      + `Cinco campos. Nao pedimos documentos nem dados de pagamento nesta fase.</p>`,
+
+      `<p style="margin:18px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:${COR.texto}">`
+      + `Com os melhores cumprimentos,<br><strong style="color:${COR.escuro}">${esc(opts.assinatura)}</strong>`
+      + `<br><span style="font-size:12.5px;color:${COR.suave}">YourBox &mdash; estafetas e transportes</span></p>`,
+    ].join(''),
+    rodape: `${esc(opts.rodapeOposicao)} <a href="${esc(opts.urlOposicao)}" style="color:#9aa2a8">Nao receber mais contactos</a>.`,
+  });
+
+  const r = await resend.emails.send({
+    from:    FROM,
+    to:      [opts.to],
+    subject: opts.assunto,
+    html,
+  }).catch(err => { console.error('[Resend] falha na apresentacao a parceiro:', err); return null; });
+  return !!r;
+}
+
+/**
+ * Envia HTML ja montado.
+ *
+ * Existe para os emails cujo corpo e composto noutro sitio — a carta de apresentacao, que
+ * a operadora escolhe e parametriza, e cujo HTML tem de ser exactamente o mesmo que ela
+ * viu na pre-visualizacao. Duplicar aqui a montagem seria criar um segundo caminho que um
+ * dia divergiria do primeiro.
+ */
+export async function sendHtmlBruto(opts: { to: string; subject: string; html: string }) {
+  if (!process.env.RESEND_API_KEY || !opts.to) return false;
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const r = await resend.emails.send({
+    from: FROM, to: [opts.to], subject: opts.subject, html: opts.html,
+  }).catch(err => { console.error('[Resend] falha no envio:', err); return null; });
+  return !!r;
 }

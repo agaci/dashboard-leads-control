@@ -17,11 +17,13 @@ import RelatoriosPage from './relatorios/page';
 import ClientesPage from './clientes/page';
 import WidgetsPage from './widgets/page';
 import CrmPage from './crm/page';
+import AtribuicaoPage from './atribuicao/Atribuicao';
 import { useNotifications, type AggHintAlert } from '@/lib/useNotifications';
 import { useTheme } from '@/lib/useTheme';
 import AppShell from '@/components/layout/AppShell';
-import type { NavTab } from '@/components/layout/NavSidebar';
+import { SEPARADORES, type NavTab } from '@/components/layout/NavSidebar';
 import { PriceBreakdownModal } from '@/components/PriceBreakdownModal';
+import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
 
 // ── Design tokens ─────────────────────────────────────────────────────────────
 const CYAN   = 'var(--yb-cyan)';
@@ -340,8 +342,28 @@ export default function DashboardPage() {
 
   const totalPages = Math.ceil(total / LIMIT);
 
+  /**
+   * O separador vive no endereco.
+   *
+   * Sem isto um F5 devolvia sempre a Inbox e nao havia forma de mandar a alguem o
+   * link de um separador — a Atribuicao chegou a ser rota propria so por causa disso,
+   * e abria fora do dashboard, sem menu lateral.
+   *
+   * `replaceState` e nao `push` de proposito: o botao "anterior" do browser deve sair
+   * do dashboard, nao percorrer os separadores por onde se passou.
+   */
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab');
+    if (t && SEPARADORES.includes(t as NavTab)) setTab(t as NavTab);
+  }, []);
+
   function switchTab(t: NavTab) {
     setTab(t);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set('tab', t);
+      window.history.replaceState(null, '', url);
+    } catch { /* endereco invalido: o separador muda na mesma */ }
     if (t === 'inbox') setBadges((b) => ({ ...b, conversas: false }));
     else if (t === 'leads') setBadges((b) => ({ ...b, leads: false }));
   }
@@ -880,6 +902,13 @@ export default function DashboardPage() {
         </div>
       )}
 
+      {/* atribuicao -> era rota propria e abria sem menu lateral (ver switchTab) */}
+      {tab === 'atribuicao' && (
+        <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
+          <AtribuicaoPage />
+        </div>
+      )}
+
       {tab === 'clientes' && (
         <div style={{ flex: 1, overflow: 'hidden', height: '100%' }}>
           <ClientesPage />
@@ -1097,7 +1126,7 @@ function AgregacoesPage({ onGoToConv, highlightConvId }: { onGoToConv: (convId: 
   }, [highlightConvId, items]);
 
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 900 }}>
+    <div style={{ padding: '24px 28px', maxWidth: LARGURA_CONTEUDO }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
         <div>
@@ -1339,13 +1368,14 @@ function ConfigPage() {
   });
 
   return (
-    <div style={{ padding: '28px 32px', maxWidth: 780, fontFamily: 'system-ui, sans-serif' }}>
+    <div style={{ padding: '28px 32px', maxWidth: LARGURA_CONTEUDO, fontFamily: 'system-ui, sans-serif' }}>
 
       {/* Aparência */}
       <div style={{ background: 'var(--yb-card)', borderRadius: 12, border: `1.5px solid var(--yb-border)`, padding: '20px 24px', marginBottom: 20 }}>
         <h3 style={{ margin: '0 0 4px', fontSize: 15, fontWeight: 800, color: 'var(--yb-fg)' }}>Aparência</h3>
         <p style={{ margin: '0 0 16px', fontSize: 12, color: 'var(--yb-muted)' }}>Escolhe entre o tema claro e escuro. A preferência é guardada no browser.</p>
-        <div style={{ display: 'flex', gap: 10 }}>
+        {/* As duas pre-visualizacoes crescem com o cartao; sem tecto ficavam do tamanho do ecra. */}
+        <div style={{ display: 'flex', gap: 10, maxWidth: 520 }}>
           {(['light', 'dark'] as const).map((t) => {
             const active = theme === t;
             const label = t === 'light' ? 'Claro' : 'Escuro';

@@ -2,7 +2,7 @@ import { NextRequest } from 'next/server';
 import { getDb } from '@/lib/mongodb';
 import { MOTIVOS_RECUSA, registarRecusa, type MotivoRecusa } from '@/lib/crm/consultas';
 import { actualizarScore } from '@/lib/crm/outcomes';
-import { paginaEscolha, paginaHtml } from '@/lib/crm/pagina';
+import { paginaEscolha, paginaHtml } from '@/lib/pagina';
 import { operadorDaSessao } from '@/lib/crm/sessao';
 import { validar } from '@/lib/crm/tokens';
 

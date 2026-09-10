@@ -7,7 +7,13 @@ import { getVoiceSetting, setVoiceSetting, previewVoice } from '@/lib/ttsManager
 export type NavTab =
   | 'visitas' | 'leads' | 'inbox' | 'clientes' | 'servicos'
   | 'precos' | 'baseIA' | 'relatorios' | 'agregacoes'
-  | 'crm' | 'routing' | 'widgets' | 'config';
+  | 'crm' | 'routing' | 'widgets' | 'atribuicao' | 'config';
+
+/** Os separadores validos, para filtrar o que vem do endereco. */
+export const SEPARADORES: NavTab[] = [
+  'visitas', 'leads', 'inbox', 'clientes', 'servicos', 'precos', 'baseIA',
+  'relatorios', 'agregacoes', 'crm', 'routing', 'widgets', 'atribuicao', 'config',
+];
 
 interface NavSidebarProps {
   activeTab: NavTab;
@@ -124,6 +130,16 @@ function IcoPerfil() {
   );
 }
 
+function IcoAtribuicao() {
+  return (
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
+      <line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/>
+      <line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/>
+    </svg>
+  );
+}
+
 function IcoCrm() {
   return (
     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -165,16 +181,22 @@ interface NavItemProps {
   icon: React.ReactNode;
   active: boolean;
   badge?: number;
+  /** Menu aberto: o icone vem acompanhado da designacao. */
+  expandido?: boolean;
   onClick: () => void;
 }
 
-function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
+function NavItem({ id, label, icon, active, badge, expandido = false, onClick }: NavItemProps) {
   return (
     <button
       onClick={onClick}
-      title={label}
+      // Com a designacao a vista o tooltip so repetiria o que ja la esta escrito.
+      title={expandido ? undefined : label}
       style={{
-        width: 44, height: 44, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        width: expandido ? '100%' : 44, height: 42,
+        display: 'flex', alignItems: 'center',
+        justifyContent: expandido ? 'flex-start' : 'center',
+        gap: 11, padding: expandido ? '0 11px' : 0,
         borderRadius: 10, border: 'none', cursor: 'pointer',
         position: 'relative',
         background: active ? 'rgba(0,188,212,0.18)' : 'transparent',
@@ -195,15 +217,29 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
         }
       }}
     >
-      {icon}
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, flexShrink: 0 }}>
+        {icon}
+      </span>
+      {expandido && (
+        <span style={{
+          fontSize: 12.5, fontWeight: active ? 700 : 600, whiteSpace: 'nowrap',
+          overflow: 'hidden', textOverflow: 'ellipsis', letterSpacing: '0.01em',
+        }}>
+          {label}
+        </span>
+      )}
       {badge != null && badge > 0 && (
         <span style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 14, height: 14, borderRadius: '50%',
+          // Fechado o contador sobrepoe-se ao icone; aberto encosta ao fim da linha,
+          // que e onde a leitura o procura depois de ler a designacao.
+          ...(expandido
+            ? { marginLeft: 'auto', minWidth: 16, padding: '0 4px' }
+            : { position: 'absolute', top: 5, right: 5, width: 14 }),
+          height: 14, borderRadius: 8,
           background: '#ffc107', color: '#1a2b4a',
           fontSize: 8, fontWeight: 800,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          lineHeight: 1,
+          lineHeight: 1, flexShrink: 0,
         }}>
           {badge > 99 ? '99' : badge}
         </span>
@@ -216,7 +252,7 @@ function NavItem({ id, label, icon, active, badge, onClick }: NavItemProps) {
 
 const VOL_STEPS = [0, 0.3, 0.65, 1];
 
-function SoundButton() {
+function SoundButton({ expandido = false }: { expandido?: boolean }) {
   const [vol, setVol] = useState(0.5);
   const [showSlider, setShowSlider] = useState(false);
 
@@ -241,15 +277,17 @@ function SoundButton() {
   const volPct = Math.round(vol * 100);
 
   return (
-    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', padding: expandido ? '0 8px' : 0 }}>
       <button
         onClick={cycleVolume}
         onContextMenu={(e) => { e.preventDefault(); setShowSlider((s) => !s); }}
         title={`Som: ${volPct}% — clique para ciclar, clique-direito para controlo fino`}
         style={{
-          width: 44, height: 32, borderRadius: 8, border: 'none',
+          width: expandido ? '100%' : 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 11, padding: expandido ? '0 11px' : 0,
+          display: 'flex', alignItems: 'center',
+          justifyContent: expandido ? 'flex-start' : 'center',
           color: vol === 0 ? 'var(--yb-subtle)' : 'var(--yb-cyan)',
           transition: 'color 0.2s',
         }}
@@ -276,6 +314,9 @@ function SoundButton() {
             <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
           </svg>
+        )}
+        {expandido && (
+          <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{`Som — ${volPct}%`}</span>
         )}
       </button>
 
@@ -338,7 +379,7 @@ const VOICE_ITEMS: { key: 'escalation' | 'lead' | 'agg' | 'live_chat'; label: st
   { key: 'live_chat',  label: 'Chat ao vivo' },
 ];
 
-function VoiceButton() {
+function VoiceButton({ expandido = false }: { expandido?: boolean }) {
   const [enabled, setEnabled] = useState(false);
   const [perType, setPerType] = useState({ escalation: true, lead: true, agg: false, live_chat: true });
   const [showPanel, setShowPanel] = useState(false);
@@ -378,15 +419,17 @@ function VoiceButton() {
   }
 
   return (
-    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center' }}>
+    <div style={{ position: 'relative', width: '100%', display: 'flex', justifyContent: 'center', padding: expandido ? '0 8px' : 0 }}>
       <button
         onClick={toggleEnabled}
         onContextMenu={(e) => { e.preventDefault(); setShowPanel((s) => !s); }}
         title={`Voz: ${enabled ? 'ON' : 'OFF'} — clique para ligar/desligar, clique-direito para opções`}
         style={{
-          width: 44, height: 32, borderRadius: 8, border: 'none',
+          width: expandido ? '100%' : 44, height: 32, borderRadius: 8, border: 'none',
           background: 'transparent', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          gap: 11, padding: expandido ? '0 11px' : 0,
+          display: 'flex', alignItems: 'center',
+          justifyContent: expandido ? 'flex-start' : 'center',
           color: enabled ? 'var(--yb-cyan)' : 'var(--yb-subtle)',
           transition: 'color 0.2s',
         }}
@@ -397,6 +440,9 @@ function VoiceButton() {
           <line x1="12" y1="19" x2="12" y2="23"/>
           <line x1="8" y1="23" x2="16" y2="23"/>
         </svg>
+        {expandido && (
+          <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{`Voz — ${enabled ? 'ligada' : 'desligada'}`}</span>
+        )}
       </button>
 
       {showPanel && (
@@ -459,13 +505,29 @@ function VoiceButton() {
 
 // ── Divider ───────────────────────────────────────────────────────────────────
 
-function Divider() {
+function Divider({ expandido = false }: { expandido?: boolean }) {
   return (
-    <div style={{ width: 38, height: 1, background: 'var(--yb-border)', margin: '6px auto' }} />
+    <div style={{
+      width: expandido ? 'calc(100% - 22px)' : 38,
+      height: 1, background: 'var(--yb-border)', margin: '6px auto',
+    }} />
   );
 }
 
 // ── NavSidebar ────────────────────────────────────────────────────────────────
+
+/**
+ * Largura do menu.
+ *
+ * Aberto, cada icone vem com a sua designacao: um icone sozinho obriga a passar o rato
+ * por cima para descobrir o que faz, e isso repete-se todos os dias. Fechado sobra
+ * largura para o conteudo — por isso a escolha fica gravada e nao se perde na sessao
+ * seguinte.
+ */
+const LARGURA_ABERTA = 186;
+const LARGURA_FECHADA = 60;
+const CHAVE_LARGURA = 'yb-nav-expandido';
+
 
 export default function NavSidebar({
   activeTab,
@@ -477,6 +539,21 @@ export default function NavSidebar({
   aggBlink = false,
   mobile = false,
 }: NavSidebarProps) {
+  // Comeca aberto para o que o servidor pinta ser igual ao primeiro fotograma do
+  // browser; a preferencia gravada so se le depois de montar.
+  const [expandido, setExpandido] = useState(true);
+  useEffect(() => {
+    try { if (localStorage.getItem(CHAVE_LARGURA) === '0') setExpandido(false); } catch { /* sem localStorage */ }
+  }, []);
+
+  function alternarLargura() {
+    setExpandido((v) => {
+      const novo = !v;
+      try { localStorage.setItem(CHAVE_LARGURA, novo ? '1' : '0'); } catch { /* sem localStorage */ }
+      return novo;
+    });
+  }
+
   const animations = `
     @keyframes aggPulse {
       0%, 100% { opacity: 1; transform: scale(1); }
@@ -498,6 +575,7 @@ export default function NavSidebar({
       { id: 'clientes',   label: 'Clientes',   icon: <IcoClientes /> },
       { id: 'agregacoes', label: 'Agreg.',     icon: <IcoAgregacoes />, blink: aggBlink },
       { id: 'servicos',   label: 'Serviços',   icon: <IcoServicos /> },
+      { id: 'atribuicao', label: 'Atribuição', icon: <IcoAtribuicao /> },
       { id: 'precos',     label: 'Preços',     icon: <IcoPrecos /> },
       { id: 'baseIA',     label: 'Base IA',    icon: <IcoBaseIA /> },
       { id: 'crm',        label: 'CRM',        icon: <IcoCrm /> },
@@ -571,16 +649,22 @@ export default function NavSidebar({
   }
 
   // ── Desktop: sidebar vertical ─────────────────────────────────────────────
+  const grupo: React.CSSProperties = {
+    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+    width: '100%', padding: expandido ? '4px 8px' : '4px 0',
+  };
+
   return (
     <nav
       style={{
-        width: 60, flexShrink: 0,
+        width: expandido ? LARGURA_ABERTA : LARGURA_FECHADA, flexShrink: 0,
         background: 'var(--yb-bg)',
         borderRight: '1px solid var(--yb-border)',
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '10px 0 10px',
         height: '100vh', overflowY: 'auto', overflowX: 'hidden',
         userSelect: 'none',
+        transition: 'width 0.16s ease',
       }}
     >
       <style>{animations}</style>
@@ -594,93 +678,121 @@ export default function NavSidebar({
         }} />
       )}
 
-      {/* Logo */}
-      <div style={{ marginBottom: 16, width: 44, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {/* Logo e o interruptor da largura */}
+      <div style={{
+        display: 'flex', flexDirection: expandido ? 'row' : 'column',
+        alignItems: 'center', gap: expandido ? 9 : 6, width: '100%',
+        padding: expandido ? '0 11px' : 0, marginBottom: 14,
+      }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/icons/icon-64x64.png" alt="YourBox" style={{ width: 36, height: 36, display: 'block', borderRadius: 8 }} />
+        <img src="/icons/icon-64x64.png" alt="YourBox" style={{ width: 34, height: 34, display: 'block', borderRadius: 8, flexShrink: 0 }} />
+        {expandido && (
+          <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--yb-fg)', letterSpacing: '-0.01em' }}>
+            YourBox
+          </span>
+        )}
+        <button
+          onClick={alternarLargura}
+          title={expandido ? 'Encolher o menu' : 'Mostrar as designações'}
+          style={{
+            marginLeft: expandido ? 'auto' : 0,
+            width: 26, height: 26, flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            borderRadius: 7, border: 'none', background: 'transparent',
+            color: 'var(--yb-subtle)', cursor: 'pointer', transition: 'color 0.15s',
+          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--yb-muted)'; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = 'var(--yb-subtle)'; }}
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+            <polyline points={expandido ? '15 18 9 12 15 6' : '9 18 15 12 9 6'} />
+          </svg>
+        </button>
       </div>
 
-      <Divider />
+      <Divider expandido={expandido} />
 
       {/* Main nav */}
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%', padding: '4px 0' }}>
-        <NavItem id="visitas"    label="Visitas"   icon={<IcoVisitas />}    active={activeTab === 'visitas'}    onClick={() => onTabChange('visitas')} />
-        <NavItem id="inbox"      label="Inbox"     icon={<IcoInbox />}      active={activeTab === 'inbox'}      onClick={() => onTabChange('inbox')}      badge={inboxBadge} />
-        <NavItem id="leads"      label="Leads"     icon={<IcoLeads />}      active={activeTab === 'leads'}      onClick={() => onTabChange('leads')}      badge={leadsBadge} />
-        <NavItem id="clientes"   label="Clientes"  icon={<IcoClientes />}   active={activeTab === 'clientes'}   onClick={() => onTabChange('clientes')} />
-        <NavItem id="agregacoes" label="Agregações" icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} onClick={() => onTabChange('agregacoes')} badge={aggBlink ? 1 : 0} />
+      <div style={grupo}>
+        <NavItem id="visitas"    label="Visitas"    icon={<IcoVisitas />}    active={activeTab === 'visitas'}    expandido={expandido} onClick={() => onTabChange('visitas')} />
+        <NavItem id="inbox"      label="Inbox"      icon={<IcoInbox />}      active={activeTab === 'inbox'}      expandido={expandido} onClick={() => onTabChange('inbox')}      badge={inboxBadge} />
+        <NavItem id="leads"      label="Leads"      icon={<IcoLeads />}      active={activeTab === 'leads'}      expandido={expandido} onClick={() => onTabChange('leads')}      badge={leadsBadge} />
+        <NavItem id="clientes"   label="Clientes"   icon={<IcoClientes />}   active={activeTab === 'clientes'}   expandido={expandido} onClick={() => onTabChange('clientes')} />
+        <NavItem id="agregacoes" label="Agregações" icon={<IcoAgregacoes />} active={activeTab === 'agregacoes'} expandido={expandido} onClick={() => onTabChange('agregacoes')} badge={aggBlink ? 1 : 0} />
       </div>
 
-      <Divider />
+      <Divider expandido={expandido} />
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, width: '100%', padding: '4px 0' }}>
-        <NavItem id="servicos"   label="Serviços"   icon={<IcoServicos />}   active={activeTab === 'servicos'}   onClick={() => onTabChange('servicos')} />
-        <NavItem id="precos"     label="Preços"     icon={<IcoPrecos />}     active={activeTab === 'precos'}     onClick={() => onTabChange('precos')} />
-        <NavItem id="baseIA"     label="Base IA"    icon={<IcoBaseIA />}     active={activeTab === 'baseIA'}     onClick={() => onTabChange('baseIA')} />
-        <NavItem id="crm"        label="CRM Parceiros" icon={<IcoCrm />}    active={activeTab === 'crm'}        onClick={() => onTabChange('crm')} />
-        <NavItem id="relatorios" label="Relatórios" icon={<IcoRelatorios />} active={activeTab === 'relatorios'} onClick={() => onTabChange('relatorios')} />
-        <NavItem id="widgets"    label="Widgets"    icon={<IcoWidgets />}    active={activeTab === 'widgets'}    onClick={() => onTabChange('widgets')} />
+      <div style={grupo}>
+        <NavItem id="servicos"   label="Serviços"      icon={<IcoServicos />}   active={activeTab === 'servicos'}   expandido={expandido} onClick={() => onTabChange('servicos')} />
+        <NavItem id="precos"     label="Preços"        icon={<IcoPrecos />}     active={activeTab === 'precos'}     expandido={expandido} onClick={() => onTabChange('precos')} />
+        <NavItem id="baseIA"     label="Base IA"       icon={<IcoBaseIA />}     active={activeTab === 'baseIA'}     expandido={expandido} onClick={() => onTabChange('baseIA')} />
+        <NavItem id="crm"        label="CRM Parceiros" icon={<IcoCrm />}        active={activeTab === 'crm'}        expandido={expandido} onClick={() => onTabChange('crm')} />
+        <NavItem id="relatorios" label="Relatórios"    icon={<IcoRelatorios />} active={activeTab === 'relatorios'} expandido={expandido} onClick={() => onTabChange('relatorios')} />
+        <NavItem id="atribuicao" label="Atribuição"    icon={<IcoAtribuicao />} active={activeTab === 'atribuicao'} expandido={expandido} onClick={() => onTabChange('atribuicao')} />
+        <NavItem id="widgets"    label="Widgets"       icon={<IcoWidgets />}    active={activeTab === 'widgets'}    expandido={expandido} onClick={() => onTabChange('widgets')} />
       </div>
 
-      <div style={{ flex: 1 }} />
+      <div style={{ flex: 1, minHeight: 12 }} />
 
       {/* Counters */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, alignItems: 'center', marginBottom: 8 }}>
+      <div style={{ display: 'flex', flexDirection: expandido ? 'row' : 'column', gap: 4, alignItems: 'center', justifyContent: 'center', marginBottom: 8 }}>
         {leadsCount > 0 && (
-          <span style={{ background: 'rgba(0,188,212,0.15)', color: '#00bcd4', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(0,188,212,0.25)' }}>
-            {leadsCount}
+          <span title="Leads" style={{ background: 'rgba(0,188,212,0.15)', color: '#00bcd4', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(0,188,212,0.25)' }}>
+            {expandido ? `${leadsCount} leads` : leadsCount}
           </span>
         )}
         {alertsCount > 0 && (
-          <span style={{ background: 'rgba(255,193,7,0.15)', color: '#ffc107', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(255,193,7,0.25)' }}>
-            {alertsCount}
+          <span title="Alertas" style={{ background: 'rgba(255,193,7,0.15)', color: '#ffc107', fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 10, border: '1px solid rgba(255,193,7,0.25)' }}>
+            {expandido ? `${alertsCount} alertas` : alertsCount}
           </span>
         )}
       </div>
 
-      <SoundButton />
-      <VoiceButton />
+      <SoundButton expandido={expandido} />
+      <VoiceButton expandido={expandido} />
 
-      <Divider />
+      <Divider expandido={expandido} />
 
-      <NavItem id="config" label="Perfil & Config" icon={<IcoPerfil />} active={activeTab === 'config'} onClick={() => onTabChange('config')} />
+      <div style={grupo}>
+        <NavItem id="config" label="Perfil & Config" icon={<IcoPerfil />} active={activeTab === 'config'} expandido={expandido} onClick={() => onTabChange('config')} />
+      </div>
 
       {/* Links utilitários */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 8, alignItems: 'center' }}>
-        <a
-          href="/manual.html" target="_blank" rel="noopener noreferrer"
-          title="Manual de Utilizador"
-          style={{
-            width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, textDecoration: 'none',
-            color: 'var(--yb-subtle)',
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-muted)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-subtle)'; }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
-          </svg>
-        </a>
-        <a
-          href="/dashboard/atribuicao"
-          title="Atribuição Google Ads — cobertura de gclid e exportação de conversões"
-          style={{
-            width: 36, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            borderRadius: 7, textDecoration: 'none',
-            color: 'var(--yb-subtle)',
-            transition: 'color 0.15s',
-          }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-muted)'; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-subtle)'; }}
-        >
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/>
-            <line x1="12" y1="3" x2="12" y2="6"/><line x1="12" y1="18" x2="12" y2="21"/>
-            <line x1="3" y1="12" x2="6" y2="12"/><line x1="18" y1="12" x2="21" y2="12"/>
-          </svg>
-        </a>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2, marginTop: 6, alignItems: 'center', width: '100%', padding: expandido ? '0 8px' : 0 }}>
+        {([
+          {
+            href: '/manual.html', alvo: '_blank', label: 'Manual',
+            title: 'Manual de Utilizador',
+            path: <><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></>,
+          },
+        ] as const).map((l) => (
+          <a
+            key={l.href}
+            href={l.href} target={l.alvo} rel={l.alvo ? 'noopener noreferrer' : undefined}
+            title={l.title}
+            style={{
+              width: expandido ? '100%' : 36, height: 32,
+              display: 'flex', alignItems: 'center',
+              justifyContent: expandido ? 'flex-start' : 'center',
+              gap: 11, padding: expandido ? '0 11px' : 0,
+              borderRadius: 7, textDecoration: 'none',
+              color: 'var(--yb-subtle)',
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-muted)'; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--yb-subtle)'; }}
+          >
+            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 20, flexShrink: 0 }}>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {l.path}
+              </svg>
+            </span>
+            {expandido && (
+              <span style={{ fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap' }}>{l.label}</span>
+            )}
+          </a>
+        ))}
       </div>
     </nav>
   );

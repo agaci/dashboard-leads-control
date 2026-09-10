@@ -4,6 +4,7 @@ import { getDb } from '@/lib/mongodb';
 import { normalizeAttribution, newConversionSync } from '@/lib/attribution';
 import { explainWidgetAttribution } from '@/lib/widget/attribution';
 import { triarLeadNova } from '@/lib/crm/entrada';
+import { enviarConfirmacaoDoPedido } from '@/lib/email/confirmacao';
 import { esc } from '@/lib/html';
 
 // Recebe o progresso do quiz (site_YB/index-quiz*.html) e materializa-o como uma
@@ -202,7 +203,10 @@ export async function POST(req: NextRequest) {
     // com a plataforma YourBox antiga, por isso marcamos a entrada com `appSource:
     // 'leads-control'` — a YourBox filtra por esse campo para nao mostrar esta linha
     // (a lead "oficial" e enviada pela API antiga; ver YOURBOX_FILTER_PROMPT.md).
-    // SEM dispatchNotification: o email ao cliente e enviado pela plataforma antiga.
+    // O email de confirmacao ao cliente e enviado por nos (ver lib/email/confirmacao.ts).
+    // Era da plataforma antiga, mas la a classificacao da lead ainda nao existe quando o
+    // email sai — e e ela que decide se a mensagem leva o pedido de autorizacao. O envio
+    // do nodechef fica como redundancia para quando este servidor estiver em baixo.
     if (isSubmit) {
       const guard: any = await col.findOneAndUpdate(
         { quizSessionId: sessionId, leadRegisteredAt: { $exists: false } },
@@ -289,7 +293,16 @@ export async function POST(req: NextRequest) {
         // espera nao custa nada a ninguem — o quiz manda isto por `sendBeacon` e nunca
         // espera pela resposta. E `triarLeadNova` nao lanca, portanto nao pode fazer
         // perder a lead.
-        await triarLeadNova(db, ins.insertedId.toString(), leadDoc.leadData);
+        const triagem = await triarLeadNova(db, ins.insertedId.toString(), leadDoc.leadData);
+
+        // Um so email para o cliente: confirmacao do pedido, ja com a pergunta da
+        // autorizacao la dentro quando a lead sai do ambito. Nao lanca.
+        await enviarConfirmacaoDoPedido(db, {
+          nome: d.nome, email: d.email,
+          origem: d.origem, destino: d.destino, urgencia: urg ?? undefined,
+          viatura, material: d.material, volumes: d.volumes, weightKg: totalKg,
+          embalado: d.embalado, multiMorada: !!d.multiMorada,
+        }, triagem);
       } else {
         // Já havia lead para esta conversa — tipicamente criada a partir da inbox, quando
         // a operadora a marcou como registada com os dados parciais. Não se cria uma
@@ -337,12 +350,22 @@ export async function POST(req: NextRequest) {
             //
             // A `consultaDeLead` nao duplica: se ja houver consulta para esta lead,
             // devolve a que existe.
-            await triarLeadNova(db, String(existente.leadId), {
+            const triagem = await triarLeadNova(db, String(existente.leadId), {
               origem: d.origem, destino: d.destino,
               urgencia: urMap[d.urgencia] ?? d.urgencia,
               viatura, material: d.material, weightKg: totalKg, volumes: d.volumes,
               observacoes: d.observacoes,
             });
+
+            // Tambem aqui: a pessoa acabou de terminar o quiz, e do ponto de vista dela
+            // nada distingue este ramo do outro. So o registo da lead e que e diferente.
+            await enviarConfirmacaoDoPedido(db, {
+              nome: d.nome, email: d.email,
+              origem: d.origem, destino: d.destino,
+              urgencia: urMap[d.urgencia] ?? d.urgencia,
+              viatura, material: d.material, volumes: d.volumes, weightKg: totalKg,
+              embalado: d.embalado, multiMorada: !!d.multiMorada,
+            }, triagem);
           } catch { /* leadId inválido ou lead apagada: nada a actualizar */ }
         }
       }
