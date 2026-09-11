@@ -1504,9 +1504,9 @@ function EmailDoCliente() {
   // quando o modo so era lido pelo lado do nodechef; deixou de ser quando a
   // `enviarConfirmacaoDoPedido` passou a respeita-lo. E agora a opcao de emergencia.
   const OPCOES: [string, string, string][] = [
-    ['auto', 'Automatico', `Esta plataforma envia. A antiga so assume se este servidor deixar de dar sinal durante ${validadeMinutos} minutos.`],
-    ['nodechef', 'So a plataforma antiga', 'Bloqueia o envio daqui, sempre — mesmo com este servidor de pe. A confirmacao passa a depender inteiramente do nodechef. O pedido de autorizacao continua a sair daqui, no seu email proprio.'],
-    ['leads', 'So daqui', 'A antiga nunca envia, nem quando este servidor cair. Nesse caso o cliente fica sem confirmacao nenhuma.'],
+    ['auto', 'Automatico', `Esta plataforma envia. A antiga só assume se este servidor deixar de dar sinal durante ${validadeMinutos} minutos.`],
+    ['nodechef', 'Só a plataforma antiga', 'Bloqueia o envio daqui, sempre — mesmo com este servidor de pé. A confirmação passa a depender inteiramente do nodechef. O pedido de autorização continua a sair daqui, no seu email próprio.'],
+    ['leads', 'Só daqui', 'A antiga nunca envia, nem quando este servidor cair. Nesse caso o cliente fica sem confirmação nenhuma.'],
   ];
 
   return (
@@ -1529,13 +1529,13 @@ function EmailDoCliente() {
         }} />
         <span style={{ fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
           {estado.nodechefEnvia
-            ? 'A plataforma antiga esta a enviar a confirmacao'
-            : 'A confirmacao esta a sair daqui'}
+            ? 'A plataforma antiga esta a enviar a confirmação'
+            : 'A confirmação esta a sair daqui'}
         </span>
         <span style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>
           {idade === null
             ? 'nunca houve pulso — falta o cron'
-            : `ultimo pulso ha ${idade < 90 ? `${idade}s` : `${Math.round(idade / 60)} min`}`}
+            : `último pulso ha ${idade < 90 ? `${idade}s` : `${Math.round(idade / 60)} min`}`}
         </span>
       </div>
 
@@ -1565,8 +1565,8 @@ function EmailDoCliente() {
         }}>
           <strong>Fora do automatico{estado.actor ? `, por ${estado.actor}` : ''}.</strong>{' '}
           {estado.modo === 'nodechef'
-            ? 'Esta plataforma nao envia confirmacoes, e nao volta a enviar sozinha — nem se a antiga parar. '
-            : 'A plataforma antiga nao envia, e nao assume sozinha se este servidor cair. '}
+            ? 'Esta plataforma não envia confirmações, e não volta a enviar sozinha — nem se a antiga parar. '
+            : 'A plataforma antiga não envia, e não assume sozinha se este servidor cair. '}
           Volte a por em Automatico quando acabar: e o unico modo que se corrige sozinho.
         </p>
       )}

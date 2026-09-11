@@ -54,11 +54,11 @@ export const ROTULO_PUBLICO: Record<Publico, string> = {
 
 const RESUMO_PEDIDO: [string, string | null | undefined][] = [
   ['Recolha', 'Av. Central 578, Amora, Portugal'],
-  ['Entrega', 'Varias moradas (porta-a-porta)'],
-  ['Material', 'Mudanca de casa / escritorio'],
+  ['Entrega', 'Várias moradas (porta-a-porta)'],
+  ['Material', 'Mudança de casa / escritório'],
   ['Carga', '1 volume · 10 kg'],
-  ['Urgencia', '1 Hora'],
-  ['Embalagem', 'Nao embalado'],
+  ['Urgência', '1 Hora'],
+  ['Embalagem', 'Não embalado'],
 ];
 
 const tituloBloco = (t: string) =>
@@ -67,8 +67,8 @@ const tituloBloco = (t: string) =>
 const avisoAutorizacao = cartao(
   `<strong style="color:${COR.escuro}">${esc(GUIAO_AUTORIZACAO_EMAIL.texto)}</strong>`
   + `<div style="margin-top:12px">${botao('Responder ao pedido', '#')}</div>`
-  + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">A ligacao abre uma pagina `
-  + `onde escolhe autorizar ou nao autorizar. E valida durante 72 horas.</div>`,
+  + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">A ligação abre uma página `
+  + `onde escolhe autorizar ou não autorizar. É válida durante 72 horas.</div>`,
   'aviso',
 );
 
@@ -102,7 +102,7 @@ export function montarApresentacao(
   });
 
   return envelope({
-    resumo: 'Temos pedidos de transporte na vossa zona que nao conseguimos servir.',
+    resumo: 'Temos pedidos de transporte na vossa zona que não conseguimos servir.',
     titulo: meta.assunto,
     subtitulo: c.intro,
     corpo: [
@@ -112,12 +112,12 @@ export function montarApresentacao(
       paragrafo(c.fecho),
       botao('Dizer o que fazemos e onde', urlFormulario),
       `<p style="margin:6px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${COR.suave}">`
-      + 'Cinco campos. Nao pedimos documentos nem dados de pagamento nesta fase.</p>',
+      + 'Cinco campos. Não pedimos documentos nem dados de pagamento nesta fase.</p>',
       `<p style="margin:18px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:${COR.texto}">`
       + `Com os melhores cumprimentos,<br><strong style="color:${COR.escuro}">${esc(v.assinatura)}</strong>`
       + `<br><span style="font-size:12.5px;color:${COR.suave}">YourBox &mdash; estafetas e transportes</span></p>`,
     ].join(''),
-    rodape: `${esc(RODAPE_OPOSICAO)} <a href="${esc(urlOposicao)}" style="color:#9aa2a8">Nao receber mais contactos</a>.`,
+    rodape: `${esc(RODAPE_OPOSICAO)} <a href="${esc(urlOposicao)}" style="color:#9aa2a8">Não receber mais contactos</a>.`,
   });
 }
 
@@ -163,11 +163,11 @@ export function catalogo(): ModeloEmail[] {
       render: () => envelope({
         resumo: 'Recebemos o seu pedido e entramos em contacto consigo em breve.',
         titulo: 'Pedido recebido, Helder',
-        subtitulo: 'Ja o temos connosco. Entramos em contacto consigo em breve.',
+        subtitulo: 'Já o temos connosco. Entramos em contacto consigo em breve.',
         corpo: passos([
-          { titulo: 'Analise do pedido', texto: 'Estamos a ver os detalhes do que nos pediu.' },
+          { titulo: 'Análise do pedido', texto: 'Estamos a ver os detalhes do que nos pediu.' },
           { titulo: 'Contacto', texto: 'Falamos consigo para confirmar o que faltar.' },
-          { titulo: 'Orcamento', texto: 'Apresentamos o preco para o seu caso.' },
+          { titulo: 'Orcamento', texto: 'Apresentamos o preço para o seu caso.' },
         ]) + '<div style="height:6px"></div>' + cartao(tituloBloco('O seu pedido') + lista(RESUMO_PEDIDO)),
       }),
     },
@@ -184,14 +184,14 @@ export function catalogo(): ModeloEmail[] {
         + 'ligações dos emails antes do destinatário.',
       manual: false,
       render: () => envelope({
-        resumo: 'Recebemos o seu pedido. Precisamos de uma resposta sua para avancar.',
+        resumo: 'Recebemos o seu pedido. Precisamos de uma resposta sua para avançar.',
         titulo: 'Pedido recebido, Helder',
-        subtitulo: 'Para este transporte em concreto precisamos de uma resposta sua antes de avancar.',
+        subtitulo: 'Para este transporte em concreto precisamos de uma resposta sua antes de avançar.',
         corpo: avisoAutorizacao
-          + paragrafo('Enquanto nao responder, o seu pedido fica connosco e nao e passado a ninguem. '
+          + paragrafo('Enquanto não responder, o seu pedido fica connosco e não é passado a ninguém. '
             + 'Se preferir falar primeiro, ligue-nos.')
           + cartao(tituloBloco('O seu pedido') + lista(RESUMO_PEDIDO)),
-        rodape: 'Se nao responder, nao acontece nada: o seu pedido nao e partilhado com ninguem.',
+        rodape: 'Se não responder, não acontece nada: o seu pedido não é partilhado com ninguém.',
       }),
     },
     {
@@ -205,13 +205,13 @@ export function catalogo(): ModeloEmail[] {
         + 'a pessoa viu — é a prova mais forte que temos, porque ninguém a transcreveu.',
       manual: false,
       render: () => envelope({
-        resumo: 'Precisamos de uma resposta sua para avancar com o seu pedido.',
-        titulo: 'Helder, precisamos da sua autorizacao',
-        subtitulo: 'Sobre o pedido que nos fez: <strong>Mudanca de casa — Amora para Lisboa</strong>.',
+        resumo: 'Precisamos de uma resposta sua para avançar com o seu pedido.',
+        titulo: 'Helder, precisamos da sua autorização',
+        subtitulo: 'Sobre o pedido que nos fez: <strong>Mudança de casa — Amora para Lisboa</strong>.',
         corpo: avisoAutorizacao
-          + paragrafo('Se nao responder, nao acontece nada: o seu pedido nao e passado a ninguem.'),
-        rodape: 'So partilhamos o seu pedido com outra empresa se autorizar aqui. Nesse caso, e essa '
-          + 'empresa que passa a ser responsavel pelos dados que lhe entregamos.',
+          + paragrafo('Se não responder, não acontece nada: o seu pedido não é passado a ninguém.'),
+        rodape: 'Só partilhamos o seu pedido com outra empresa se autorizar aqui. Nesse caso, é essa '
+          + 'empresa que passa a ser responsável pelos dados que lhe entregamos.',
       }),
     },
     {
@@ -228,8 +228,8 @@ export function catalogo(): ModeloEmail[] {
         resumo: 'Uma pergunta rapida sobre o transporte que nos pediu.',
         titulo: 'Conseguiu resolver o seu transporte, Helder?',
         subtitulo: 'Uma resposta de um toque, e ficamos a saber se ficou bem servido.',
-        corpo: botao('Sim, resolvi', '#') + botao('Nao, ainda nao', '#'),
-        rodape: 'Um unico contacto para sabermos se ficou bem servido.',
+        corpo: botao('Sim, resolvi', '#') + botao('Não, ainda não', '#'),
+        rodape: 'Um único contacto para sabermos se ficou bem servido.',
       }),
     },
     {
@@ -241,14 +241,14 @@ export function catalogo(): ModeloEmail[] {
       descricao: 'Um contacto único, e o email di-lo. Não há sequência nem insistência.',
       manual: false,
       render: () => envelope({
-        resumo: 'Ficou a meio o seu pedido de orcamento. Continuamos?',
-        titulo: 'Helder, continuamos o seu orcamento?',
+        resumo: 'Ficou a meio o seu pedido de orçamento. Continuamos?',
+        titulo: 'Helder, continuamos o seu orçamento?',
         subtitulo: 'Amora para Lisboa',
-        corpo: paragrafo('Comecou um pedido de orcamento connosco e nao chegou ao fim.<br/>'
+        corpo: paragrafo('Começou um pedido de orçamento connosco e não chegou ao fim.<br/>'
           + 'Se ainda precisar, tratamos disso numa chamada rapida.')
           + botao('Sim, contactem-me', '#')
           + paragrafo(`ou ligue <a href="tel:+351214304546" style="color:${COR.escuro};font-weight:700;text-decoration:none">214 304 546</a>`),
-        rodape: 'Este e um contacto unico — nao lhe enviaremos mais nenhuma mensagem deste genero.',
+        rodape: 'Este é um contacto único — não lhe enviaremos mais nenhuma mensagem deste género.',
       }),
     },
     {
@@ -263,14 +263,14 @@ export function catalogo(): ModeloEmail[] {
         + 'a qualidade das leads.',
       manual: false,
       render: () => envelope({
-        resumo: '#A3F91 — Mudancas',
+        resumo: '#A3F91 — Mudanças',
         titulo: 'Nova lead YourBox',
         corpo: cartao(lista([
-          ['Referencia', '#A3F91'], ['Categoria', 'Mudancas'], ['Cliente', 'Helder Caldas'],
+          ['Referência', '#A3F91'], ['Categoria', 'Mudanças'], ['Cliente', 'Helder Caldas'],
           ['Telefone', '961220881'], ['Recolha', 'Av. Central 578, Amora'],
-          ['Entrega', 'Varias moradas (porta-a-porta)'], ['Custo desta lead', '22.00 EUR'],
+          ['Entrega', 'Várias moradas (porta-a-porta)'], ['Custo desta lead', '22.00 EUR'],
         ]))
-        + paragrafo('Lead exclusiva: nao foi enviada a mais ninguem. Se for invalida, tem 24h para a contestar.')
+        + paragrafo('Lead exclusiva: não foi enviada a mais ninguém. Se for inválida, tem 24h para a contestar.')
         + botao('Contestar esta lead', '#') + botao('Reportar o resultado', '#', 'neutro'),
       }),
     },
@@ -286,7 +286,7 @@ export function catalogo(): ModeloEmail[] {
         resumo: 'Saldo baixo — 12.50 EUR',
         titulo: 'Saldo baixo',
         corpo: cartao(lista([['Saldo actual', '12.50 EUR'], ['Limite de aviso', '25.00 EUR']]))
-          + paragrafo('Sem saldo, as leads da sua area passam ao parceiro seguinte.')
+          + paragrafo('Sem saldo, as leads da sua área passam ao parceiro seguinte.')
           + botao('Carregar a carteira', '#'),
       }),
     },
@@ -306,8 +306,8 @@ export function catalogo(): ModeloEmail[] {
         resumo: '#A3F91 — Helder Caldas · 48.00 EUR',
         titulo: 'Nova lead registada',
         corpo: cartao(lista([
-          ['Referencia', '#A3F91'], ['Lead', 'Helder Caldas'], ['Telefone', '961220881'],
-          ['Rota', 'Av. Central 578 → Rua das Flores 12'], ['Preco', '48.00 EUR'],
+          ['Referência', '#A3F91'], ['Lead', 'Helder Caldas'], ['Telefone', '961220881'],
+          ['Rota', 'Av. Central 578 → Rua das Flores 12'], ['Preço', '48.00 EUR'],
         ])) + botao('Abrir Dashboard', '#'),
       }),
     },

@@ -268,7 +268,7 @@ function Corrigir({ leadId, categoriaActual, paraLinhaB, aoFechar, aoGravar }: {
     }).then((x) => x.json()).catch(() => null);
     setAGravar(false);
     if (r?.success) aoGravar();
-    else setErro(r?.error ?? 'nao foi possivel corrigir');
+    else setErro(r?.error ?? 'não foi possível corrigir');
   }
 
   // A lista abre pela linha que interessa a quem carregou no botao, mas mostra as duas:

@@ -211,8 +211,8 @@ function followUpCliente({ consulta }: ContextoTemplate): Mensagem {
       titulo: `Conseguiu resolver o seu transporte${nome ? `, ${escapar(nome)}` : ''}?`,
       subtitulo: 'Uma resposta de um toque, e ficamos a saber se ficou bem servido.',
       corpo: botaoEmail('Sim, resolvi', linkFollowUp(id, true))
-        + botaoEmail('Nao, ainda nao', linkFollowUp(id, false)),
-      rodape: 'Um unico contacto para sabermos se ficou bem servido.',
+        + botaoEmail('Não, ainda não', linkFollowUp(id, false)),
+      rodape: 'Um único contacto para sabermos se ficou bem servido.',
     }),
   };
 }

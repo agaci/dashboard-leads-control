@@ -85,8 +85,9 @@ export const APRESENTACOES: MetaApresentacao[] = [
       + 'Não repete a apresentação — retoma a conversa onde ela ficou.',
     assunto: 'Como combinámos, fica por escrito',
     campos: [
-      { id: 'pessoa', label: 'Com quem falou', obrigatorio: true, tipo: 'texto', exemplo: 'Sr. Ricardo',
-        nota: 'Como lhe chamou ao telefone. Aparece na primeira linha.' },
+      { id: 'pessoa', label: 'Com quem falou', obrigatorio: true, tipo: 'texto', exemplo: 'o Sr. Ricardo',
+        nota: 'Como lhe chamou ao telefone, com o artigo: "o Sr. Ricardo", "a Dra. Marta". '
+          + 'Aparece na primeira linha, a seguir a "Falámos há pouco com".' },
       { id: 'categoria', label: 'Categoria', obrigatorio: false, tipo: 'texto', exemplo: 'mudanças' },
       { id: 'zona', label: 'Zona', obrigatorio: false, tipo: 'texto', exemplo: 'Setúbal' },
       CAMPO_ASSINATURA,
@@ -151,27 +152,32 @@ export interface CorpoApresentacao {
  * chamada. Uma acção, um botão.
  */
 export function corpoApresentacao(variante: VarianteApresentacao, d: DadosApresentacao): CorpoApresentacao {
-  const onde = d.categoria && d.zona ? ` de <strong>${d.categoria}</strong> na zona de <strong>${d.zona}</strong>` : '';
+  // Duas formas do mesmo pedaco, porque servem duas posicoes gramaticais diferentes:
+  // "pedidos DE mudancas" leva preposicao, "quem fizesse mudancas" nao. Com uma so,
+  // saia "quem fizesse de mudancas".
+  const oQue = d.categoria && d.zona
+    ? `<strong>${d.categoria}</strong> na zona de <strong>${d.zona}</strong>` : '';
+  const onde = oQue ? ` de ${oQue}` : '';
 
   const intro = {
     contexto:
       `Recebemos pedidos${onde || ' de transporte'} que não conseguimos servir`
       + (d.pedidosPorMes && d.pedidosPorMes > 0 ? ` &mdash; cerca de ${d.pedidosPorMes} por mês.` : '.')
-      + ' Se é trabalho que a vossa empresa faz, gostávamos de vo-los passar.',
+      + ' Se é trabalho que a vossa empresa faz, gostávamos de vos passar esses pedidos.',
 
     generica:
       'Recebemos todos os meses pedidos de transporte que não conseguimos servir &mdash; '
       + 'por serem de tipos que não fazemos, ou de zonas que não cobrimos. '
-      + 'Se são trabalho que a vossa empresa faz, gostávamos de vo-los passar.',
+      + 'Se é trabalho que a vossa empresa faz, gostávamos de vos passar esses pedidos.',
 
     pos_chamada:
       `Falámos há pouco com ${d.pessoa ?? 'a vossa empresa'} e ficou combinado enviar isto por escrito. `
       + `Em duas linhas: temos pedidos${onde || ' de transporte'} que não conseguimos servir, `
-      + 'e gostávamos de vo-los passar.',
+      + 'e queríamos passá-los para vocês.',
 
     indicacao:
       `Foi ${d.quemIndicou ?? 'alguém que trabalha connosco'} que nos falou de vocês. `
-      + `Procurávamos quem fizesse${onde || ' este tipo de transporte'}: recebemos pedidos `
+      + `Procurávamos quem fizesse ${oQue || 'este tipo de transporte'}: recebemos pedidos `
       + 'desses todos os meses e não os conseguimos servir.',
   }[variante];
 

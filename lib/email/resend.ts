@@ -21,13 +21,13 @@ export async function sendQuizNudgeEmail(opts: {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const html = envelope({
-    resumo: 'Ficou a meio o seu pedido de orcamento. Continuamos?',
-    titulo: `${opts.nome}, continuamos o seu orcamento?`,
+    resumo: 'Ficou a meio o seu pedido de orçamento. Continuamos?',
+    titulo: `${opts.nome}, continuamos o seu orçamento?`,
     subtitulo: esc(opts.rota),
     corpo: paragrafo(esc(opts.texto).replace(/\n/g, '<br/>'))
       + (opts.ctaUrl ? botao('Sim, contactem-me', opts.ctaUrl) : '')
       + paragrafo(`ou ligue <a href="tel:+351214304546" style="color:${COR.escuro};font-weight:700;text-decoration:none">214 304 546</a>`),
-    rodape: 'Este e um contacto unico — nao lhe enviaremos mais nenhuma mensagem deste genero.',
+    rodape: 'Este é um contacto único — não lhe enviaremos mais nenhuma mensagem deste género.',
   });
 
   const r = await resend.emails.send({
@@ -62,13 +62,13 @@ export async function sendEscalationEmail(opts: {
     resumo: `${ref} — ${nome} pediu para falar com uma pessoa.`,
     titulo: 'Conversa escalada para humano',
     corpo: cartao(lista([
-      ['Referencia', ref],
+      ['Referência', ref],
       ['Lead', nome],
       ['Telefone', opts.telemovel],
       ['Rota', rota],
       // Sem `esc`: a `lista` escapa tudo o que recebe. Isto e texto escrito por quem
       // esta do outro lado do chat, e ate aqui entrava no HTML sem passar por lado nenhum.
-      ['Ultima mensagem', opts.lastMsg ? `"${opts.lastMsg.slice(0, 160).replace(/\*/g, '')}"` : null],
+      ['Última mensagem', opts.lastMsg ? `"${opts.lastMsg.slice(0, 160).replace(/\*/g, '')}"` : null],
     ]))
     + botao('Abrir Inbox', link),
   });
@@ -100,10 +100,10 @@ export async function sendConversationEmail(opts: {
 
   const html = envelope({
     interno: true,
-    resumo: `${ref} — ${nome} comecou uma conversa.`,
+    resumo: `${ref} — ${nome} começou uma conversa.`,
     titulo: 'Nova conversa iniciada',
     corpo: cartao(lista([
-      ['Referencia', ref],
+      ['Referência', ref],
       ['Lead', nome],
       ['Telefone', opts.telemovel],
       ['Rota', rota],
@@ -143,11 +143,11 @@ export async function sendLeadEmail(opts: {
     resumo: `${ref} — ${nome}${opts.price != null ? ` · ${opts.price.toFixed(2)} EUR` : ''}`,
     titulo: 'Nova lead registada',
     corpo: cartao(lista([
-      ['Referencia', ref],
+      ['Referência', ref],
       ['Lead', nome],
       ['Telefone', opts.telemovel],
       ['Rota', rota],
-      ['Preco', opts.price != null ? `${opts.price.toFixed(2)} EUR` : null],
+      ['Preço', opts.price != null ? `${opts.price.toFixed(2)} EUR` : null],
     ]))
     + botao('Abrir Dashboard', link),
   });
@@ -187,28 +187,28 @@ export async function sendPedidoAutorizacaoEmail(opts: {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const html = envelope({
-    resumo: 'Precisamos de uma resposta sua para avancar com o seu pedido.',
-    titulo: `${opts.nome}, precisamos da sua autorizacao`,
+    resumo: 'Precisamos de uma resposta sua para avançar com o seu pedido.',
+    titulo: `${opts.nome}, precisamos da sua autorização`,
     subtitulo: `Sobre o pedido que nos fez: <strong>${esc(opts.servico)}</strong>.`,
     corpo: cartao(
       `<strong style="color:${COR.escuro}">${esc(opts.guiao.texto)}</strong>`
       + `<div style="margin-top:12px">${botao('Responder ao pedido', opts.url)}</div>`
       + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">`
-      + `A ligacao abre uma pagina onde escolhe autorizar ou nao autorizar. `
-      + `E valida durante ${opts.validadeHoras} horas.</div>`,
+      + `A ligação abre uma página onde escolhe autorizar ou não autorizar. `
+      + `É válida durante ${opts.validadeHoras} horas.</div>`,
       'aviso',
     )
-    + paragrafo('Se nao responder, nao acontece nada: o seu pedido nao e passado a ninguem.'),
-    rodape: 'So partilhamos o seu pedido com outra empresa se autorizar aqui. Nesse caso, e essa '
-      + 'empresa que passa a ser responsavel pelos dados que lhe entregamos.',
+    + paragrafo('Se não responder, não acontece nada: o seu pedido não é passado a ninguém.'),
+    rodape: 'Só partilhamos o seu pedido com outra empresa se autorizar aqui. Nesse caso, é essa '
+      + 'empresa que passa a ser responsável pelos dados que lhe entregamos.',
   });
 
   const r = await resend.emails.send({
     from:    FROM,
     to:      [opts.to],
-    subject: 'O seu pedido de transporte — precisamos da sua autorizacao',
+    subject: 'O seu pedido de transporte — precisamos da sua autorização',
     html,
-  }).catch(err => { console.error('[Resend] falha no pedido de autorizacao:', err); return null; });
+  }).catch(err => { console.error('[Resend] falha no pedido de autorização:', err); return null; });
   return !!r;
 }
 
@@ -251,20 +251,20 @@ export async function sendConfirmacaoPedidoEmail(opts: {
           `<strong style="color:${COR.escuro}">${esc(a.texto)}</strong>`
           + `<div style="margin-top:12px">${botao('Responder ao pedido', a.url)}</div>`
           + `<div style="font-size:12px;color:${COR.suave};margin-top:2px">`
-          + `A ligacao abre uma pagina onde escolhe autorizar ou nao autorizar. `
-          + `E valida durante ${a.validadeHoras} horas.</div>`,
+          + `A ligação abre uma página onde escolhe autorizar ou não autorizar. `
+          + `É válida durante ${a.validadeHoras} horas.</div>`,
           'aviso',
         ),
-        paragrafo('Enquanto nao responder, o seu pedido fica connosco e nao e passado a ninguem. '
+        paragrafo('Enquanto não responder, o seu pedido fica connosco e não é passado a ninguém. '
           + 'Se preferir falar primeiro, ligue-nos.'),
         cartao(`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:${COR.suave};margin-bottom:10px">O seu pedido</div>`
           + lista(opts.resumo)),
       ].join('')
     : [
         passos([
-          { titulo: 'Analise do pedido', texto: 'Estamos a ver os detalhes do que nos pediu.' },
+          { titulo: 'Análise do pedido', texto: 'Estamos a ver os detalhes do que nos pediu.' },
           { titulo: 'Contacto', texto: 'Falamos consigo para confirmar o que faltar.' },
-          { titulo: 'Orcamento', texto: 'Apresentamos o preco para o seu caso.' },
+          { titulo: 'Orcamento', texto: 'Apresentamos o preço para o seu caso.' },
         ]),
         `<div style="height:6px"></div>`,
         cartao(`<div style="font-size:10.5px;text-transform:uppercase;letter-spacing:0.5px;color:${COR.suave};margin-bottom:10px">O seu pedido</div>`
@@ -273,22 +273,22 @@ export async function sendConfirmacaoPedidoEmail(opts: {
 
   const html = envelope({
     resumo: a
-      ? 'Recebemos o seu pedido. Precisamos de uma resposta sua para avancar.'
+      ? 'Recebemos o seu pedido. Precisamos de uma resposta sua para avançar.'
       : 'Recebemos o seu pedido e entramos em contacto consigo em breve.',
     titulo: `Pedido recebido${trata}`,
     subtitulo: a
-      ? 'Para este transporte em concreto precisamos de uma resposta sua antes de avancar.'
-      : 'Ja o temos connosco. Entramos em contacto consigo em breve.',
+      ? 'Para este transporte em concreto precisamos de uma resposta sua antes de avançar.'
+      : 'Já o temos connosco. Entramos em contacto consigo em breve.',
     corpo,
-    rodape: a ? 'Se nao responder, nao acontece nada: o seu pedido nao e partilhado com ninguem.' : undefined,
+    rodape: a ? 'Se não responder, não acontece nada: o seu pedido não é partilhado com ninguém.' : undefined,
   });
 
   const r = await resend.emails.send({
     from:    FROM,
     to:      [opts.to],
-    subject: a ? 'O seu pedido — precisamos da sua autorizacao' : 'Recebemos o seu pedido',
+    subject: a ? 'O seu pedido — precisamos da sua autorização' : 'Recebemos o seu pedido',
     html,
-  }).catch(err => { console.error('[Resend] falha na confirmacao do pedido:', err); return null; });
+  }).catch(err => { console.error('[Resend] falha na confirmação do pedido:', err); return null; });
   return !!r;
 }
 
@@ -324,7 +324,7 @@ export async function sendApresentacaoParceiroEmail(opts: {
   const resend = new Resend(process.env.RESEND_API_KEY);
 
   const html = envelope({
-    resumo: 'Temos pedidos de transporte na vossa zona que nao conseguimos servir.',
+    resumo: 'Temos pedidos de transporte na vossa zona que não conseguimos servir.',
     titulo: opts.assunto,
     subtitulo: opts.corpo.intro,
     corpo: [
@@ -338,13 +338,13 @@ export async function sendApresentacaoParceiroEmail(opts: {
       paragrafo(opts.corpo.fecho),
       botao('Dizer o que fazemos e onde', opts.urlFormulario),
       `<p style="margin:6px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:12px;color:${COR.suave}">`
-      + `Cinco campos. Nao pedimos documentos nem dados de pagamento nesta fase.</p>`,
+      + `Cinco campos. Não pedimos documentos nem dados de pagamento nesta fase.</p>`,
 
       `<p style="margin:18px 0 0;font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:${COR.texto}">`
       + `Com os melhores cumprimentos,<br><strong style="color:${COR.escuro}">${esc(opts.assinatura)}</strong>`
       + `<br><span style="font-size:12.5px;color:${COR.suave}">YourBox &mdash; estafetas e transportes</span></p>`,
     ].join(''),
-    rodape: `${esc(opts.rodapeOposicao)} <a href="${esc(opts.urlOposicao)}" style="color:#9aa2a8">Nao receber mais contactos</a>.`,
+    rodape: `${esc(opts.rodapeOposicao)} <a href="${esc(opts.urlOposicao)}" style="color:#9aa2a8">Não receber mais contactos</a>.`,
   });
 
   const r = await resend.emails.send({

@@ -113,10 +113,10 @@ function resumoDoPedido(d: DadosConfirmacao): [string, string | null | undefined
   const kg = numero(d.weightKg);
   return [
     ['Recolha', d.origem],
-    ['Entrega', d.multiMorada ? 'Varias moradas (porta-a-porta)' : d.destino],
+    ['Entrega', d.multiMorada ? 'Várias moradas (porta-a-porta)' : d.destino],
     ['Material', d.material],
     ['Carga', [vol ? `${vol} volume${vol === 1 ? '' : 's'}` : '', kg ? `${kg} kg` : ''].filter(Boolean).join(' · ') || null],
-    ['Urgencia', d.urgencia],
+    ['Urgência', d.urgencia],
     ['Embalagem', d.embalado],
   ];
 }

@@ -405,7 +405,7 @@ export default function WidgetsPage() {
                     {c.secretToken && (
                       <button
                         onClick={() => { copyToClipboard(`${BASE_URL}/parceiro?t=${c.secretToken}`); setCopiedPortal(c._id); setTimeout(() => setCopiedPortal(null), 1800); }}
-                        title="Link de acesso ao portal do parceiro (contem o token)"
+                        title="Link de acesso ao portal do parceiro (contém o token)"
                         style={{
                           fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
                           border: '1px solid rgba(190,214,47,0.35)',
@@ -444,7 +444,7 @@ export default function WidgetsPage() {
                     <button
                       onClick={() => handleRegenerateToken(c)}
                       disabled={regenerating === c._id}
-                      title="Gerar novo token (invalida o anterior)"
+                      title="Gerar novo token (inválida o anterior)"
                       style={{
                         fontSize: 11, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
                         border: '1px solid rgba(239,68,68,0.3)', background: 'rgba(239,68,68,0.08)', color: '#f87171', fontWeight: 600,
