@@ -319,7 +319,12 @@ function Consultas({ labelCategoria, categorias, config, aoMudarConfig }: {
         {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: 0, width: '100%' }}>{erro}</p>}
       </div>
 
-      {manual && <FormConsultaManual aoCriar={() => { setManual(false); carregar(); }} />}
+      {manual && (
+        <FormConsultaManual
+          aoCriar={() => { setManual(false); carregar(); }}
+          aoFechar={() => setManual(false)}
+        />
+      )}
 
       {aCarregar && <p style={{ fontSize: 12, color: 'var(--yb-subtle)' }}>a carregar...</p>}
       {!aCarregar && !consultas.length && !manual && (
@@ -408,7 +413,7 @@ function InterruptorAutorizacao({ config, aoMudar }: { config: Config; aoMudar: 
  * O que o operador controla é a qualidade do que escreve nas observações — é de lá que
  * saem quase todos os sinais.
  */
-function FormConsultaManual({ aoCriar }: { aoCriar: () => void }) {
+function FormConsultaManual({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar: () => void }) {
   const [d, setD] = useState({
     nome: '', telefone: '', email: '',
     origem: '', destino: '', urgencia: '24 Horas',
@@ -453,7 +458,15 @@ function FormConsultaManual({ aoCriar }: { aoCriar: () => void }) {
 
   return (
     <div style={CARD}>
-      <p style={TITULO}>Pedido recebido por telefone</p>
+      {/* A saida vive no cartao e nao so no botao do topo: quem abriu isto esta a olhar
+          para o formulario, e a desistencia tem de estar a mao onde a atencao esta. */}
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+        <p style={{ ...TITULO, marginBottom: 0 }}>Pedido recebido por telefone</p>
+        <button onClick={aoFechar} title="Fechar sem gravar" style={{
+          marginLeft: 'auto', background: 'none', border: 'none', padding: '2px 4px',
+          cursor: 'pointer', fontSize: 11, color: 'var(--yb-subtle)', fontWeight: 600,
+        }}>fechar</button>
+      </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(160px,1fr))', gap: 10, marginBottom: 10 }}>
         {campo('nome', 'Nome do cliente')}
@@ -492,9 +505,15 @@ function FormConsultaManual({ aoCriar }: { aoCriar: () => void }) {
 
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
 
-      <button onClick={gravar} disabled={aGravar} style={{ ...botao('primario'), opacity: aGravar ? 0.5 : 1 }}>
-        {aGravar ? 'a triar...' : 'Criar e triar'}
-      </button>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button onClick={gravar} disabled={aGravar} style={{ ...botao('primario'), opacity: aGravar ? 0.5 : 1 }}>
+          {aGravar ? 'a triar...' : 'Criar e triar'}
+        </button>
+        <button onClick={aoFechar} style={{
+          background: 'none', border: 'none', padding: '7px 4px', cursor: 'pointer',
+          fontSize: 12, color: 'var(--yb-subtle)',
+        }}>Cancelar</button>
+      </div>
     </div>
   );
 }
@@ -999,7 +1018,12 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
         </button>
       </div>
 
-      {novo && <FormNovoParceiro aoCriar={() => { setNovo(false); carregar(); }} />}
+      {novo && (
+        <FormNovoParceiro
+          aoCriar={() => { setNovo(false); carregar(); }}
+          aoFechar={() => setNovo(false)}
+        />
+      )}
 
       {parceiros.map((p) => (
         <div key={p._id} style={{ ...CARD, padding: 0, overflow: 'hidden' }}>
@@ -1098,7 +1122,7 @@ function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: strin
   );
 }
 
-function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
+function FormNovoParceiro({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar: () => void }) {
   const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial' });
   const [zonas, setZonas] = useState<string[]>([]);
   const [erro, setErro] = useState('');
@@ -1115,7 +1139,13 @@ function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
 
   return (
     <div style={CARD}>
-      <p style={TITULO}>Novo parceiro</p>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: 10 }}>
+        <p style={{ ...TITULO, marginBottom: 0 }}>Novo parceiro</p>
+        <button onClick={aoFechar} title="Fechar sem gravar" style={{
+          marginLeft: 'auto', background: 'none', border: 'none', padding: '2px 4px',
+          cursor: 'pointer', fontSize: 11, color: 'var(--yb-subtle)', fontWeight: 600,
+        }}>fechar</button>
+      </div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 12 }}>
         {([
           ['nome', 'Nome da empresa'], ['contacto', 'Pessoa de contacto'],
@@ -1139,7 +1169,13 @@ function FormNovoParceiro({ aoCriar }: { aoCriar: () => void }) {
       </div>
       <div style={{ marginBottom: 12 }}><SelectorZonas valor={zonas} aoMudar={setZonas} /></div>
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
-      <button onClick={gravar} style={botao('primario')}>Criar</button>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <button onClick={gravar} style={botao('primario')}>Criar</button>
+        <button onClick={aoFechar} style={{
+          background: 'none', border: 'none', padding: '7px 4px', cursor: 'pointer',
+          fontSize: 12, color: 'var(--yb-subtle)',
+        }}>Cancelar</button>
+      </div>
     </div>
   );
 }
