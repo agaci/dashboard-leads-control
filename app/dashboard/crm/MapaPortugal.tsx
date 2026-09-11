@@ -67,13 +67,21 @@ function centro(d: string): { x: number; y: number } {
 }
 
 export default function MapaPortugal({
-  valores, seleccionadas, aoClicar, modo = 'cobertura', unidade = 'parceiro',
+  valores, seleccionadas, aoClicar, modo = 'cobertura', unidade = 'parceiro', foraDoMapa = 0,
 }: {
   valores: Record<string, number>;
   seleccionadas: string[];
   aoClicar: (zona: string) => void;
   modo?: ModoMapa;
   unidade?: string;
+  /**
+   * Quantos ficaram de fora por não se saber o distrito.
+   *
+   * Existe porque um mapa cala o que não consegue desenhar, e um total que não bate
+   * certo com a realidade é pior do que não haver total nenhum: quem o lê decide com
+   * ele. Se houver, diz-se.
+   */
+  foraDoMapa?: number;
 }) {
   const [sobre, setSobre] = useState<string | null>(null);
 
@@ -234,6 +242,11 @@ export default function MapaPortugal({
         ) : (
           <>
             {total} {unidade}{total === 1 ? '' : 's'} no mapa
+            {foraDoMapa > 0 && (
+              <span style={{ display: 'block', color: 'var(--yb-aviso, #eab308)', fontSize: 10 }}>
+                mais {foraDoMapa} sem distrito conhecido, que o mapa não mostra.
+              </span>
+            )}
             {vazios > 0 && (
               <span style={{ display: 'block', color: 'var(--yb-subtle)', fontSize: 10 }}>
                 {vazios} distrito{vazios === 1 ? '' : 's'} riscado{vazios === 1 ? '' : 's'}: sem ninguém.

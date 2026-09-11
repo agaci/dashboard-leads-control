@@ -1105,6 +1105,9 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
   const [parados, setParados] = useState(false);
   const [ordem, setOrdem] = useState('nome');
   const [pagina, setPagina] = useState(1);
+  const [modoMapa, setModoMapa] = useState<'cobertura' | 'procura'>('cobertura');
+  const [procura, setProcura] = useState<Record<string, number> | null>(null);
+  const [procuraFora, setProcuraFora] = useState(0);
 
   const POR_PAGINA = 40;
 
@@ -1141,6 +1144,41 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
   }, [qEfectivo, estados, zonas, cats, dims, activos, comSaldo, parados, ordem, pagina]);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  /**
+   * As leads que nao se conseguiram vender, por distrito.
+   *
+   * Vem de /api/crm/procura, que ja faz esta conta por categoria e zona para o separador
+   * da procura. Aqui so se somam as categorias: o mapa responde a "onde e que estamos a
+   * perder trabalho", e a categoria e a pergunta seguinte, nao esta.
+   *
+   * So se pede quando alguem escolhe o modo, e uma vez. E uma leitura pesada de leads
+   * antigas para pintar um mapa que a maior parte das vezes ninguem abre.
+   */
+  useEffect(() => {
+    if (modoMapa !== 'procura' || procura) return;
+    let vivo = true;
+    fetch('/api/crm/procura?dias=90', { cache: 'no-store' })
+      .then((x) => x.json())
+      .then((r) => {
+        if (!vivo || !r?.success) return;
+        const conta: Record<string, number> = {};
+        let fora = 0;
+        for (const c of r.celulas ?? []) {
+          const z = String(c.zona ?? '');
+          // A zona da lead sai da morada de recolha e nem sempre e um distrito: pode vir
+          // um concelho ("cascais") ou lixo de uma morada mal escrita. Contam-se a parte
+          // em vez de se deixarem cair, senao o mapa mostrava um total mais pequeno do
+          // que a realidade e ninguem sabia que faltava alguma coisa.
+          if (!(DISTRITOS as readonly string[]).includes(z)) { fora += Number(c.leads ?? 0); continue; }
+          conta[z] = (conta[z] ?? 0) + Number(c.leads ?? 0);
+        }
+        setProcura(conta);
+        setProcuraFora(fora);
+      })
+      .catch(() => { if (vivo) setProcura({}); });
+    return () => { vivo = false; };
+  }, [modoMapa, procura]);
 
   const alternar = (lista: string[], v: string, set: (l: string[]) => void) => {
     set(lista.includes(v) ? lista.filter((x) => x !== v) : [...lista, v]);
@@ -1272,25 +1310,34 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
       <div className="yb-p-corpo">
         {/* ── mapa ────────────────────────────────────────────────────────── */}
         <div style={{ ...CARD, padding: '14px 14px 12px', position: 'sticky', top: 12 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
-            <p style={{ ...TITULO, marginBottom: 0 }}>Cobertura</p>
+          <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
+            <Chip activo={modoMapa === 'cobertura'} aoClicar={() => setModoMapa('cobertura')}
+              titulo="Quantos parceiros cobrem cada distrito.">quem temos</Chip>
+            <Chip activo={modoMapa === 'procura'} aoClicar={() => setModoMapa('procura')}
+              titulo="Leads dos últimos 90 dias que não se conseguiram vender, por distrito.">o que falta</Chip>
             {zonas.length > 0 && (
               <button onClick={() => { setZonas([]); setPagina(1); }} style={{
                 marginLeft: 'auto', background: 'none', border: 'none', padding: 0,
                 cursor: 'pointer', fontSize: 10, color: 'var(--yb-cyan)', fontWeight: 600,
-              }}>ver o país todo</button>
+              }}>ver tudo</button>
             )}
           </div>
+
           <MapaPortugal
-            valores={mapa}
+            valores={modoMapa === 'procura' ? (procura ?? {}) : mapa}
             seleccionadas={zonas}
             aoClicar={(z) => alternar(zonas, z, setZonas)}
-            modo="cobertura"
-            unidade="parceiro"
+            modo={modoMapa}
+            unidade={modoMapa === 'procura' ? 'lead por servir' : 'parceiro'}
+            foraDoMapa={modoMapa === 'procura' ? procuraFora : 0}
           />
+
           <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '8px 0 0', lineHeight: 1.5 }}>
-            Quem cobre todo o país conta para todos os distritos — é a verdade operacional:
-            uma lead de qualquer sítio pode mesmo ir para ele.
+            {modoMapa === 'procura'
+              ? (procura
+                ? 'Leads dos últimos 90 dias que ninguém pôde receber. Clique num distrito e junte "cobre mas não recebe": se aparecer alguém, o problema é saldo, não rede.'
+                : 'a contar...')
+              : 'Quem cobre todo o país conta para todos os distritos — é a verdade operacional: uma lead de qualquer sítio pode mesmo ir para ele.'}
           </p>
         </div>
 
