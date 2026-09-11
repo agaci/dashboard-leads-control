@@ -238,6 +238,15 @@ export async function POST(req: NextRequest) {
         ].filter(Boolean);
         const cargaHtml = partesCarga.length > 1 ? `<p><b>Carga:</b> ${esc(partesCarga.join(' · '))}</p>` : '';
 
+        // O que a pessoa escreveu por palavras dela, na caixa de texto livre da
+        // confirmacao. Chegava ao `leadData` e nao aparecia em lado nenhum: o que a
+        // operadora ve na inbox e no detalhe da lead e este HTML, e ele nao a incluia.
+        // E a parte mais util da lead — a unica que nao foi a aplicacao que compos.
+        const nota = String(d.observacoes ?? '').trim();
+        const notaHtml = nota
+          ? `<p style="background:#fbfbf4;border-left:3px solid #bed62f;padding:6px 9px;margin:6px 0;"><b>Nota do cliente:</b> ${esc(nota)}</p>`
+          : '';
+
         // Atribuição publicitária: a do submit, ou a que já ficou na conversa nos
         // passos anteriores. Sem gclid a lead cria-se na mesma — só não é exportável.
         const leadAttr = attribution ?? convDoc.attribution ?? null;
@@ -257,7 +266,7 @@ export async function POST(req: NextRequest) {
           // dashboard com dangerouslySetInnerHTML e vai tambem para o leadsBoard do
           // Meteor. Sem escape, um nome com <img src=x onerror=...> corria no browser
           // da operadora, com a sessao dela. A marcacao e nossa e nao se escapa.
-          message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${esc(realPhone)}</p><p>${esc(d.nome)}</p>${d.email ? `<p>${esc(d.email)}</p>` : ''}<p>${esc(d.origem)} → ${esc(d.destino)}</p><p><b>Urgência:</b> ${esc(urg) || '—'}</p>${cargaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
+          message: `<div style="line-height:1.4;"><p><b>LEAD QUIZ</b> <small>(${now.toLocaleString('pt-PT', { timeZone: 'Europe/Lisbon' })})</small></p><p>${esc(realPhone)}</p><p>${esc(d.nome)}</p>${d.email ? `<p>${esc(d.email)}</p>` : ''}<p>${esc(d.origem)} → ${esc(d.destino)}</p><p><b>Urgência:</b> ${esc(urg) || '—'}</p>${cargaHtml}${notaHtml}<p style="color:green;"><b>CONTACTAR AGORA [canal: QUIZ]</b></p></div>`,
           companyProvider: 'Yourbox', senderName: 'Quiz Web', variante: variante ?? 'QUIZ',
           timeStamp: now, closed: false, closedAt: null, reply: [],
           ...(leadAttr ? { attribution: leadAttr, conversionSync: newConversionSync() } : {}),

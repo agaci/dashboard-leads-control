@@ -1464,10 +1464,13 @@ function EmailDoCliente() {
   const idade = estado.idadeSegundos;
   const pulsoVivo = idade !== null && idade <= validadeMinutos * 60;
 
+  // O texto de `nodechef` dizia que esta aplicacao continuava a enviar. Era verdade
+  // quando o modo so era lido pelo lado do nodechef; deixou de ser quando a
+  // `enviarConfirmacaoDoPedido` passou a respeita-lo. E agora a opcao de emergencia.
   const OPCOES: [string, string, string][] = [
-    ['auto', 'Automatico', `A plataforma antiga so envia se este servidor deixar de dar sinal durante ${validadeMinutos} minutos.`],
-    ['leads', 'So daqui', 'A plataforma antiga nunca envia. Se este servidor cair, o cliente fica sem confirmacao.'],
-    ['nodechef', 'So de la', 'Esta aplicacao continua a enviar, e a antiga tambem. Para manutencao ou teste.'],
+    ['auto', 'Automatico', `Esta plataforma envia. A antiga so assume se este servidor deixar de dar sinal durante ${validadeMinutos} minutos.`],
+    ['nodechef', 'So a plataforma antiga', 'Bloqueia o envio daqui, sempre — mesmo com este servidor de pe. A confirmacao passa a depender inteiramente do nodechef. O pedido de autorizacao continua a sair daqui, no seu email proprio.'],
+    ['leads', 'So daqui', 'A antiga nunca envia, nem quando este servidor cair. Nesse caso o cliente fica sem confirmacao nenhuma.'],
   ];
 
   return (
@@ -1519,9 +1522,16 @@ function EmailDoCliente() {
       </div>
 
       {estado.modo !== 'auto' && (
-        <p style={{ fontSize: 11, color: '#eab308', margin: '11px 0 0', lineHeight: 1.5 }}>
-          Fora do automatico{estado.actor ? `, por ${estado.actor}` : ''}. Volte a por em
-          Automatico quando acabar — e o unico modo que se corrige sozinho.
+        <p style={{
+          fontSize: 11, color: '#eab308', margin: '11px 0 0', lineHeight: 1.55,
+          background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)',
+          borderRadius: 8, padding: '9px 11px',
+        }}>
+          <strong>Fora do automatico{estado.actor ? `, por ${estado.actor}` : ''}.</strong>{' '}
+          {estado.modo === 'nodechef'
+            ? 'Esta plataforma nao envia confirmacoes, e nao volta a enviar sozinha — nem se a antiga parar. '
+            : 'A plataforma antiga nao envia, e nao assume sozinha se este servidor cair. '}
+          Volte a por em Automatico quando acabar: e o unico modo que se corrige sozinho.
         </p>
       )}
     </div>
