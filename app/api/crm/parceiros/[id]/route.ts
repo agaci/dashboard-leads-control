@@ -6,6 +6,7 @@ import { metricasDoParceiro, actualizarScore } from '@/lib/crm/outcomes';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 import { limparZona } from '@/lib/crm/zonas';
 import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
+import { limparDimensao, limparViaturas } from '@/lib/crm/filtros';
 
 /**
  * Um parceiro do CRM.
@@ -91,6 +92,10 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
         { status: 400 },
       );
     }
+    // Presente no corpo mas vazio = apagar. E como se desmarca um escalao que ficou errado.
+    if ('dimensao' in body) $set.dimensao = limparDimensao(body.dimensao) ?? null;
+    if ('viaturas' in body) $set.viaturas = limparViaturas(body.viaturas) ?? null;
+
     if (ESTADOS.includes(body.estado)) $set.estado = body.estado;
     if (Array.isArray(body.canaisPreferidos)) {
       $set.canaisPreferidos = body.canaisPreferidos.filter((c: string) => CANAIS.includes(c));

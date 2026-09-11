@@ -28,6 +28,27 @@ export const DIMENSOES: { id: DimensaoParceiro; label: string; nota: string }[] 
   { id: 'grande',     label: 'Mais de 50',   nota: 'Cobertura larga, estrutura montada.' },
 ];
 
+/** Os ids, para validar o que chega de fora. */
+export const DIMENSAO_IDS: readonly string[] = DIMENSOES.map((d) => d.id);
+
+/**
+ * O escalao que veio de um formulario, ou nada.
+ *
+ * Devolve `undefined` em vez de um valor por omissao de proposito: "nao disse" e uma
+ * informacao diferente de "e pequena", e a lista mostra-as de maneira diferente.
+ */
+export function limparDimensao(v: unknown): DimensaoParceiro | undefined {
+  const s = String(v ?? '').trim().toLowerCase();
+  return DIMENSAO_IDS.includes(s) ? (s as DimensaoParceiro) : undefined;
+}
+
+/** Viaturas: um inteiro nao negativo, ou nada. Um numero absurdo e erro de digitacao. */
+export function limparViaturas(v: unknown): number | undefined {
+  if (v === '' || v === null || v === undefined) return undefined;
+  const n = Math.floor(Number(v));
+  return Number.isFinite(n) && n >= 0 && n <= 9999 ? n : undefined;
+}
+
 export const ORDENS = ['nome', 'score', 'saldo', 'contacto', 'dimensao'] as const;
 export type Ordem = typeof ORDENS[number];
 

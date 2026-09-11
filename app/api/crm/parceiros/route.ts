@@ -7,7 +7,7 @@ import { garantirIndices } from '@/lib/crm/indices';
 import { limparZona } from '@/lib/crm/zonas';
 import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
 import { listarParceiros } from '@/lib/crm/listaParceiros';
-import { ORDENS, type Ordem } from '@/lib/crm/filtros';
+import { limparDimensao, limparViaturas, ORDENS, type Ordem } from '@/lib/crm/filtros';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 
 /**
@@ -98,6 +98,10 @@ export async function POST(request: NextRequest) {
       telefone: telefone || undefined,
       email: email || undefined,
       morada: String(body.morada ?? '').trim() || undefined,
+      // Escalão e viaturas: o que permite filtrar por quem aguenta o serviço. Ficam por
+      // preencher sem estragar nada — "não disse" é diferente de "é pequena".
+      dimensao: limparDimensao(body.dimensao),
+      viaturas: limparViaturas(body.viaturas) ?? null,
       // Vazio = nacional. As capacidades herdam daqui quando nao declaram as suas.
       zonas: Array.isArray(body.zonas) ? body.zonas.map((z: string) => limparZona(String(z))).filter(Boolean) : [],
       canaisPreferidos: Array.isArray(body.canaisPreferidos)

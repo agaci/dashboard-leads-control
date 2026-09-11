@@ -2,6 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { DISTRITOS, limparZona, ZONA_NACIONAL } from '@/lib/crm/zonas';
+import { DIMENSOES } from '@/lib/crm/filtros';
+import { ROTULO_ESTADO } from '@/lib/crm/angariacao';
+import MapaPortugal from './MapaPortugal';
 import { LARGURA_CONTEUDO } from '@/components/layout/larguras';
 import Materiais from './Materiais';
 import Procura from './Procura';
@@ -49,6 +52,12 @@ type Parceiro = {
   telefone?: string; email?: string; contacto?: string; nif?: string;
   morada?: string; zonas?: string[]; motivoSaida?: string;
   canaisPreferidos: string[]; leadsGratisRestantes: number; notas?: string;
+  dimensao?: string | null; viaturas?: number | null;
+  atribuidoA?: string; ultimoContactoEm?: string | null;
+  // Calculadas no servidor (lib/crm/listaParceiros.ts): as zonas ja com a heranca
+  // resolvida e as categorias das capacidades activas. Recalcula-las aqui obrigaria a
+  // mandar as capacidades todas de todos para o browser.
+  zonasEfectivas?: string[]; categorias?: string[];
 };
 
 type Capacidade = {
@@ -130,6 +139,19 @@ const COR_ESTADO: Record<string, string> = {
 };
 
 const COR_CONFIANCA: Record<string, string> = { alta: '#22c55e', media: '#eab308', baixa: '#f87171' };
+
+/**
+ * Os estados do parceiro, por cor.
+ *
+ * Verde e so para quem recebe leads — os dois estados que contam operacionalmente. O
+ * funil de angariacao fica em azul, porque e trabalho a decorrer e nao um problema, e
+ * quem saiu fica apagado em vez de vermelho: descartado nao e avaria.
+ */
+const COR_ESTADO_PARCEIRO: Record<string, string> = {
+  prospect: '#8B9EC9', contactado: '#8B9EC9', registado: '#8B9EC9', em_avaliacao: '#38bdf8',
+  trial: '#22c55e', ativo: '#22c55e',
+  suspenso: '#f87171', descartado: '#6b7280', opos_se: '#6b7280',
+};
 
 const COR_ENVIO: Record<string, string> = {
   enviado: '#00bcd4', entregue: '#22c55e', visto: '#22c55e', aceite: '#22c55e',
@@ -998,24 +1020,246 @@ function Campo({ k, v }: { k: string; v?: string | null }) {
 
 // ── Parceiros ────────────────────────────────────────────────────────────────
 
+// ── A lista de parceiros ─────────────────────────────────────────────────────
+
+const ESTADOS_ATALHO = ['prospect', 'contactado', 'registado', 'em_avaliacao', 'trial', 'ativo', 'suspenso'] as const;
+
+const ORDENS_LISTA: { id: string; label: string }[] = [
+  { id: 'nome', label: 'nome' },
+  { id: 'score', label: 'melhor score' },
+  { id: 'saldo', label: 'maior saldo' },
+  { id: 'contacto', label: 'esquecido há mais tempo' },
+  { id: 'dimensao', label: 'maior dimensão' },
+];
+
+/** Um botão-pastilha de filtro. É o mesmo desenho em todas as filas de filtros. */
+function Chip({ activo, children, aoClicar, titulo }: {
+  activo: boolean; children: React.ReactNode; aoClicar: () => void; titulo?: string;
+}) {
+  return (
+    <button type="button" onClick={aoClicar} title={titulo} style={{
+      background: activo ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)',
+      color: activo ? 'var(--yb-cyan)' : 'var(--yb-muted)',
+      border: `1px solid ${activo ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
+      borderRadius: 20, padding: '3px 10px', fontSize: 11,
+      fontWeight: activo ? 700 : 500, cursor: 'pointer', whiteSpace: 'nowrap',
+    }}>{children}</button>
+  );
+}
+
+function FilaFiltro({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  return (
+    <div style={{ display: 'flex', gap: 6, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 7 }}>
+      <span style={{
+        fontSize: 10, color: 'var(--yb-subtle)', textTransform: 'uppercase',
+        letterSpacing: '.06em', minWidth: 62, fontWeight: 700,
+      }}>{titulo}</span>
+      {children}
+    </div>
+  );
+}
+
+const dataCurta = (v?: string | null) => {
+  if (!v) return null;
+  const d = new Date(v);
+  if (Number.isNaN(d.getTime())) return null;
+  const dias = Math.floor((Date.now() - d.getTime()) / 864e5);
+  if (dias <= 0) return 'hoje';
+  if (dias === 1) return 'ontem';
+  if (dias < 31) return `há ${dias} dias`;
+  if (dias < 365) return `há ${Math.floor(dias / 30)} meses`;
+  return `há ${Math.floor(dias / 365)} anos`;
+};
+
+/**
+ * Parceiros: filtros, mapa e lista.
+ *
+ * **Linhas e não cartões.** Com uma dúzia de parceiros um cartão por cada um lê-se bem;
+ * com centenas, obriga a rolar metros para comparar dois. A ficha completa continua a
+ * abrir-se no sítio, ao clicar na linha.
+ *
+ * **O filtro vai ao servidor, não ao browser.** Filtrar uma lista já carregada obrigava
+ * a carregá-la toda primeiro — que é exactamente o que não se pode fazer com centenas de
+ * parceiros e as carteiras de todos. Ver lib/crm/listaParceiros.ts.
+ *
+ * **O mapa não encolhe quando se escolhe um distrito.** Conta sempre sem o filtro de
+ * zona: se contasse com ele, o primeiro clique apagava o resto do país e perdia-se a
+ * vista de conjunto no momento exacto em que se estava a explorá-la.
+ */
 function Parceiros({ categorias }: { categorias: Categoria[] }) {
   const [parceiros, setParceiros] = useState<Parceiro[]>([]);
+  const [mapa, setMapa] = useState<Record<string, number>>({});
+  const [total, setTotal] = useState(0);
+  const [aCarregar, setACarregar] = useState(true);
   const [aberto, setAberto] = useState<string | null>(null);
   const [novo, setNovo] = useState(false);
 
+  const [q, setQ] = useState('');
+  const [qEfectivo, setQEfectivo] = useState('');
+  const [estados, setEstados] = useState<string[]>([]);
+  const [zonas, setZonas] = useState<string[]>([]);
+  const [cats, setCats] = useState<string[]>([]);
+  const [dims, setDims] = useState<string[]>([]);
+  const [activos, setActivos] = useState(false);
+  const [comSaldo, setComSaldo] = useState(false);
+  const [parados, setParados] = useState(false);
+  const [ordem, setOrdem] = useState('nome');
+  const [pagina, setPagina] = useState(1);
+
+  const POR_PAGINA = 40;
+
+  // A procura espera que se acabe de escrever. Uma chamada por tecla seria uma chamada
+  // por tecla a uma consulta que percorre a coleccao toda.
+  useEffect(() => {
+    const t = setTimeout(() => { setQEfectivo(q); setPagina(1); }, 280);
+    return () => clearTimeout(t);
+  }, [q]);
+
   const carregar = useCallback(async () => {
-    const r = await fetch('/api/crm/parceiros').then((x) => x.json()).catch(() => null);
-    if (r?.success) setParceiros(r.parceiros);
-  }, []);
+    setACarregar(true);
+    const p = new URLSearchParams();
+    if (qEfectivo.trim()) p.set('q', qEfectivo.trim());
+    for (const e of estados) p.append('estado', e);
+    for (const z of zonas) p.append('zona', z);
+    for (const c of cats) p.append('categoria', c);
+    for (const d of dims) p.append('dimensao', d);
+    if (activos) p.set('activos', '1');
+    if (comSaldo) p.set('comSaldo', '1');
+    if (parados) p.set('parados', '1');
+    p.set('ordem', ordem);
+    p.set('pagina', String(pagina));
+    p.set('porPagina', String(POR_PAGINA));
+
+    const r = await fetch(`/api/crm/parceiros?${p}`, { cache: 'no-store' })
+      .then((x) => x.json()).catch(() => null);
+    setACarregar(false);
+    if (r?.success) {
+      setParceiros(r.parceiros ?? []);
+      setMapa(r.mapa ?? {});
+      setTotal(r.total ?? 0);
+    }
+  }, [qEfectivo, estados, zonas, cats, dims, activos, comSaldo, parados, ordem, pagina]);
 
   useEffect(() => { carregar(); }, [carregar]);
 
+  const alternar = (lista: string[], v: string, set: (l: string[]) => void) => {
+    set(lista.includes(v) ? lista.filter((x) => x !== v) : [...lista, v]);
+    setPagina(1);
+  };
+
+  const filtrado = Boolean(
+    qEfectivo || estados.length || zonas.length || cats.length || dims.length
+    || activos || comSaldo || parados,
+  );
+
+  function limpar() {
+    setQ(''); setQEfectivo(''); setEstados([]); setZonas([]); setCats([]); setDims([]);
+    setActivos(false); setComSaldo(false); setParados(false); setPagina(1);
+  }
+
+  const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
+  const catsVenda = categorias.filter((c) => c.route === 'lead_sale');
+
   return (
     <>
-      <div style={{ marginBottom: 12 }}>
-        <button onClick={() => setNovo(!novo)} style={botao('primario')}>
-          {novo ? 'Cancelar' : 'Novo parceiro'}
-        </button>
+      <style>{`
+        .yb-p-linha {
+          display: grid;
+          grid-template-columns: minmax(180px,2.2fr) 96px minmax(120px,1.4fr) minmax(110px,1.2fr) 74px 46px 84px;
+          gap: 10px; align-items: center; width: 100%; box-sizing: border-box;
+          background: transparent; border: none; cursor: pointer;
+          padding: 9px 14px; text-align: left;
+          border-bottom: 1px solid var(--yb-border);
+        }
+        .yb-p-linha:hover { background: rgba(255,255,255,0.03); }
+        .yb-p-cab { font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+                    color: var(--yb-subtle); font-weight: 700; cursor: default; }
+        .yb-p-cab:hover { background: transparent; }
+        .yb-p-corpo { display: grid; grid-template-columns: 262px minmax(0,1fr); gap: 16px; align-items: start; }
+        @media (max-width: 1100px) {
+          .yb-p-corpo { grid-template-columns: 1fr; }
+          .yb-p-linha { grid-template-columns: minmax(150px,2fr) 90px 1fr 70px 84px; }
+          .yb-p-so-largo { display: none; }
+        }
+        @media (max-width: 640px) {
+          /* Tres colunas e nao duas: com duas, o saldo passava para a linha de baixo e
+             ficava debaixo do nome, onde se le como se fosse parte dele. */
+          .yb-p-linha { grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; }
+          .yb-p-cab { display: none; }
+          .yb-p-so-medio { display: none; }
+        }
+      `}</style>
+
+      {/* ── filtros ───────────────────────────────────────────────────────── */}
+      <div style={{ ...CARD, padding: '12px 14px' }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
+          <input
+            style={{ ...INPUT, flex: '1 1 220px', minWidth: 160 }}
+            placeholder="procurar por nome, NIF, contacto, email ou morada"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <select style={{ ...INPUT, width: 'auto', flex: '0 0 auto' }} value={ordem}
+            onChange={(e) => { setOrdem(e.target.value); setPagina(1); }}>
+            {ORDENS_LISTA.map((o) => <option key={o.id} value={o.id}>por {o.label}</option>)}
+          </select>
+          <button onClick={() => setNovo(!novo)} style={botao('primario')}>
+            {novo ? 'Cancelar' : 'Novo parceiro'}
+          </button>
+        </div>
+
+        <FilaFiltro titulo="Estado">
+          {ESTADOS_ATALHO.map((e) => (
+            <Chip key={e} activo={estados.includes(e)} aoClicar={() => alternar(estados, e, setEstados)}>
+              {(ROTULO_ESTADO as Record<string, string>)[e] ?? e}
+            </Chip>
+          ))}
+        </FilaFiltro>
+
+        <FilaFiltro titulo="Serviço">
+          {catsVenda.map((c) => (
+            <Chip key={c.id} activo={cats.includes(c.id)} aoClicar={() => alternar(cats, c.id, setCats)}>
+              {c.label}
+            </Chip>
+          ))}
+        </FilaFiltro>
+
+        <FilaFiltro titulo="Dimensão">
+          {DIMENSOES.map((d) => (
+            <Chip key={d.id} activo={dims.includes(d.id)} titulo={d.nota}
+              aoClicar={() => alternar(dims, d.id, setDims)}>
+              {d.label}
+            </Chip>
+          ))}
+        </FilaFiltro>
+
+        <FilaFiltro titulo="Só">
+          <Chip activo={activos} aoClicar={() => { setActivos(!activos); setPagina(1); }}
+            titulo="Trial ou activo: os únicos estados que entram numa distribuição.">
+            quem recebe leads
+          </Chip>
+          <Chip activo={comSaldo} aoClicar={() => { setComSaldo(!comSaldo); setPagina(1); }}
+            titulo="Saldo em carteira ou leads de trial por gastar.">
+            com que trabalhar
+          </Chip>
+          <Chip activo={parados} aoClicar={() => { setParados(!parados); setPagina(1); }}
+            titulo="Já declararam que fazem aquilo ali e estão parados por saldo, suspensão ou capacidade por activar. É a lista de telefonemas que desbloqueia receita sem angariar ninguém.">
+            cobre mas não recebe
+          </Chip>
+        </FilaFiltro>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginTop: 4, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>
+            {aCarregar ? 'a procurar...' : `${total} parceiro${total === 1 ? '' : 's'}`}
+            {zonas.length > 0 && ` em ${zonas.join(', ')}`}
+          </span>
+          {filtrado && (
+            <button onClick={limpar} style={{
+              background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+              fontSize: 11, color: 'var(--yb-cyan)', fontWeight: 600,
+            }}>limpar filtros</button>
+          )}
+        </div>
       </div>
 
       {novo && (
@@ -1025,34 +1269,133 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
         />
       )}
 
-      {parceiros.map((p) => (
-        <div key={p._id} style={{ ...CARD, padding: 0, overflow: 'hidden' }}>
-          <button onClick={() => setAberto(aberto === p._id ? null : p._id)} style={{
-            width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
-            padding: '13px 16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
-          }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)' }}>{p.nome}</span>
-            <Etiqueta texto={p.estado} cor={p.estado === 'ativo' ? '#22c55e' : p.estado === 'suspenso' ? '#f87171' : '#8B9EC9'} />
-            <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>score {p.score}</span>
-            {p.leadsGratisRestantes > 0 && (
-              <Etiqueta texto={`${p.leadsGratisRestantes} leads de trial`} cor="#eab308" />
+      <div className="yb-p-corpo">
+        {/* ── mapa ────────────────────────────────────────────────────────── */}
+        <div style={{ ...CARD, padding: '14px 14px 12px', position: 'sticky', top: 12 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 10 }}>
+            <p style={{ ...TITULO, marginBottom: 0 }}>Cobertura</p>
+            {zonas.length > 0 && (
+              <button onClick={() => { setZonas([]); setPagina(1); }} style={{
+                marginLeft: 'auto', background: 'none', border: 'none', padding: 0,
+                cursor: 'pointer', fontSize: 10, color: 'var(--yb-cyan)', fontWeight: 600,
+              }}>ver o país todo</button>
             )}
-            <span style={{
-              fontSize: 12, fontWeight: 700, marginLeft: 'auto',
-              color: p.saldo > 0 ? 'var(--yb-fg)' : 'var(--yb-error)',
-            }}>{p.saldo.toFixed(2)} EUR</span>
-          </button>
-
-          {aberto === p._id && <DetalheParceiro parceiro={p} categorias={categorias} aoMudar={carregar} />}
-        </div>
-      ))}
-
-      {!parceiros.length && !novo && (
-        <div style={CARD}>
-          <p style={{ fontSize: 13, color: 'var(--yb-muted)', margin: 0 }}>
-            Sem parceiros. A fase 1 começa pela angariação nas categorias em falta: viaturas,
-            mudanças, ADR, temperatura controlada e cargas fora de gabarito.
+          </div>
+          <MapaPortugal
+            valores={mapa}
+            seleccionadas={zonas}
+            aoClicar={(z) => alternar(zonas, z, setZonas)}
+            modo="cobertura"
+            unidade="parceiro"
+          />
+          <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '8px 0 0', lineHeight: 1.5 }}>
+            Quem cobre todo o país conta para todos os distritos — é a verdade operacional:
+            uma lead de qualquer sítio pode mesmo ir para ele.
           </p>
+        </div>
+
+        {/* ── lista ───────────────────────────────────────────────────────── */}
+        <div style={{ ...CARD, padding: 0, overflow: 'hidden' }}>
+          <div className="yb-p-linha yb-p-cab">
+            <span>Parceiro</span>
+            <span>Estado</span>
+            <span className="yb-p-so-medio">Zonas</span>
+            <span className="yb-p-so-largo">Serviços</span>
+            <span className="yb-p-so-largo">Dimensão</span>
+            <span className="yb-p-so-medio" style={{ textAlign: 'right' }}>Score</span>
+            <span style={{ textAlign: 'right' }}>Saldo</span>
+          </div>
+
+          {parceiros.map((p) => {
+            const zs = p.zonasEfectivas ?? [];
+            const nacional = zs.includes('nacional');
+            const cs = p.categorias ?? [];
+            const dim = DIMENSOES.find((d) => d.id === p.dimensao);
+            const contacto = dataCurta(p.ultimoContactoEm);
+            return (
+              <div key={p._id}>
+                <div className="yb-p-linha" role="button" tabIndex={0}
+                  onClick={() => setAberto(aberto === p._id ? null : p._id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setAberto(aberto === p._id ? null : p._id); }}
+                >
+                  <span style={{ minWidth: 0 }}>
+                    <span style={{
+                      display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>{p.nome}</span>
+                    <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-subtle)' }}>
+                      {[p.contacto, contacto ? `falado ${contacto}` : 'nunca contactado']
+                        .filter(Boolean).join(' · ')}
+                    </span>
+                  </span>
+
+                  <span>
+                    <Etiqueta
+                      texto={(ROTULO_ESTADO as Record<string, string>)[p.estado] ?? p.estado}
+                      cor={COR_ESTADO_PARCEIRO[p.estado] ?? '#8B9EC9'}
+                    />
+                  </span>
+
+                  <span className="yb-p-so-medio" style={{
+                    fontSize: 11, color: nacional ? 'var(--yb-cyan)' : 'var(--yb-muted)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }} title={nacional ? 'todo o país' : zs.join(', ')}>
+                    {nacional ? 'todo o país' : (zs.length ? zs.join(', ') : '—')}
+                  </span>
+
+                  <span className="yb-p-so-largo" style={{
+                    fontSize: 11, color: 'var(--yb-muted)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }} title={cs.map((c) => categorias.find((k) => k.id === c)?.label ?? c).join(', ')}>
+                    {cs.length
+                      ? cs.map((c) => categorias.find((k) => k.id === c)?.label ?? c).join(', ')
+                      : <span style={{ color: 'var(--yb-error)' }}>sem capacidades</span>}
+                  </span>
+
+                  <span className="yb-p-so-largo" style={{ fontSize: 11, color: 'var(--yb-muted)' }}>
+                    {dim ? dim.label : <span style={{ color: 'var(--yb-subtle)' }}>não disse</span>}
+                    {p.viaturas ? <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-subtle)' }}>{p.viaturas} viat.</span> : null}
+                  </span>
+
+                  <span className="yb-p-so-medio" style={{
+                    fontSize: 11, textAlign: 'right', color: 'var(--yb-muted)', fontVariantNumeric: 'tabular-nums',
+                  }}>{p.score}</span>
+
+                  <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <span style={{
+                      display: 'block', fontSize: 12, fontWeight: 700,
+                      color: p.saldo > 0 ? 'var(--yb-fg)' : 'var(--yb-error)',
+                    }}>{p.saldo.toFixed(2)}</span>
+                    {p.leadsGratisRestantes > 0 && (
+                      <span style={{ display: 'block', fontSize: 10, color: '#eab308' }}>
+                        +{p.leadsGratisRestantes} trial
+                      </span>
+                    )}
+                  </span>
+                </div>
+
+                {aberto === p._id && <DetalheParceiro parceiro={p} categorias={categorias} aoMudar={carregar} />}
+              </div>
+            );
+          })}
+
+          {!parceiros.length && !aCarregar && (
+            <p style={{ fontSize: 13, color: 'var(--yb-muted)', margin: 0, padding: '18px 16px' }}>
+              {filtrado
+                ? 'Nenhum parceiro com estes filtros. Tire um e volte a tentar.'
+                : 'Sem parceiros. A angariação começa pelas categorias em falta: viaturas, mudanças, ADR, temperatura controlada e cargas fora de gabarito.'}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {paginas > 1 && (
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', justifyContent: 'center', margin: '12px 0 4px' }}>
+          <button onClick={() => setPagina(Math.max(1, pagina - 1))} disabled={pagina <= 1}
+            style={{ ...botao('neutro'), opacity: pagina <= 1 ? 0.4 : 1 }}>anterior</button>
+          <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>página {pagina} de {paginas}</span>
+          <button onClick={() => setPagina(Math.min(paginas, pagina + 1))} disabled={pagina >= paginas}
+            style={{ ...botao('neutro'), opacity: pagina >= paginas ? 0.4 : 1 }}>seguinte</button>
         </div>
       )}
     </>
@@ -1122,16 +1465,65 @@ function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: strin
   );
 }
 
+/**
+ * Quantos sao e com que viaturas.
+ *
+ * Escalao e nao numero exacto: um numero esta desactualizado no dia seguinte, e um
+ * escalao e coisa que alguem marca sem hesitar. E o que responde a pergunta que se faz
+ * antes de passar um servico grande — "isto cabe-lhes na semana?".
+ *
+ * "Nao disse" e uma opcao a serio e nao a ausencia de escolha: e diferente de "e
+ * pequena", e a lista mostra as duas de maneira diferente.
+ */
+function SelectorDimensao({ dimensao, viaturas, aoMudar }: {
+  dimensao: string; viaturas: string;
+  aoMudar: (d: { dimensao: string; viaturas: string }) => void;
+}) {
+  const chip = (activo: boolean): React.CSSProperties => ({
+    background: activo ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)',
+    color: activo ? 'var(--yb-cyan)' : 'var(--yb-muted)',
+    border: `1px solid ${activo ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
+    borderRadius: 20, padding: '3px 10px', fontSize: 11,
+    fontWeight: activo ? 700 : 500, cursor: 'pointer',
+  });
+
+  return (
+    <div>
+      <label style={LABEL}>Dimensão</label>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+        <button type="button" onClick={() => aoMudar({ dimensao: '', viaturas })} style={chip(!dimensao)}>
+          não disse
+        </button>
+        {DIMENSOES.map((d) => (
+          <button type="button" key={d.id} title={d.nota}
+            onClick={() => aoMudar({ dimensao: d.id, viaturas })} style={chip(dimensao === d.id)}>
+            {d.label}
+          </button>
+        ))}
+      </div>
+      <label style={LABEL}>Viaturas</label>
+      <input type="number" min={0} max={9999} style={INPUT} placeholder="aproximado"
+        value={viaturas} onChange={(e) => aoMudar({ dimensao, viaturas: e.target.value })} />
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0' }}>
+        {dimensao
+          ? DIMENSOES.find((d) => d.id === dimensao)?.nota
+          : 'Numa transportadora, as viaturas dizem mais sobre capacidade do que o número de pessoas.'}
+      </p>
+    </div>
+  );
+}
+
 function FormNovoParceiro({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar: () => void }) {
   const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial' });
   const [zonas, setZonas] = useState<string[]>([]);
+  const [porte, setPorte] = useState({ dimensao: '', viaturas: '' });
   const [erro, setErro] = useState('');
 
   async function gravar() {
     setErro('');
     const r = await fetch('/api/crm/parceiros', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...dados, zonas, canaisPreferidos: ['whatsapp', 'email'] }),
+      body: JSON.stringify({ ...dados, ...porte, zonas, canaisPreferidos: ['whatsapp', 'email'] }),
     }).then((x) => x.json()).catch(() => null);
     if (r?.success) aoCriar();
     else setErro(r?.error ?? 'não foi possível criar');
@@ -1168,6 +1560,7 @@ function FormNovoParceiro({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar
         </div>
       </div>
       <div style={{ marginBottom: 12 }}><SelectorZonas valor={zonas} aoMudar={setZonas} /></div>
+      <div style={{ marginBottom: 12 }}><SelectorDimensao {...porte} aoMudar={setPorte} /></div>
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button onClick={gravar} style={botao('primario')}>Criar</button>
@@ -1200,6 +1593,10 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
     notas: parceiro.notas ?? '',
   });
   const [zonas, setZonas] = useState<string[]>(parceiro.zonas ?? []);
+  const [porte, setPorte] = useState({
+    dimensao: parceiro.dimensao ?? '',
+    viaturas: parceiro.viaturas == null ? '' : String(parceiro.viaturas),
+  });
   const [erro, setErro] = useState('');
   const [aGravar, setAGravar] = useState(false);
 
@@ -1213,7 +1610,7 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
     setAGravar(true);
     const r = await fetch(`/api/crm/parceiros/${parceiro._id}`, {
       method: 'PUT', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...dados, zonas }),
+      body: JSON.stringify({ ...dados, ...porte, zonas }),
     }).then((x) => x.json()).catch(() => null);
     setAGravar(false);
     if (r?.success) aoGravar();
@@ -1235,6 +1632,8 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
       ))}
 
       <SelectorZonas valor={zonas} aoMudar={setZonas} />
+
+      <SelectorDimensao {...porte} aoMudar={setPorte} />
 
       <div>
         <label style={LABEL}>Estado</label>
@@ -1343,6 +1742,8 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
               <Campo k="NIF" v={parceiro.nif} />
               <Campo k="Morada" v={parceiro.morada} />
               <Campo k="Zonas" v={parceiro.zonas?.length ? parceiro.zonas.join(', ') : 'todo o país'} />
+              <Campo k="Dimensão" v={DIMENSOES.find((d) => d.id === parceiro.dimensao)?.label ?? 'não disse'} />
+              <Campo k="Viaturas" v={parceiro.viaturas == null ? null : String(parceiro.viaturas)} />
               <Campo k="Estado" v={parceiro.estado} />
               <Campo k="Leads de trial" v={String(parceiro.leadsGratisRestantes)} />
             </>

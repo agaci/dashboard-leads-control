@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import type { CrmContacto, CrmPartner } from '@/types/crm';
 import { CATEGORIAS_ORDENADAS } from './categorias';
 import { DISTRITOS, limparZona } from './zonas';
+import { DIMENSOES, limparDimensao, limparViaturas } from './filtros';
 import { mudarEstadoParceiro, registarInteraccao } from './prospectos';
 
 /**
@@ -26,6 +27,9 @@ import { mudarEstadoParceiro, registarInteraccao } from './prospectos';
 export interface RespostasRegisto {
   nif: string;
   alvara?: string;
+  /** Escalão de pessoas. Ver DIMENSOES em lib/crm/filtros.ts. */
+  dimensao?: string;
+  viaturas?: string | number;
   responsavel: string;
   cargo?: string;
   telefone: string;
@@ -51,6 +55,11 @@ export function categoriasOferecidas(): { id: string; label: string; descricao: 
 
 export function zonasOferecidas(): readonly string[] {
   return DISTRITOS;
+}
+
+/** Os escalões de dimensão, para o formulário os desenhar. */
+export function dimensoesOferecidas(): typeof DIMENSOES {
+  return DIMENSOES;
 }
 
 function paraOid(id: string): any {
@@ -85,6 +94,13 @@ export function validarRespostas(r: Partial<RespostasRegisto>): { ok: boolean; e
 
   if (!r.nacional && !(r.zonas ?? []).length) {
     return { ok: false, erro: 'Escolha as zonas que cobrem, ou marque todo o país.' };
+  }
+
+  // Exigido porque é disto que depende saber a quem se pode passar um serviço grande, e
+  // porque é uma escolha de um toque. As viaturas ficam opcionais: nem toda a gente as
+  // conta da mesma maneira, e o escalão já diz o essencial.
+  if (!limparDimensao(r.dimensao)) {
+    return { ok: false, erro: 'Diga-nos quantas pessoas são — é uma escolha só.' };
   }
 
   return { ok: true };
@@ -141,6 +157,8 @@ export async function gravarRegisto(
       $set: {
         nif: r.nif.replace(/\D/g, ''),
         alvara: String(r.alvara ?? '').trim() || undefined,
+        dimensao: limparDimensao(r.dimensao),
+        viaturas: limparViaturas(r.viaturas) ?? null,
         telefone: parceiro.telefone || r.telefone.trim(),
         email: parceiro.email || emailLeads,
         contactos: [responsavel, ...anteriores],
@@ -174,6 +192,11 @@ export async function gravarRegisto(
   const resumo = [
     `Formulário preenchido por ${responsavel.nome}`,
     `${capacidades.length} serviço(s): ${r.categorias.join(', ')}`,
+    (() => {
+      const d = DIMENSOES.find((x) => x.id === limparDimensao(r.dimensao));
+      const v = limparViaturas(r.viaturas);
+      return [d ? `dimensão: ${d.label}` : '', v ? `${v} viatura(s)` : ''].filter(Boolean).join(', ');
+    })(),
     zonas.length ? `zonas: ${zonas.join(', ')}` : 'cobertura nacional',
     `leads para ${emailLeads}`,
     String(r.notas ?? '').trim() ? `nota: ${String(r.notas).trim().slice(0, 300)}` : '',

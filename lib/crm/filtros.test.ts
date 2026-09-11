@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {
   aplicarFiltros, categoriasDoParceiro, cobreZona, contarPorDistrito,
   ordenar, temComQueTrabalhar, zonasDoParceiro, type ParceiroListado,
+  DIMENSOES, DIMENSAO_IDS, limparDimensao, limparViaturas,
 } from './filtros.ts';
 
 const parceiro = (extra: Record<string, unknown> = {}) => ({
@@ -182,4 +183,42 @@ test('uma zona que não é distrito não estraga a contagem', () => {
     ['setubal', 'porto'],
   );
   assert.deepEqual(conta, { setubal: 1, porto: 0 });
+});
+
+// ── os campos novos, vindos de fora ──────────────────────────────────────────
+
+test('a dimensao so aceita os escaloes conhecidos', () => {
+  assert.equal(limparDimensao('media'), 'media');
+  assert.equal(limparDimensao('MEDIA'), 'media');
+  assert.equal(limparDimensao(' grande '), 'grande');
+  assert.equal(limparDimensao('enorme'), undefined);
+  assert.equal(limparDimensao(''), undefined);
+  assert.equal(limparDimensao(null), undefined);
+});
+
+test('"nao disse" e diferente de "e pequena"', () => {
+  // Devolver um valor por omissao punha toda a gente sem resposta no mesmo escalao, e
+  // o filtro por dimensao passava a mentir sobre quem se sabe alguma coisa.
+  assert.equal(limparDimensao(undefined), undefined);
+  const itens = [item({ nome: 'Sem resposta' }), item({ nome: 'Media', dimensao: 'media' })];
+  assert.deepEqual(aplicarFiltros(itens, { dimensoes: ['media'] }).map((x) => x.parceiro.nome), ['Media']);
+});
+
+test('as viaturas aceitam um inteiro nao negativo', () => {
+  assert.equal(limparViaturas('7'), 7);
+  assert.equal(limparViaturas(7.9), 7);
+  assert.equal(limparViaturas(0), 0);
+  assert.equal(limparViaturas(''), undefined);
+  assert.equal(limparViaturas('nove'), undefined);
+  assert.equal(limparViaturas(-3), undefined);
+  // Um numero absurdo e erro de digitacao, nao uma frota.
+  assert.equal(limparViaturas(100000), undefined);
+});
+
+test('os escaloes estao ordenados do menor para o maior', () => {
+  // A ordenacao por dimensao depende desta ordem, e o formulario publico desenha-os
+  // por ela: um escalao fora de sitio faz a lista "maior primeiro" mentir.
+  assert.deepEqual(DIMENSOES.map((d) => d.id),
+    ['individual', 'micro', 'pequena', 'media', 'grande']);
+  assert.deepEqual(DIMENSAO_IDS, DIMENSOES.map((d) => d.id));
 });

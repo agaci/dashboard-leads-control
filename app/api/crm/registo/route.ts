@@ -2,7 +2,8 @@ import { NextRequest } from 'next/server';
 import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import {
-  categoriasOferecidas, gravarRegisto, zonasOferecidas, type RespostasRegisto,
+  categoriasOferecidas, dimensoesOferecidas, gravarRegisto, zonasOferecidas,
+  type RespostasRegisto,
 } from '@/lib/crm/registo';
 import { COR } from '@/lib/email/layout';
 import { esc } from '@/lib/html';
@@ -56,6 +57,18 @@ function formulario(partnerId: string, token: string, empresa: string, erro?: st
   </span>
 </label>`).join('');
 
+  // Radio e nao caixa de texto: um numero exacto esta desactualizado amanha, e um escalao
+  // e coisa que alguem marca sem hesitar. Quem se recusa a escrever "somos 14" marca
+  // "6 a 20" sem pensar duas vezes.
+  const escaloes = dimensoesOferecidas().map((d) => `
+<label style="display:flex;gap:9px;align-items:flex-start;padding:9px 11px;border:1px solid ${COR.linha};border-radius:9px;margin:0 0 6px;cursor:pointer;background:#fff">
+  <input type="radio" name="dimensao" value="${esc(d.id)}" style="margin-top:3px;width:16px;height:16px;flex-shrink:0" required>
+  <span>
+    <span style="display:block;font-size:14px;font-weight:600;color:${COR.escuro}">${esc(d.label)}</span>
+    <span style="display:block;font-size:12.5px;color:${COR.suave};line-height:1.45">${esc(d.nota)}</span>
+  </span>
+</label>`).join('');
+
   const zonas = zonasOferecidas().map((z) => `
 <label style="display:inline-flex;gap:6px;align-items:center;padding:5px 11px;border:1px solid ${COR.linha};border-radius:20px;margin:0 5px 6px 0;cursor:pointer;font-size:13px;background:#fff;text-transform:capitalize">
   <input type="checkbox" name="zonas" value="${esc(z)}" style="width:14px;height:14px">${esc(z)}
@@ -85,6 +98,15 @@ ${erro ? `<p style="background:#fdf2f2;border:1px solid #f5c6c6;color:#a33;borde
   ${campo('cargo', 'Função', { obrigatorio: false, valor: '' })}
   ${campo('telefone', 'Telefone', { tipo: 'tel' })}
   ${campo('emailLeads', 'Email para receber os pedidos', { tipo: 'email', nota: 'É para aqui que enviamos os pedidos. Pode ser diferente do endereço por onde nos falámos.' })}
+
+  <p style="font-size:12px;color:${COR.suave};text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;padding-top:14px;border-top:1px solid ${COR.linha}">Quantos são</p>
+  <p style="${NOTA};margin:0 0 10px">Ajuda-nos a saber que serviços vos podemos passar sem vos atrapalhar a agenda.</p>
+  ${escaloes}
+  <div style="margin:14px 0 0">
+    <label style="${LABEL}" for="viaturas">Quantas viaturas <span style="font-weight:400;color:${COR.suave}">(opcional)</span></label>
+    <input style="${INPUT}" id="viaturas" name="viaturas" type="number" min="0" max="9999" inputmode="numeric" placeholder="ex.: 4">
+    <p style="${NOTA}">Aproximado chega. Conta as que usam para este tipo de trabalho.</p>
+  </div>
 
   <p style="font-size:12px;color:${COR.suave};text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;padding-top:14px;border-top:1px solid ${COR.linha}">Que serviços fazem</p>
   <p style="${NOTA};margin:0 0 10px">Escolham todos os que fazem. Cada um tem um tipo de pedido diferente.</p>
@@ -162,6 +184,8 @@ export async function POST(request: NextRequest) {
     const respostas: RespostasRegisto = {
       nif: texto('nif'),
       alvara: texto('alvara'),
+      dimensao: texto('dimensao'),
+      viaturas: texto('viaturas'),
       responsavel: texto('responsavel'),
       cargo: texto('cargo'),
       telefone: texto('telefone'),
