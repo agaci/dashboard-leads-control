@@ -54,6 +54,9 @@ export type CrmTemplate = 'nova_lead' | 'nova_consulta' | 'adjudicacao' | 'saldo
  * transições legítimas e os rótulos, está em lib/crm/angariacao.ts — este tipo existe só
  * para o TypeScript, e as duas têm de andar a par.
  */
+/** Escalões de dimensão. A ordem é a da grandeza, e a interface conta com isso. */
+export type DimensaoParceiro = 'individual' | 'micro' | 'pequena' | 'media' | 'grande';
+
 export type EstadoParceiro =
   | 'prospect' | 'contactado' | 'registado' | 'em_avaliacao'
   | 'trial' | 'ativo' | 'suspenso' | 'descartado' | 'opos_se';
@@ -102,6 +105,21 @@ export interface CrmPartner {
   followUpEm?: Date | null;
   /** NIF já existe acima; aqui fica a prova de que a empresa pode transportar. */
   alvara?: string;
+  /**
+   * Quantas pessoas a empresa tem, em escalão.
+   *
+   * Escalão e não número exacto por duas razões: um número exacto está desactualizado no
+   * dia seguinte, e um escalão é coisa que alguém preenche sem hesitar. Uma empresa que
+   * se recusa a dizer "somos 14" marca "6 a 20" sem pensar duas vezes.
+   */
+  dimensao?: DimensaoParceiro;
+  /**
+   * Viaturas, aproximadamente.
+   *
+   * Para uma transportadora isto diz mais sobre capacidade do que o número de pessoas:
+   * três carrinhas ou trinta é a diferença entre aguentar duas leads por semana ou vinte.
+   */
+  viaturas?: number | null;
   /** Porque é que saiu do funil. Obrigatório em `descartado` e `opos_se`. */
   motivoSaida?: string;
   /**

@@ -6,6 +6,8 @@ import { lerConfig } from '@/lib/crm/config';
 import { garantirIndices } from '@/lib/crm/indices';
 import { limparZona } from '@/lib/crm/zonas';
 import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
+import { listarParceiros } from '@/lib/crm/listaParceiros';
+import { ORDENS, type Ordem } from '@/lib/crm/filtros';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 
 /**
@@ -22,28 +24,46 @@ import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 const ESTADOS: readonly string[] = ESTADOS_PARCEIRO;
 const CANAIS = ['whatsapp', 'email', 'sms', 'push'];
 
+/**
+ * Lista de parceiros, com filtros, ordenação, paginação e a contagem para o mapa.
+ *
+ *   GET /api/crm/parceiros?q=&estado=&zona=&categoria=&dimensao=&ordem=&pagina=
+ *
+ * Os parâmetros de lista aceitam-se repetidos ou separados por vírgula: `?zona=porto&zona=braga`
+ * e `?zona=porto,braga` são a mesma coisa. O primeiro é o que um formulário produz, o
+ * segundo é o que se escreve à mão — não vale a pena obrigar a escolher.
+ *
+ * Continua a aceitar `?estado=` sozinho, que é como a interface antiga chamava isto.
+ */
 export async function GET(request: NextRequest) {
   if (!(await operadorDaSessao())) return semSessao();
 
   try {
     const { searchParams } = new URL(request.url);
-    const estado = searchParams.get('estado');
+    const lista = (nome: string): string[] => searchParams.getAll(nome)
+      .flatMap((v) => v.split(','))
+      .map((v) => v.trim())
+      .filter(Boolean);
+    const sim = (nome: string) => searchParams.get(nome) === '1';
 
     const db = await getDb();
-    const filtro: Record<string, unknown> = {};
-    if (estado && ESTADOS.includes(estado)) filtro.estado = estado;
-
-    const docs: any[] = await db.collection('crm_partners').find(filtro).sort({ estado: 1, score: -1, nome: 1 }).toArray();
-    const parceiros = docs.map((d) => ({ ...d, _id: String(d._id) }));
-
-    // O saldo vem junto: sem ele a lista não diz quem está em condições de receber leads,
-    // que é a primeira coisa que a operadora quer saber.
-    const carteiras = await lerCarteirasEmLote(db, parceiros.map((p) => p._id));
-
-    return Response.json({
-      success: true,
-      parceiros: parceiros.map((p) => ({ ...p, saldo: carteiras.get(p._id)?.saldo ?? 0 })),
+    const r = await listarParceiros(db, {
+      q: searchParams.get('q') ?? undefined,
+      estados: lista('estado').filter((e) => ESTADOS.includes(e)),
+      zonas: lista('zona'),
+      categorias: lista('categoria'),
+      dimensoes: lista('dimensao'),
+      atribuidoA: searchParams.get('atribuidoA') ?? undefined,
+      activos: sim('activos'),
+      comSaldo: sim('comSaldo'),
+      paradosNaZona: sim('parados'),
+      ordem: (ORDENS as readonly string[]).includes(searchParams.get('ordem') ?? '')
+        ? (searchParams.get('ordem') as Ordem) : undefined,
+      pagina: Number(searchParams.get('pagina')) || 1,
+      porPagina: Number(searchParams.get('porPagina')) || undefined,
     });
+
+    return Response.json({ success: true, ...r });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }

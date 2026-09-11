@@ -11,6 +11,10 @@
     "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "isolatedModules": true,
+    // Permite `import './zonas.ts'` com a extensao. Sem isto, um modulo puro nao pode
+    // importar outro modulo puro sem deixar de ser testavel: o `npm test` corre com o
+    // strip-types do Node, que exige a extensao explicita. So e legal com `noEmit`.
+    "allowImportingTsExtensions": true,
     "jsx": "react-jsx",
     "incremental": true,
     "plugins": [
