@@ -8,13 +8,15 @@ import { limparZona } from '@/lib/crm/zonas';
 import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
 import { listarParceiros } from '@/lib/crm/listaParceiros';
 import { limparDimensao, limparViaturas, ORDENS, type Ordem } from '@/lib/crm/filtros';
+import { CATEGORIAS_ORDENADAS } from '@/lib/crm/categorias';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 
 /**
  * Parceiros do CRM (`crm_partners`).
  *
  *   GET  /api/crm/parceiros?estado=ativo
- *   POST /api/crm/parceiros   { nome, nif, contacto, telefone, email, canaisPreferidos, estado }
+ *   POST /api/crm/parceiros   { nome, nif, contacto, telefone, email, canaisPreferidos, estado,
+ *                               zonas, dimensao, viaturas, categorias }
  *
  * Não confundir com /api/parceiros, que é a tabela de tarifas dos parceiros logísticos
  * do serviço 24h. São coisas diferentes: aqui estão as empresas a quem se vendem leads
@@ -23,6 +25,9 @@ import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 
 const ESTADOS: readonly string[] = ESTADOS_PARCEIRO;
 const CANAIS = ['whatsapp', 'email', 'sms', 'push'];
+
+/** As categorias que se vendem como leads. A Linha A nao se declara num parceiro. */
+const CATEGORIAS_VENDA = CATEGORIAS_ORDENADAS.filter((c) => c.route === 'lead_sale').map((c) => c.id);
 
 /**
  * Lista de parceiros, com filtros, ordenação, paginação e a contagem para o mapa.
@@ -118,7 +123,41 @@ export async function POST(request: NextRequest) {
     };
 
     const res: any = await db.collection('crm_partners').insertOne(doc as any);
-    return Response.json({ success: true, id: String(res.insertedId) }, { status: 201 });
+    const id = String(res.insertedId);
+
+    // As capacidades na mesma chamada que o parceiro.
+    //
+    // Antes so se podiam declarar depois, a abrir a ficha do parceiro ja criado — e um
+    // parceiro sem capacidades nao aparece em distribuicao nenhuma. Quem se distraisse
+    // no passo seguinte ficava com uma ficha que nunca recebia nada e nao dizia porque.
+    //
+    // `zonas: []` de proposito: herdam as da ficha, e passam a acompanha-las. Activas,
+    // porque quem as marca aqui e a operadora e nao a propria empresa — ao contrario do
+    // formulario publico, onde nascem adormecidas ate alguem confirmar.
+    const categorias: string[] = Array.isArray(body.categorias)
+      ? [...new Set<string>(body.categorias.map((c: unknown) => String(c)))]
+        .filter((c) => (CATEGORIAS_VENDA as readonly string[]).includes(c))
+      : [];
+
+    if (categorias.length) {
+      await db.collection('crm_capabilities').insertMany(categorias.map((categoria) => ({
+        partnerId: id,
+        categoria,
+        zonas: [],
+        maxWeightKg: null,
+        maxDimensionCm: null,
+        adr: categoria === 'adr',
+        temperatura: categoria === 'temperatura',
+        tiposViatura: [],
+        prioridade: 0,
+        active: true,
+        origem: 'manual',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })) as any);
+    }
+
+    return Response.json({ success: true, id, capacidades: categorias.length }, { status: 201 });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }

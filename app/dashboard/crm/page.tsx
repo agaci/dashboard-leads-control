@@ -1323,6 +1323,7 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
 
       {novo && (
         <FormNovoParceiro
+          categorias={categorias}
           aoCriar={() => { setNovo(false); carregar(); }}
           aoFechar={() => setNovo(false)}
         />
@@ -1619,17 +1620,23 @@ function SelectorDimensao({ dimensao, viaturas, aoMudar }: {
   );
 }
 
-function FormNovoParceiro({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar: () => void }) {
+function FormNovoParceiro({ aoCriar, aoFechar, categorias }: {
+  aoCriar: () => void; aoFechar: () => void; categorias: Categoria[];
+}) {
   const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial' });
   const [zonas, setZonas] = useState<string[]>([]);
   const [porte, setPorte] = useState({ dimensao: '', viaturas: '' });
+  const [cats, setCats] = useState<string[]>([]);
   const [erro, setErro] = useState('');
 
   async function gravar() {
     setErro('');
     const r = await fetch('/api/crm/parceiros', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...dados, ...porte, zonas, canaisPreferidos: ['whatsapp', 'email'] }),
+      body: JSON.stringify({
+        ...dados, ...porte, zonas, categorias: cats,
+        canaisPreferidos: ['whatsapp', 'email'],
+      }),
     }).then((x) => x.json()).catch(() => null);
     if (r?.success) aoCriar();
     else setErro(r?.error ?? 'não foi possível criar');
@@ -1667,6 +1674,34 @@ function FormNovoParceiro({ aoCriar, aoFechar }: { aoCriar: () => void; aoFechar
       </div>
       <div style={{ marginBottom: 12 }}><SelectorZonas valor={zonas} aoMudar={setZonas} /></div>
       <div style={{ marginBottom: 12 }}><SelectorDimensao {...porte} aoMudar={setPorte} /></div>
+
+      {/* As capacidades aqui e nao so depois de criar a ficha: um parceiro sem
+          capacidades nao entra em distribuicao nenhuma, e quem se distraisse no passo
+          seguinte ficava com uma ficha que nunca recebia nada e nao dizia porque. */}
+      <div style={{ marginBottom: 12 }}>
+        <label style={LABEL}>Que serviços faz</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
+          {categorias.filter((c) => c.route === 'lead_sale').map((c) => {
+            const on = cats.includes(c.id);
+            return (
+              <button type="button" key={c.id} title={c.descricao}
+                onClick={() => setCats(on ? cats.filter((x) => x !== c.id) : [...cats, c.id])}
+                style={{
+                  background: on ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)',
+                  color: on ? 'var(--yb-cyan)' : 'var(--yb-muted)',
+                  border: `1px solid ${on ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
+                  borderRadius: 20, padding: '3px 10px', fontSize: 11,
+                  fontWeight: on ? 700 : 500, cursor: 'pointer',
+                }}>{c.label}</button>
+            );
+          })}
+        </div>
+        <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: 0, lineHeight: 1.5 }}>
+          {cats.length
+            ? `${cats.length} serviço(s), a cobrir as zonas da ficha. Os limites de peso e dimensão afinam-se depois, na ficha.`
+            : 'Sem nenhum, o parceiro fica criado mas nunca aparece numa distribuição.'}
+        </p>
+      </div>
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <button onClick={gravar} style={botao('primario')}>Criar</button>
