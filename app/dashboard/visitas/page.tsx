@@ -217,6 +217,10 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
   );
   const [range, setRange] = useState<Range>('hoje');
   const [todayCount, setTodayCount] = useState(0);
+  // Quantas das visitas de hoje chegaram a inbox e a lead. Vem do servidor no mesmo
+  // pedido, para nao haver duas contas do mesmo numero a poderem divergir.
+  const [todayInbox, setTodayInbox] = useState(0);
+  const [todayLeads, setTodayLeads] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0); // refresca os "há X" periodicamente
   const cursorRef = useRef<string>(new Date().toISOString());
@@ -265,6 +269,8 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
       const rows: Visit[] = data.visits || [];
       setVisits(rows);
       setTodayCount(data.todayCount ?? 0);
+      setTodayInbox(data.todayInbox ?? 0);
+      setTodayLeads(data.todayLeads ?? 0);
       seenIds.current = new Set(rows.map((v) => v.sessionId));
       // O cursor do "ao vivo" começa em agora — só anima quem chega DEPOIS de abrir.
       cursorRef.current = new Date().toISOString();
@@ -317,6 +323,8 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
         const rows: Visit[] = data.visits || [];
         setVisits(rows);
         setTodayCount(data.todayCount ?? 0);
+      setTodayInbox(data.todayInbox ?? 0);
+      setTodayLeads(data.todayLeads ?? 0);
         seenIds.current = new Set(rows.map((v) => v.sessionId));
       } catch { /* silencioso */ }
     }, 15000);
@@ -358,8 +366,19 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
           </span>
         </div>
 
-        <span style={{ fontSize: 12, color: MUTED }}>
+        {/* Os tres numeros do dia, pela ordem do funil e com as cores dele — as mesmas
+            dos satelites das bolhas do mapa. Sao sempre de HOJE, mesmo quando a coluna
+            esta a mostrar ontem ou a semana; por isso o "hoje" fica a governar os tres. */}
+        <span style={{ fontSize: 12, color: MUTED, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}
+          title="Sempre do dia de hoje, mesmo com outro intervalo escolhido à direita.">
           <strong style={{ color: NAVY, fontSize: 14 }}>{todayCount}</strong> visitas hoje
+          <span style={{ color: '#cbd5e1' }}>·</span>
+          {/* Zero fica apagado: um numero a verde le-se, de relance, como coisa que
+              aconteceu — e a meio da manha um "0 leads" a verde engana. */}
+          <strong style={{ color: todayInbox ? CYAN : MUTED, fontSize: 14 }}>{todayInbox}</strong> na inbox
+          <span style={{ color: '#cbd5e1' }}>·</span>
+          <strong style={{ color: todayLeads ? '#22c55e' : MUTED, fontSize: 14 }}>{todayLeads}</strong>
+          {todayLeads === 1 ? ' lead' : ' leads'}
         </span>
 
         <div style={{ flex: 1 }} />

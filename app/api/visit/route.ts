@@ -82,7 +82,7 @@ async function withStages(db: Awaited<ReturnType<typeof getDb>>, rows: any[]): P
   const map: Record<string, St> = {};
   for (const c of convs as any[]) {
     const s = String(c.visitSid);
-    const isLead = c.step === 'LEAD_REGISTERED' || !!c.leadId;
+    const isLead = eLead(c);
     const hasPhone = String(c.data?.telefone ?? '').replace(/\D/g, '').length >= 9;
     const hasEmail = emailRe.test(String(c.data?.email ?? ''));
     const cur = map[s] ?? empty;
@@ -96,6 +96,51 @@ async function withStages(db: Awaited<ReturnType<typeof getDb>>, rows: any[]): P
     };
   }
   return rows.map((r) => ({ ...r, stage: map[r.sessionId] ?? empty }));
+}
+
+/**
+ * Uma conversa que chegou a lead.
+ *
+ * A regra vive aqui e nao em dois sitios: o funil da coluna e os totais do topo tem de
+ * contar a mesma coisa, senao o topo diz 3 leads e a coluna mostra 2 e ninguem sabe qual
+ * acreditar.
+ */
+function eLead(c: any): boolean {
+  return c.step === 'LEAD_REGISTERED' || !!c.leadId;
+}
+
+/**
+ * Quantas visitas houve hoje, e quantas delas chegaram a inbox e a lead.
+ *
+ * Conta VISITAS e nao conversas: uma visita que abriu duas conversas continua a ser uma
+ * que chegou a inbox. E a mesma contagem que o mapa faz nas bolhas, e tem de ser — sao o
+ * mesmo numero visto de duas maneiras.
+ *
+ * Independente do intervalo escolhido na pagina: o topo diz sempre "hoje", mesmo quando a
+ * coluna esta a mostrar ontem ou a semana.
+ */
+async function totaisDeHoje(db: Awaited<ReturnType<typeof getDb>>) {
+  const inicio = lisbonStartOfTodayUtc();
+  const visitas: any[] = await db.collection('visits')
+    .find({ firstSeen: { $gte: inicio } }, { projection: { sessionId: 1, _id: 0 } })
+    .toArray();
+
+  const sids = visitas.map((v) => v.sessionId).filter(Boolean);
+  if (!sids.length) return { todayCount: 0, todayInbox: 0, todayLeads: 0 };
+
+  const convs: any[] = await db.collection('conversations')
+    .find({ visitSid: { $in: sids } }, { projection: { visitSid: 1, step: 1, leadId: 1 } })
+    .toArray();
+
+  const comInbox = new Set<string>();
+  const comLead = new Set<string>();
+  for (const c of convs) {
+    const s = String(c.visitSid);
+    comInbox.add(s);
+    if (eLead(c)) comLead.add(s);
+  }
+
+  return { todayCount: sids.length, todayInbox: comInbox.size, todayLeads: comLead.size };
 }
 
 // Inicio do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).
@@ -235,12 +280,12 @@ export async function GET(req: NextRequest) {
       query = { firstSeen: { $gte: lisbonStartOfTodayUtc() } };
     }
 
-    const [rows, todayCount] = await Promise.all([
+    const [rows, hoje] = await Promise.all([
       col.find(query, projection).sort({ firstSeen: -1 }).limit(400).toArray(),
-      col.countDocuments({ firstSeen: { $gte: lisbonStartOfTodayUtc() } }),
+      totaisDeHoje(db),
     ]);
 
-    return json({ visits: await withStages(db, rows.map(shapeVisit)), todayCount });
+    return json({ visits: await withStages(db, rows.map(shapeVisit)), ...hoje });
   } catch (err: any) {
     return json({ error: err.message }, 500);
   }
