@@ -88,6 +88,7 @@
   --yb-cyan:      #00bcd4;
   --yb-success:   #22c55e;
   --yb-error:     #f87171;
+  --yb-aviso:     #eab308;
   color-scheme:   dark;
 }
 
@@ -152,6 +153,7 @@
   --yb-cyan:      #0097a7;
   --yb-success:   #16a34a;
   --yb-error:     #dc2626;
+  --yb-aviso:     #b45309;
   color-scheme:   light;
 }
 

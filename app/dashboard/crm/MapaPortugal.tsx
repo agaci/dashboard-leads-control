@@ -21,6 +21,12 @@ import { degrau } from '@/lib/crm/escala';
  * Açores e Madeira não vêm na carta continental e desenham-se em caixa à parte, como em
  * qualquer mapa do país. São clicáveis na mesma: um parceiro que sirva as ilhas tem de
  * poder ser encontrado.
+ *
+ * **Nenhuma cor fixa neste ficheiro é branca ou preta.** O dashboard tem tema claro e
+ * escuro, e um `#fff` escrito à mão desaparece num deles sem dar erro: foi o que
+ * aconteceu à primeira versão, com os números das ilhas brancos sobre o cartão branco.
+ * Tudo o que é traço ou texto sai de `var(--yb-*)`, que existem nos dois; só a rampa de
+ * cor é literal, e é em transparência sobre o cartão, o que a compõe certo em ambos.
  */
 
 export type ModoMapa = 'cobertura' | 'procura';
@@ -33,9 +39,10 @@ const ILHAS = [
 /**
  * Os cinco tons de cada modo. O vazio trata-se à parte, fora da escala.
  *
- * A rampa começa alta de propósito. Sobre este fundo escuro, uma opacidade baixa
- * dissolve-se no cartão e o degrau mais fraco fica indistinguível do nada — que é
- * precisamente a distinção que este mapa existe para mostrar.
+ * Em transparência e não em cores sólidas: assim compõe-se sobre o cartão de qualquer
+ * dos temas sem precisar de duas tabelas. A rampa começa alta de propósito — uma
+ * opacidade baixa dissolve-se no cartão e o degrau mais fraco fica indistinguível do
+ * nada, que é precisamente a distinção que este mapa existe para mostrar.
  */
 const ESCALA: Record<ModoMapa, string[]> = {
   cobertura: [
@@ -104,9 +111,11 @@ export default function MapaPortugal({
   }
 
   function contorno(id: string): { stroke: string; largura: number; tracejado?: string } {
-    if (escolhido(id)) return { stroke: TRACO[modo], largura: 1.6 };
-    if (valor(id) <= 0) return { stroke: 'rgba(255,255,255,0.30)', largura: 0.7 };
-    return { stroke: 'rgba(10,18,35,0.55)', largura: 0.7 };
+    if (escolhido(id)) return { stroke: TRACO[modo], largura: 1.8 };
+    // Os distritos separam-se pela cor do proprio cartao: le-se como corte nos dois temas,
+    // sem ter de escolher entre uma linha clara e uma escura.
+    if (valor(id) <= 0) return { stroke: 'var(--yb-muted)', largura: 0.7 };
+    return { stroke: 'var(--yb-card)', largura: 0.8 };
   }
 
   // Em foco: o que está sob o rato, ou o único distrito escolhido. Com dois ou mais
@@ -124,14 +133,17 @@ export default function MapaPortugal({
     <div>
       <svg
         viewBox={`0 0 ${MAPA_LARGURA} ${MAPA_ALTURA + 74}`}
-        style={{ width: '100%', maxWidth: 236, display: 'block', margin: '0 auto' }}
+        style={{ width: '100%', maxWidth: 236, display: 'block', margin: '0 auto', color: 'var(--yb-subtle)' }}
         role="img"
         aria-label="Mapa de Portugal por distrito"
       >
         <defs>
+          {/* As riscas do vazio saem de `currentColor`, que o <svg> fixa em var(--yb-subtle):
+              e a unica forma de um <pattern> seguir o tema, porque nao herda estilo de quem
+              o usa. */}
           <pattern id="yb-vazio" width={5} height={5} patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-            <rect width={5} height={5} fill="rgba(255,255,255,0.02)" />
-            <line x1={0} y1={0} x2={0} y2={5} stroke="rgba(255,255,255,0.16)" strokeWidth={1} />
+            <rect width={5} height={5} fill="var(--yb-input)" />
+            <line x1={0} y1={0} x2={0} y2={5} stroke="currentColor" strokeOpacity={0.5} strokeWidth={1} />
           </pattern>
         </defs>
 
@@ -151,8 +163,10 @@ export default function MapaPortugal({
               onClick={() => aoClicar(d.id)}
               style={{
                 cursor: 'pointer',
-                transition: 'fill .12s',
-                filter: sobre === d.id ? 'brightness(1.6)' : undefined,
+                transition: 'fill .12s, stroke .12s',
+                // Sublinhar com o traco e nao com brilho: clarear uma cor palida sobre
+                // fundo branco aproxima-a do branco, ou seja apaga-a.
+                ...(sobre === d.id ? { stroke: 'var(--yb-cyan)', strokeWidth: 1.4 } : {}),
               }}
             >
               <title>{`${d.nome} — ${valor(d.id)}`}</title>
@@ -166,10 +180,10 @@ export default function MapaPortugal({
             y={centros[activo].y}
             textAnchor="middle"
             dominantBaseline="middle"
-            stroke="rgba(0,0,0,0.75)"
-            strokeWidth={2.6}
+            stroke="var(--yb-card)"
+            strokeWidth={2.8}
             paintOrder="stroke"
-            style={{ fontSize: 10, fontWeight: 700, fill: '#fff', pointerEvents: 'none' }}
+            style={{ fontSize: 10, fontWeight: 700, fill: 'var(--yb-fg)', pointerEvents: 'none' }}
           >
             {valor(activo)}
           </text>
@@ -195,16 +209,16 @@ export default function MapaPortugal({
                   height={42}
                   rx={7}
                   fill={preencher(ilha.id)}
-                  stroke={c.stroke}
+                  stroke={valor(ilha.id) > 0 && !escolhido(ilha.id) ? 'var(--yb-border)' : c.stroke}
                   strokeWidth={c.largura}
                   strokeDasharray={c.tracejado}
-                  style={{ filter: sobre === ilha.id ? 'brightness(1.6)' : undefined }}
+                  style={sobre === ilha.id ? { stroke: 'var(--yb-cyan)', strokeWidth: 1.4 } : undefined}
                 />
                 <text
                   x={x + MAPA_LARGURA / 4}
                   y={16}
                   textAnchor="middle"
-                  style={{ fontSize: 9, fill: 'rgba(255,255,255,0.55)', pointerEvents: 'none' }}
+                  style={{ fontSize: 9, fill: 'var(--yb-muted)', pointerEvents: 'none' }}
                 >
                   {ilha.nome}
                 </text>
@@ -212,7 +226,7 @@ export default function MapaPortugal({
                   x={x + MAPA_LARGURA / 4}
                   y={33}
                   textAnchor="middle"
-                  style={{ fontSize: 13, fontWeight: 700, fill: '#fff', pointerEvents: 'none' }}
+                  style={{ fontSize: 13, fontWeight: 700, fill: 'var(--yb-fg)', pointerEvents: 'none' }}
                 >
                   {valor(ilha.id)}
                 </text>
@@ -243,7 +257,7 @@ export default function MapaPortugal({
           <>
             {total} {unidade}{total === 1 ? '' : 's'} no mapa
             {foraDoMapa > 0 && (
-              <span style={{ display: 'block', color: 'var(--yb-aviso, #eab308)', fontSize: 10 }}>
+              <span style={{ display: 'block', color: 'var(--yb-aviso)', fontSize: 10 }}>
                 mais {foraDoMapa} sem distrito conhecido, que o mapa não mostra.
               </span>
             )}

@@ -135,7 +135,10 @@ function Modelo({ modelo, aberto, aoAbrir }: { modelo: Modelo; aberto: boolean; 
       }}>
         <span style={{
           fontSize: 9, fontWeight: 800, letterSpacing: '0.06em', textTransform: 'uppercase',
-          background: `${cor}22`, color: cor, border: `1px solid ${cor}44`,
+          // color-mix e nao `${cor}22`: a cor de recurso e uma var(--yb-*), e concatenar
+          // alfa a uma var da CSS invalida — a etiqueta ficava sem fundo, em silencio.
+          background: `color-mix(in srgb, ${cor} 14%, transparent)`, color: cor,
+          border: `1px solid color-mix(in srgb, ${cor} 34%, transparent)`,
           borderRadius: 10, padding: '2px 8px', flexShrink: 0,
         }}>{ROTULO_PUBLICO[modelo.publico] ?? modelo.publico}</span>
 

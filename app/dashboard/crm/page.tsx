@@ -122,23 +122,34 @@ function botao(variante: 'primario' | 'neutro' | 'perigo' = 'neutro'): React.CSS
   };
 }
 
+/**
+ * Uma etiqueta colorida.
+ *
+ * O fundo e o contorno saem da cor por `color-mix` e nao por concatenacao de alfa ao
+ * hex. `${cor}22` so funciona se `cor` for mesmo um hex de seis digitos: com uma
+ * `var(--yb-*)` produz `var(--yb-aviso)22`, que e CSS invalido — a regra cai, e a
+ * etiqueta fica sem fundo nem contorno sem que nada se queixe. Assim aceita as duas
+ * formas, e as cores podem seguir o tema.
+ */
 function Etiqueta({ texto, cor }: { texto: string; cor: string }) {
   return (
     <span style={{
       display: 'inline-block', fontSize: 9, fontWeight: 700, letterSpacing: '0.04em',
       padding: '2px 7px', borderRadius: 10, textTransform: 'uppercase',
-      background: `${cor}22`, color: cor, border: `1px solid ${cor}44`,
+      background: `color-mix(in srgb, ${cor} 14%, transparent)`,
+      color: cor,
+      border: `1px solid color-mix(in srgb, ${cor} 34%, transparent)`,
     }}>{texto}</span>
   );
 }
 
 const COR_ESTADO: Record<string, string> = {
   triada: '#8B9EC9', qualificada: '#00bcd4', 'distribuída': '#00bcd4',
-  entregue: '#22c55e', em_reporte: '#eab308', fechada: '#22c55e',
+  entregue: '#22c55e', em_reporte: 'var(--yb-aviso)', fechada: '#22c55e',
   recusada: '#f87171', expirada: '#4a6080',
 };
 
-const COR_CONFIANCA: Record<string, string> = { alta: '#22c55e', media: '#eab308', baixa: '#f87171' };
+const COR_CONFIANCA: Record<string, string> = { alta: '#22c55e', media: 'var(--yb-aviso)', baixa: '#f87171' };
 
 /**
  * Os estados do parceiro, por cor.
@@ -158,7 +169,7 @@ const COR_ENVIO: Record<string, string> = {
   recusado: '#f87171', expirado: '#4a6080', falhado: '#f87171',
 };
 
-const COR_FONTE: Record<string, string> = { parceiro: '#eab308', cliente: '#22c55e', plataforma: '#8B9EC9' };
+const COR_FONTE: Record<string, string> = { parceiro: 'var(--yb-aviso)', cliente: '#22c55e', plataforma: '#8B9EC9' };
 
 /** O que cada tipo de resultado quer dizer em português corrente. */
 const ROTULO_OUTCOME: Record<string, string> = {
@@ -555,7 +566,7 @@ function LinhaConsulta({
         width: '100%', background: 'transparent', border: 'none', cursor: 'pointer',
         padding: '13px 16px', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
       }}>
-        <Etiqueta texto={`Linha ${rota}`} cor={rota === 'B' ? '#eab308' : '#00bcd4'} />
+        <Etiqueta texto={`Linha ${rota}`} cor={rota === 'B' ? 'var(--yb-aviso)' : '#00bcd4'} />
         <Etiqueta texto={consulta.estado} cor={cor} />
         <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--yb-fg)' }}>
           {labelCategoria(consulta.categoria)}
@@ -974,7 +985,7 @@ function Contradicao({
       background: 'rgba(234,179,8,0.10)', border: '1px solid rgba(234,179,8,0.35)',
       borderRadius: 10, padding: '12px 14px', marginBottom: 14,
     }}>
-      <p style={{ ...TITULO, color: '#eab308', marginBottom: 6 }}>As fontes não batem certo</p>
+      <p style={{ ...TITULO, color: 'var(--yb-aviso)', marginBottom: 6 }}>As fontes não batem certo</p>
       <p style={{ fontSize: 12, color: 'var(--yb-fg)', margin: '0 0 4px', lineHeight: 1.55 }}>
         {nomeParceiro ?? 'O parceiro'} contestou esta lead e recebeu o valor de volta.
         O cliente, no follow-up, diz que <strong>ficou resolvida</strong>.
@@ -1214,8 +1225,18 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
                     color: var(--yb-subtle); font-weight: 700; cursor: default; }
         .yb-p-cab:hover { background: transparent; }
         .yb-p-corpo { display: grid; grid-template-columns: 262px minmax(0,1fr); gap: 16px; align-items: start; }
+        /* Tres cartoes lado a lado quando ha espaco, dois quando ha menos, um no telemovel.
+           O de Resultados ocupa sempre a largura toda: sao seis numeros numa fila, e
+           partidos por coluna deixavam de se comparar. */
+        .yb-d-grelha { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; align-items: start; }
+        @media (max-width: 1180px) { .yb-d-grelha { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (max-width: 760px)  { .yb-d-grelha { grid-template-columns: minmax(0,1fr); } }
         @media (max-width: 1100px) {
           .yb-p-corpo { grid-template-columns: 1fr; }
+          /* Empilhado, o mapa passa a estar por cima da lista e a ocupar meio ecra antes
+             de se ver um parceiro. Limitado em altura encolhe na proporcao, continua a
+             dar a leitura de conjunto e continua clicavel. */
+          .yb-p-mapa svg { max-height: 300px; }
           .yb-p-linha { grid-template-columns: minmax(150px,2fr) 90px 1fr 70px 84px; }
           .yb-p-so-largo { display: none; }
         }
@@ -1309,7 +1330,7 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
 
       <div className="yb-p-corpo">
         {/* ── mapa ────────────────────────────────────────────────────────── */}
-        <div style={{ ...CARD, padding: '14px 14px 12px', position: 'sticky', top: 12 }}>
+        <div className="yb-p-mapa" style={{ ...CARD, padding: '14px 14px 12px', position: 'sticky', top: 12 }}>
           <div style={{ display: 'flex', gap: 5, marginBottom: 10 }}>
             <Chip activo={modoMapa === 'cobertura'} aoClicar={() => setModoMapa('cobertura')}
               titulo="Quantos parceiros cobrem cada distrito.">quem temos</Chip>
@@ -1414,7 +1435,7 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
                       color: p.saldo > 0 ? 'var(--yb-fg)' : 'var(--yb-error)',
                     }}>{p.saldo.toFixed(2)}</span>
                     {p.leadsGratisRestantes > 0 && (
-                      <span style={{ display: 'block', fontSize: 10, color: '#eab308' }}>
+                      <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-aviso)' }}>
                         +{p.leadsGratisRestantes} trial
                       </span>
                     )}
@@ -1713,6 +1734,79 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
   );
 }
 
+// ── O painel de um parceiro ──────────────────────────────────────────────────
+
+/** Um cartão do painel. Título, acção opcional no canto, e o que lá dentro estiver. */
+function Painel({ titulo, accao, children, largo }: {
+  titulo: string; accao?: React.ReactNode; children: React.ReactNode; largo?: boolean;
+}) {
+  return (
+    <section style={{
+      background: 'var(--yb-card)', border: '1px solid var(--yb-border)', borderRadius: 10,
+      padding: '13px 15px', gridColumn: largo ? '1 / -1' : undefined, minWidth: 0,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+        <p style={{ ...TITULO, marginBottom: 0 }}>{titulo}</p>
+        {accao && <span style={{ marginLeft: 'auto' }}>{accao}</span>}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+/** Botão discreto de canto de cartão. Presente, mas nunca o que salta à vista. */
+function BotaoFantasma({ children, aoClicar, perigo }: {
+  children: React.ReactNode; aoClicar: () => void; perigo?: boolean;
+}) {
+  const [sobre, setSobre] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={aoClicar}
+      onMouseEnter={() => setSobre(true)}
+      onMouseLeave={() => setSobre(false)}
+      style={{
+        background: sobre ? 'var(--yb-input)' : 'transparent',
+        border: '1px solid', borderColor: sobre ? 'var(--yb-border)' : 'transparent',
+        borderRadius: 7, padding: '3px 9px', fontSize: 11, fontWeight: 600, cursor: 'pointer',
+        color: perigo ? (sobre ? 'var(--yb-error)' : 'var(--yb-subtle)') : 'var(--yb-cyan)',
+        transition: 'background .12s, color .12s, border-color .12s',
+      }}
+    >{children}</button>
+  );
+}
+
+/** Um número grande com o rótulo por baixo. Cinco destes lêem-se de relance. */
+function Numeral({ valor, label, cor }: { valor: string; label: string; cor?: string }) {
+  return (
+    <div style={{ minWidth: 62 }}>
+      <p style={{
+        fontSize: 21, fontWeight: 700, lineHeight: 1.1, margin: 0,
+        color: cor ?? 'var(--yb-fg)', fontVariantNumeric: 'tabular-nums',
+      }}>{valor}</p>
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '2px 0 0', lineHeight: 1.3 }}>{label}</p>
+    </div>
+  );
+}
+
+/**
+ * O painel de um parceiro, aberto a partir da linha da lista.
+ *
+ * **Cartões sobre um chão próprio.** Antes as três colunas flutuavam sobre o mesmo branco
+ * das linhas e o painel encostava ao parceiro seguinte sem separação — o olho não sabia
+ * onde acabava o parceiro aberto. O painel tem agora fundo de `--yb-card-2` e os grupos
+ * vêm em `--yb-card` por cima: no tema claro dá cartões brancos sobre cinzento, no escuro
+ * o inverso, e nos dois se lê "isto pertence à linha de cima".
+ *
+ * **Agrupado por pergunta, não por origem dos dados.** A carteira estava arquivada debaixo
+ * de "Contactos", e dinheiro não é identidade. As zonas e a dimensão estavam na coluna da
+ * identidade, longe das capacidades, quando são a mesma pergunta: o que é que esta empresa
+ * faz, e onde.
+ *
+ * **As notas aparecem.** Estavam só dentro do formulário de edição: a informação mais
+ * humana que existe sobre um parceiro era a única que obrigava a entrar em modo de escrita
+ * para se ler.
+ */
 function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro; categorias: Categoria[]; aoMudar: () => void }) {
   const [capacidades, setCapacidades] = useState<Capacidade[]>([]);
   const [movimentos, setMovimentos] = useState<any[]>([]);
@@ -1764,18 +1858,21 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
     carregar();
   }
 
-  return (
-    <div style={{ borderTop: '1px solid var(--yb-border)', padding: '14px 16px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(230px,1fr))', gap: 16 }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <p style={{ ...TITULO, marginBottom: 8 }}>Contactos</p>
-            <button onClick={() => setAEditar(!aEditar)} style={{
-              background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-              fontSize: 10, color: 'var(--yb-cyan)', fontWeight: 600,
-            }}>{aEditar ? 'cancelar' : 'editar'}</button>
-          </div>
+  const dim = DIMENSOES.find((d) => d.id === parceiro.dimensao);
+  const zonasFicha = parceiro.zonas?.length ? parceiro.zonas.join(', ') : 'todo o país';
 
+  return (
+    <div style={{
+      borderTop: '1px solid var(--yb-border)', background: 'var(--yb-card-2)',
+      padding: '14px 16px 16px',
+    }}>
+      <div className="yb-d-grelha">
+
+        {/* ── quem são ───────────────────────────────────────────────────── */}
+        <Painel
+          titulo="Quem são"
+          accao={<BotaoFantasma aoClicar={() => setAEditar(!aEditar)}>{aEditar ? 'cancelar' : 'editar'}</BotaoFantasma>}
+        >
           {aEditar ? (
             <FormEditarParceiro
               parceiro={parceiro}
@@ -1788,48 +1885,77 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
               <Campo k="Email" v={parceiro.email} />
               <Campo k="NIF" v={parceiro.nif} />
               <Campo k="Morada" v={parceiro.morada} />
-              <Campo k="Zonas" v={parceiro.zonas?.length ? parceiro.zonas.join(', ') : 'todo o país'} />
-              <Campo k="Dimensão" v={DIMENSOES.find((d) => d.id === parceiro.dimensao)?.label ?? 'não disse'} />
-              <Campo k="Viaturas" v={parceiro.viaturas == null ? null : String(parceiro.viaturas)} />
-              <Campo k="Estado" v={parceiro.estado} />
-              <Campo k="Leads de trial" v={String(parceiro.leadsGratisRestantes)} />
+              {!parceiro.contacto && !parceiro.telefone && !parceiro.email && (
+                <p style={{ fontSize: 12, color: 'var(--yb-subtle)', margin: 0 }}>
+                  Sem dados de contacto.
+                </p>
+              )}
+
+              {/* As notas com filete à esquerda, como uma citação: distingue o que alguém
+                  escreveu do que o sistema sabe. Vazias dizem-no, para se perceber que o
+                  campo existe — antes estavam escondidas no formulário de edição. */}
+              <div style={{
+                marginTop: 11, paddingLeft: 10,
+                borderLeft: `3px solid ${parceiro.notas ? 'var(--yb-cyan)' : 'var(--yb-border)'}`,
+              }}>
+                <p style={{
+                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                  letterSpacing: '0.07em', color: 'var(--yb-subtle)', margin: '0 0 3px',
+                }}>Notas</p>
+                <p style={{
+                  fontSize: 12, lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap',
+                  color: parceiro.notas ? 'var(--yb-fg)' : 'var(--yb-subtle)',
+                }}>{parceiro.notas || 'Sem notas. Abra "editar" para escrever o que convém saber sobre esta empresa.'}</p>
+              </div>
             </>
           )}
+        </Painel>
 
-          <p style={{ ...TITULO, marginTop: 14 }}>Carteira</p>
-          <p style={{ fontSize: 18, fontWeight: 700, color: 'var(--yb-fg)', margin: '0 0 8px' }}>
-            {parceiro.saldo.toFixed(2)} EUR
-          </p>
-          <div style={{ display: 'flex', gap: 6 }}>
-            <input style={{ ...INPUT, width: 100 }} placeholder="0.00" value={valor}
-              onChange={(e) => setValor(e.target.value)} />
-            <button onClick={carregarSaldo} style={botao('primario')}>Carregar</button>
+        {/* ── o que fazem ────────────────────────────────────────────────── */}
+        <Painel titulo="O que fazem, e onde">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 16px', marginBottom: 11 }}>
+            <Campo k="Zonas" v={zonasFicha} />
+            <Campo k="Dimensão" v={dim?.label ?? 'não disse'} />
+            {parceiro.viaturas != null && <Campo k="Viaturas" v={String(parceiro.viaturas)} />}
           </div>
-        </div>
 
-        <div>
-          <p style={TITULO}>Capacidades</p>
           {capacidades.map((c) => (
-            <div key={c._id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 0', borderBottom: '1px solid var(--yb-border)' }}>
-              <span style={{ fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
-                {categorias.find((k) => k.id === c.categoria)?.label ?? c.categoria}
+            <div key={c._id} style={{
+              display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
+              borderTop: '1px solid var(--yb-border)',
+            }}>
+              <span style={{ minWidth: 0 }}>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
+                  {categorias.find((k) => k.id === c.categoria)?.label ?? c.categoria}
+                  {c.active === false && (
+                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--yb-aviso)', marginLeft: 6 }}>
+                      por activar
+                    </span>
+                  )}
+                </span>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--yb-muted)', lineHeight: 1.45 }}>
+                  {c.zonas?.length
+                    ? c.zonas.join(', ')
+                    : (parceiro.zonas?.length ? `${parceiro.zonas.join(', ')} (do parceiro)` : 'todo o país')}
+                  {c.maxWeightKg ? ` · max ${c.maxWeightKg} kg` : ''}
+                  {c.maxDimensionCm ? ` · max ${c.maxDimensionCm} cm` : ''}
+                  {c.adr ? ' · ADR' : ''}
+                  {c.temperatura ? ' · frio' : ''}
+                </span>
               </span>
-              <span style={{ fontSize: 11, color: 'var(--yb-muted)' }}>
-                {c.zonas?.length
-                  ? c.zonas.join(', ')
-                  : (parceiro.zonas?.length ? `${parceiro.zonas.join(', ')} (do parceiro)` : 'todo o país')}
-                {c.maxWeightKg ? ` · max ${c.maxWeightKg} kg` : ''}
-                {c.maxDimensionCm ? ` · max ${c.maxDimensionCm} cm` : ''}
-                {c.adr ? ' · ADR' : ''}
-                {c.temperatura ? ' · frio' : ''}
+              {/* Discreto até se lhe tocar: é a acção que menos se quer fazer por engano,
+                  e era o elemento mais gritante do painel. */}
+              <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                <BotaoFantasma perigo aoClicar={() => apagarCapacidade(c._id)}>apagar</BotaoFantasma>
               </span>
-              <button onClick={() => apagarCapacidade(c._id)} style={{ ...botao('perigo'), marginLeft: 'auto', padding: '3px 8px', fontSize: 10 }}>
-                apagar
-              </button>
             </div>
           ))}
+
           {!capacidades.length && (
-            <p style={{ fontSize: 12, color: 'var(--yb-subtle)', margin: '0 0 8px' }}>
+            <p style={{
+              fontSize: 12, color: 'var(--yb-error)', margin: '0 0 8px', lineHeight: 1.5,
+              paddingTop: 9, borderTop: '1px solid var(--yb-border)',
+            }}>
               Sem capacidades declaradas: este parceiro nunca vai aparecer numa distribuição.
             </p>
           )}
@@ -1851,7 +1977,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
                   <input style={INPUT} placeholder="max cm"
                     value={novaCap.maxDimensionCm} onChange={(e) => setNovaCap({ ...novaCap, maxDimensionCm: e.target.value })} />
                 </div>
-                <div style={{ display: 'flex', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
                   <label style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>
                     <input type="checkbox" checked={novaCap.adr} onChange={(e) => setNovaCap({ ...novaCap, adr: e.target.checked })} />
                     certificação ADR
@@ -1865,24 +1991,39 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
               </>
             )}
           </div>
-        </div>
+        </Painel>
 
-        <div>
-          <p style={TITULO}>Resultados</p>
-          {metricas && (
-            <>
-              <Campo k="Leads recebidas" v={String(metricas.leadsRecebidas)} />
-              <Campo k="Reportadas" v={String(metricas.reportadas)} />
-              <Campo k="Recusas" v={String(metricas.recusas)} />
-              <Campo k="Ganhos declarados" v={String(metricas.ganhos)} />
-              <Campo k="Avaliação do cliente" v={metricas.avaliacaoMedia ? metricas.avaliacaoMedia.toFixed(1) : null} />
-            </>
-          )}
+        {/* ── carteira ───────────────────────────────────────────────────── */}
+        <Painel titulo="Carteira">
+          <div style={{ display: 'flex', gap: 20, alignItems: 'flex-start', marginBottom: 12 }}>
+            <Numeral
+              valor={parceiro.saldo.toFixed(2)}
+              label="euros em carteira"
+              cor={parceiro.saldo > 0 ? 'var(--yb-fg)' : 'var(--yb-error)'}
+            />
+            {parceiro.leadsGratisRestantes > 0 && (
+              <Numeral valor={String(parceiro.leadsGratisRestantes)} label="leads de trial" cor="var(--yb-aviso)" />
+            )}
+          </div>
 
-          <p style={{ ...TITULO, marginTop: 14 }}>Últimos movimentos</p>
-          {movimentos.slice(0, 8).map((m) => (
-            <p key={m._id} style={{ fontSize: 11, color: 'var(--yb-muted)', margin: '0 0 4px', lineHeight: 1.45 }}>
-              <span style={{ color: m.tipo === 'debito' ? 'var(--yb-error)' : '#22c55e', fontWeight: 700 }}>
+          <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <input style={{ ...INPUT, width: 96 }} placeholder="0.00" value={valor}
+              onChange={(e) => setValor(e.target.value)} />
+            <button onClick={carregarSaldo} style={botao('primario')}>Carregar</button>
+          </div>
+
+          <p style={{
+            fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
+            color: 'var(--yb-subtle)', margin: '0 0 6px', paddingTop: 10,
+            borderTop: '1px solid var(--yb-border)',
+          }}>Últimos movimentos</p>
+
+          {movimentos.slice(0, 6).map((m) => (
+            <p key={m._id} style={{ fontSize: 11, color: 'var(--yb-muted)', margin: '0 0 5px', lineHeight: 1.45 }}>
+              <span style={{
+                color: m.tipo === 'debito' ? 'var(--yb-error)' : 'var(--yb-success)',
+                fontWeight: 700, fontVariantNumeric: 'tabular-nums',
+              }}>
                 {m.tipo === 'debito' ? '-' : '+'}{Number(m.valor).toFixed(2)}
               </span>
               {' '}{m.motivo}
@@ -1894,17 +2035,43 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
               )}
             </p>
           ))}
-          {!movimentos.length && <p style={{ fontSize: 11, color: 'var(--yb-subtle)' }}>sem movimentos</p>}
-        </div>
+          {!movimentos.length && (
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0 }}>sem movimentos</p>
+          )}
+        </Painel>
+
+        {/* ── resultados ─────────────────────────────────────────────────── */}
+        {/* Números e não frases: "Leads recebidas: 4" obriga a ler para saber; cinco
+            números com rótulo pequeno lêem-se de relance, que é o que se quer de uma
+            linha de resultados. */}
+        <Painel titulo="Resultados" largo>
+          {metricas ? (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 30px' }}>
+              <Numeral valor={String(metricas.leadsRecebidas ?? 0)} label="leads recebidas" />
+              <Numeral valor={String(metricas.reportadas ?? 0)} label="reportadas" />
+              <Numeral valor={String(metricas.recusas ?? 0)} label="recusas"
+                cor={metricas.recusas > 0 ? 'var(--yb-error)' : undefined} />
+              <Numeral valor={String(metricas.ganhos ?? 0)} label="ganhos declarados"
+                cor={metricas.ganhos > 0 ? 'var(--yb-success)' : undefined} />
+              <Numeral valor={metricas.avaliacaoMedia ? Number(metricas.avaliacaoMedia).toFixed(1) : '—'}
+                label="avaliação do cliente" />
+              <Numeral valor={String(parceiro.score)} label="score" />
+            </div>
+          ) : (
+            <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: 0 }}>a carregar...</p>
+          )}
+        </Painel>
       </div>
 
-      {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '10px 0 0' }}>{erro}</p>}
+      {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '12px 0 0' }}>{erro}</p>}
 
       {/* A angariacao vive dentro da ficha do parceiro e nao num ecra proprio: um
           prospecto e um parceiro num estado inicial, e separa-los obrigaria a migrar o
           registo no momento em que ele adere — perdendo o historial exactamente quando
           ele passa a valer alguma coisa. */}
-      <Prospecto parceiro={parceiro} aoMudar={() => { carregar(); aoMudar(); }} />
+      <div style={{ marginTop: 12 }}>
+        <Prospecto parceiro={parceiro} aoMudar={() => { carregar(); aoMudar(); }} />
+      </div>
     </div>
   );
 }
@@ -1973,7 +2140,7 @@ function EmailDoCliente() {
       }}>
         <span style={{
           width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-          background: pulsoVivo ? 'var(--yb-cyan)' : '#eab308',
+          background: pulsoVivo ? 'var(--yb-cyan)' : 'var(--yb-aviso)',
         }} />
         <span style={{ fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
           {estado.nodechefEnvia
@@ -2007,7 +2174,7 @@ function EmailDoCliente() {
 
       {estado.modo !== 'auto' && (
         <p style={{
-          fontSize: 11, color: '#eab308', margin: '11px 0 0', lineHeight: 1.55,
+          fontSize: 11, color: 'var(--yb-aviso)', margin: '11px 0 0', lineHeight: 1.55,
           background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.3)',
           borderRadius: 8, padding: '9px 11px',
         }}>
