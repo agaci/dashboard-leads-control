@@ -6,7 +6,13 @@ import { loadLeaflet } from './MiniMap';
 export type VisitPing = { id: string; lat: number; lng: number; city?: string | null };
 
 /** Uma visita já registada, para as bolhas fixas com contagem. */
-export type VisitSpot = { lat: number; lng: number; city?: string | null };
+export type VisitSpot = {
+  lat: number; lng: number; city?: string | null;
+  /** Esta visita chegou a abrir conversa. */
+  inbox?: boolean;
+  /** E chegou a lead. */
+  lead?: boolean;
+};
 
 // Plugin de agregação: junta pontos próximos numa bolha com o total e vai-os separando
 // à medida que se aproxima o zoom. Carregado por CDN, como o próprio Leaflet.
@@ -98,6 +104,20 @@ export function VisitasMap({ pings, spots = [], onPickCity }: {
             white-space:nowrap;text-decoration:none;font:600 10px/1 Inter,system-ui,sans-serif;
             color:#0e7490;background:rgba(255,255,255,.92);padding:2px 6px;border-radius:6px;
             box-shadow:0 1px 4px rgba(0,0,0,.15)}
+
+          /* Quantos daqueles visitantes chegaram a inbox e a lead.
+             Na orla e nao dentro: o numero grande do meio e o que se le primeiro, e
+             mete-los la dentro obrigava a repartir o espaco por tres numeros.
+             As cores sao as mesmas do funil da coluna — cyan e inbox, verde e lead — para
+             nao haver duas linguagens de cor na mesma pagina. O anel branco e o que os
+             descola da bolha, que tambem e azul. */
+          .yb-orb{position:absolute;display:flex;align-items:center;justify-content:center;
+            min-width:16px;height:16px;padding:0 3px;box-sizing:border-box;border-radius:9px;
+            font:700 9px/1 Inter,system-ui,sans-serif;font-style:normal;color:#fff;
+            border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35)}
+          .yb-orb.i{background:#00bcd4;right:-7px;top:-3px}
+          .yb-orb.l{background:#22c55e;right:-7px;bottom:-3px}
+          .yb-envolve{position:relative}
         `;
         document.head.appendChild(st);
       }
@@ -146,17 +166,32 @@ export function VisitasMap({ pings, spots = [], onPickCity }: {
       if (!spots.length) return;
 
       // Agregar por cidade (ou pelas coordenadas, quando não há nome)
-      const porCidade = new Map<string, { lat: number; lng: number; city: string | null; n: number }>();
+      type Cidade = { lat: number; lng: number; city: string | null; n: number; inbox: number; lead: number };
+      const porCidade = new Map<string, Cidade>();
       for (const s of spots) {
         if (typeof s.lat !== 'number' || typeof s.lng !== 'number' || isNaN(s.lat) || isNaN(s.lng)) continue;
         const chave = s.city ? `c:${s.city}` : `p:${s.lat.toFixed(3)},${s.lng.toFixed(3)}`;
         const actual = porCidade.get(chave);
-        if (actual) actual.n++;
-        else porCidade.set(chave, { lat: s.lat, lng: s.lng, city: s.city ?? null, n: 1 });
+        if (actual) {
+          actual.n++;
+          if (s.inbox) actual.inbox++;
+          if (s.lead) actual.lead++;
+        } else {
+          porCidade.set(chave, {
+            lat: s.lat, lng: s.lng, city: s.city ?? null, n: 1,
+            inbox: s.inbox ? 1 : 0, lead: s.lead ? 1 : 0,
+          });
+        }
       }
 
       const tamanho = (n: number) => (n >= 50 ? 46 : n >= 10 ? 40 : 34);
       const classe = (n: number) => (n >= 50 ? 'g' : n >= 10 ? 'm' : '');
+
+      // Os dois satelites. O zero nao se desenha: uma bolha com "0" ao lado le-se como
+      // informacao, e o que interessa e ver de relance onde e que houve conversao.
+      const orbes = (inbox: number, lead: number) =>
+        (inbox > 0 ? '<i class="yb-orb i" title="' + inbox + ' na inbox">' + inbox + '</i>' : '')
+        + (lead > 0 ? '<i class="yb-orb l" title="' + lead + ' lead(s)">' + lead + '</i>' : '');
 
       const grupo = L.markerClusterGroup({
         showCoverageOnHover: false,
@@ -164,10 +199,15 @@ export function VisitasMap({ pings, spots = [], onPickCity }: {
         spiderfyOnMaxZoom: false,   // pontos de cidades diferentes, não faz sentido abrir em leque
         zoomToBoundsOnClick: true,
         iconCreateFunction: (cluster: any) => {
-          const total = cluster.getAllChildMarkers().reduce((a: number, m: any) => a + (m.options.ybCount ?? 1), 0);
+          const filhos = cluster.getAllChildMarkers();
+          const soma = (campo: string) => filhos.reduce((a: number, m: any) => a + (m.options[campo] ?? 0), 0);
+          const total = filhos.reduce((a: number, m: any) => a + (m.options.ybCount ?? 1), 0);
           const d = tamanho(total);
           return L.divIcon({
-            html: `<div class="yb-bolha ${classe(total)}" style="width:${d}px;height:${d}px">${total}</div>`,
+            html: `<div class="yb-envolve" style="width:${d}px;height:${d}px">`
+              + `<div class="yb-bolha ${classe(total)}" style="width:${d}px;height:${d}px">${total}</div>`
+              + orbes(soma('ybInbox'), soma('ybLead'))
+              + `</div>`,
             className: '',
             iconSize: [d, d],
           });
@@ -178,8 +218,13 @@ export function VisitasMap({ pings, spots = [], onPickCity }: {
         const d = tamanho(c.n);
         const marcador = L.marker([c.lat, c.lng], {
           ybCount: c.n,
+          ybInbox: c.inbox,
+          ybLead: c.lead,
           icon: L.divIcon({
-            html: `<div class="yb-cidade"><div class="yb-bolha ${classe(c.n)}" style="width:${d}px;height:${d}px">${c.n}</div>${c.city ? `<s>${escapeHtml(c.city)}</s>` : ''}</div>`,
+            html: `<div class="yb-cidade" style="width:${d}px;height:${d}px">`
+              + `<div class="yb-bolha ${classe(c.n)}" style="width:${d}px;height:${d}px">${c.n}</div>`
+              + orbes(c.inbox, c.lead)
+              + `${c.city ? `<s>${escapeHtml(c.city)}</s>` : ''}</div>`,
             className: '',
             iconSize: [d, d],
             iconAnchor: [d / 2, d / 2],

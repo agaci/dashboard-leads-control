@@ -207,7 +207,12 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
   const spots: VisitSpot[] = useMemo(
     () => visits
       .filter((v) => v.geo?.lat != null && v.geo?.lng != null)
-      .map((v) => ({ lat: v.geo!.lat as number, lng: v.geo!.lng as number, city: v.geo?.city ?? null })),
+      .map((v) => ({
+        lat: v.geo!.lat as number, lng: v.geo!.lng as number, city: v.geo?.city ?? null,
+        // O mesmo funil da coluna, agregado no mapa: onde e que as visitas chegaram
+        // mesmo a alguma coisa.
+        inbox: !!v.stage?.inbox, lead: !!v.stage?.lead,
+      })),
     [visits],
   );
   const [range, setRange] = useState<Range>('hoje');
