@@ -43,6 +43,20 @@ const CAMPO: React.CSSProperties = {
   color: 'var(--yb-fg)', fontSize: 12.5, outline: 'none', fontFamily: 'inherit',
 };
 
+type TextoVariante = {
+  id: string; nome: string; quando: string;
+  versao: string; criadoEm: string; criadoPor: string;
+  assunto: string; abertura: string; oQueE: string[];
+  campos: { obrigatorios: string[]; opcionais: string[] };
+};
+
+const CAMPOS_DISPONIVEIS = ['categoria', 'zona', 'pedidos', 'pessoa', 'quemIndicou'];
+
+const COD: React.CSSProperties = {
+  background: 'var(--yb-card-2)', borderRadius: 4, padding: '1px 4px',
+  fontSize: 11, fontFamily: 'ui-monospace, monospace', color: 'var(--yb-muted)',
+};
+
 const COR_PUBLICO: Record<string, string> = {
   cliente: '#22c55e', visitante: '#8B9EC9', parceiro: '#eab308', equipa: '#00bcd4',
 };
@@ -52,14 +66,26 @@ const ROTULO_PUBLICO: Record<string, string> = {
 
 export default function Emails() {
   const [modelos, setModelos] = useState<Modelo[]>([]);
+  const [textos, setTextos] = useState<Record<string, TextoVariante>>({});
   const [aberto, setAberto] = useState<string | null>(null);
 
-  useEffect(() => {
+  const carregar = useCallback(() => {
     fetch('/api/crm/emails', { cache: 'no-store' })
       .then((x) => x.json())
       .then((r) => { if (r?.success) setModelos(r.modelos); })
       .catch(() => {});
+    fetch('/api/crm/textos-carta', { cache: 'no-store' })
+      .then((x) => x.json())
+      .then((r) => {
+        if (!r?.success) return;
+        const m: Record<string, TextoVariante> = {};
+        for (const v of r.variantes as TextoVariante[]) m[v.id] = v;
+        setTextos(m);
+      })
+      .catch(() => {});
   }, []);
+
+  useEffect(() => { carregar(); }, [carregar]);
 
   const manuais = useMemo(() => modelos.filter((m) => m.manual), [modelos]);
   const automaticos = useMemo(() => modelos.filter((m) => !m.manual), [modelos]);
@@ -81,6 +107,8 @@ export default function Emails() {
 
       {manuais.map((m) => (
         <Modelo key={m.id} modelo={m}
+          texto={textos[m.id.replace(/^apresentacao_/, '')]}
+          aoGravar={carregar}
           aberto={aberto === m.id} aoAbrir={() => setAberto(aberto === m.id ? null : m.id)} />
       ))}
 
@@ -101,7 +129,11 @@ export default function Emails() {
   );
 }
 
-function Modelo({ modelo, aberto, aoAbrir }: { modelo: Modelo; aberto: boolean; aoAbrir: () => void }) {
+function Modelo({ modelo, aberto, aoAbrir, texto, aoGravar }: {
+  modelo: Modelo; aberto: boolean; aoAbrir: () => void;
+  texto?: TextoVariante; aoGravar?: () => void;
+}) {
+  const [aEditar, setAEditar] = useState(false);
   // Cada campo começa com o seu exemplo: uma pré-visualização vazia não mostra nada de
   // útil, e ver a carta preenchida é o que permite decidir se ela serve.
   const inicial = useMemo(() => {
@@ -120,9 +152,12 @@ function Modelo({ modelo, aberto, aoAbrir }: { modelo: Modelo; aberto: boolean; 
   const url = useMemo(() => {
     const q = new URLSearchParams();
     for (const [k, v] of Object.entries(aplicados)) if (v.trim()) q.set(k, v);
+    // A versao vai no endereco para o iframe recarregar depois de se gravar um texto
+    // novo. Sem isto, gravava-se e continuava a ver-se a carta antiga.
+    if (texto?.versao) q.set('_v', texto.versao);
     const s = q.toString();
     return `/api/crm/emails/${modelo.id}/preview${s ? `?${s}` : ''}`;
-  }, [modelo.id, aplicados]);
+  }, [modelo.id, aplicados, texto?.versao]);
 
   const cor = COR_PUBLICO[modelo.publico] ?? 'var(--yb-subtle)';
   const emFalta = (modelo.campos ?? []).filter((c) => c.obrigatorio && !valores[c.id]?.trim());
@@ -152,6 +187,23 @@ function Modelo({ modelo, aberto, aoAbrir }: { modelo: Modelo; aberto: boolean; 
       <p style={{ fontSize: 11.5, color: 'var(--yb-subtle)', margin: '7px 0 0', lineHeight: 1.55 }}>
         {modelo.quando}
       </p>
+
+      {aberto && texto && (
+        <div style={{ marginTop: 10 }}>
+          <button onClick={() => setAEditar(!aEditar)} style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontSize: 11, color: 'var(--yb-cyan)', fontWeight: 600,
+          }}>{aEditar ? 'fechar o editor' : 'editar o texto desta carta'}</button>
+        </div>
+      )}
+
+      {aberto && texto && aEditar && (
+        <EditorTexto
+          variante={texto.id}
+          texto={texto}
+          aoGravar={() => { setAEditar(false); aoGravar?.(); }}
+        />
+      )}
 
       {aberto && (
         <>
@@ -248,6 +300,153 @@ function Modelo({ modelo, aberto, aoAbrir }: { modelo: Modelo; aberto: boolean; 
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+/**
+ * O editor do texto de uma carta.
+ *
+ * Só as três partes onde se ganha ou perde o leitor: o assunto, a abertura e os parágrafos
+ * do "somos a YourBox". Os quatro passos do "como funciona", o fecho e o rodapé continuam
+ * em código — são a substância da proposta e a parte de RGPD, e o risco de alguém prometer
+ * o que não fazemos é maior do que o ganho de os poder mexer.
+ *
+ * **Gravar cria uma versão nova, não substitui.** O rótulo (`contexto-v2`) fica no registo
+ * de cada envio: é por ele que se sabe, daqui a meio ano, qual das cartas é que uma empresa
+ * recebeu — e sem as versões antigas guardadas esse rótulo não apontaria para nada.
+ */
+function EditorTexto({ variante, texto, aoGravar }: {
+  variante: string;
+  texto: TextoVariante;
+  aoGravar: (versao: string) => void;
+}) {
+  const [assunto, setAssunto] = useState(texto.assunto);
+  const [abertura, setAbertura] = useState(texto.abertura);
+  const [paragrafos, setParagrafos] = useState<string[]>(texto.oQueE);
+  const [erro, setErro] = useState('');
+  const [aGravar, setAGravar] = useState(false);
+
+  const sujo = assunto !== texto.assunto || abertura !== texto.abertura
+    || paragrafos.join(' ') !== texto.oQueE.join(' ');
+
+  async function gravar() {
+    setErro('');
+    setAGravar(true);
+    const r = await fetch('/api/crm/textos-carta', {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ variante, assunto, abertura, oQueE: paragrafos.filter((p) => p.trim()) }),
+    }).then((x) => x.json()).catch(() => null);
+    setAGravar(false);
+    if (r?.success) aoGravar(r.versao);
+    else setErro(r?.error ?? 'não foi possível gravar');
+  }
+
+  function repor() {
+    setAssunto(texto.assunto); setAbertura(texto.abertura);
+    setParagrafos(texto.oQueE); setErro('');
+  }
+
+  const area: React.CSSProperties = {
+    width: '100%', boxSizing: 'border-box', background: 'var(--yb-card)',
+    border: '1px solid var(--yb-border)', color: 'var(--yb-fg)', borderRadius: 8,
+    padding: '8px 10px', fontSize: 13, lineHeight: 1.6, fontFamily: 'inherit',
+    resize: 'vertical', minHeight: 78,
+  };
+  const rotulo: React.CSSProperties = {
+    fontSize: 11, color: 'var(--yb-muted)', display: 'block', marginBottom: 4,
+  };
+
+  return (
+    <div style={{
+      marginTop: 14, padding: '13px 14px', background: 'var(--yb-input)',
+      border: '1px solid var(--yb-border)', borderRadius: 10,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 4 }}>
+        <p style={{ ...TITULO, marginBottom: 0 }}>Texto desta carta</p>
+        <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--yb-subtle)' }}>
+          versão {texto.versao}
+          {texto.criadoPor && texto.criadoPor !== 'semente' ? ` · ${texto.criadoPor}` : ' · original'}
+        </span>
+      </div>
+
+      <p style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '0 0 12px', lineHeight: 1.6 }}>
+        Escreva a frase inteira, com as variáveis lá dentro. Há três coisas:{' '}
+        <code style={COD}>{'{categoria}'}</code> mete o valor do formulário,{' '}
+        <code style={COD}>**assim**</code> fica a negrito, e{' '}
+        <code style={COD}>[entre parênteses rectos]</code> desaparece inteiro se a variável
+        que lá estiver vier vazia &mdash; é o que faz o &ldquo;cerca de 4 por mês&rdquo; não
+        se escrever quando não há número. Não escreva HTML: aqui é tudo texto.
+      </p>
+
+      <div style={{ marginBottom: 11 }}>
+        <label style={rotulo}>Assunto do email</label>
+        <input style={{ ...area, minHeight: 0 }} value={assunto} onChange={(e) => setAssunto(e.target.value)} />
+      </div>
+
+      <div style={{ marginBottom: 11 }}>
+        <label style={rotulo}>Abertura &mdash; a primeira coisa que se lê a seguir ao título</label>
+        <textarea style={area} value={abertura} onChange={(e) => setAbertura(e.target.value)} />
+      </div>
+
+      {paragrafos.map((p, i) => (
+        <div key={i} style={{ marginBottom: 11 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <label style={rotulo}>Parágrafo {i + 1}</label>
+            {paragrafos.length > 1 && (
+              <button type="button" onClick={() => setParagrafos(paragrafos.filter((_, j) => j !== i))}
+                style={{
+                  marginLeft: 'auto', background: 'none', border: 'none', padding: 0,
+                  cursor: 'pointer', fontSize: 10, color: 'var(--yb-subtle)', fontWeight: 600,
+                }}>tirar</button>
+            )}
+          </div>
+          <textarea style={area} value={p}
+            onChange={(e) => setParagrafos(paragrafos.map((x, j) => (j === i ? e.target.value : x)))} />
+        </div>
+      ))}
+
+      <button type="button" onClick={() => setParagrafos([...paragrafos, ''])} style={{
+        background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+        fontSize: 11, color: 'var(--yb-cyan)', fontWeight: 600, marginBottom: 12,
+      }}>+ outro parágrafo</button>
+
+      {/* O que o texto passa a exigir, lido do próprio texto. Se alguém puser {zona} fora
+          de um bloco opcional, a carta passa a precisar da zona — e mais vale sabê-lo aqui
+          do que na hora de enviar. */}
+      <p style={{ fontSize: 10.5, color: 'var(--yb-subtle)', margin: '0 0 12px', lineHeight: 1.6 }}>
+        Com este texto, a carta passa a pedir:{' '}
+        {texto.campos.obrigatorios.length
+          ? <strong style={{ color: 'var(--yb-muted)' }}>{texto.campos.obrigatorios.join(', ')}</strong>
+          : 'nada de obrigatório'}
+        {texto.campos.opcionais.length ? ` · opcionais: ${texto.campos.opcionais.join(', ')}` : ''}
+        {'. '}
+        Variáveis disponíveis: {CAMPOS_DISPONIVEIS.map((c) => `{${c}}`).join(', ')}.
+      </p>
+
+      {erro && <p style={{ fontSize: 11.5, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button onClick={gravar} disabled={aGravar || !sujo} style={{
+          background: 'rgba(0,188,212,0.15)', color: 'var(--yb-cyan)',
+          border: '1px solid rgba(0,188,212,0.35)', borderRadius: 8, padding: '7px 14px',
+          fontSize: 12, fontWeight: 600, cursor: sujo ? 'pointer' : 'default',
+          opacity: aGravar || !sujo ? 0.45 : 1,
+        }}>{aGravar ? 'a gravar...' : 'Gravar versão nova'}</button>
+
+        {sujo && (
+          <button onClick={repor} style={{
+            background: 'none', border: 'none', padding: '7px 4px', cursor: 'pointer',
+            fontSize: 12, color: 'var(--yb-subtle)',
+          }}>Repor</button>
+        )}
+
+        <span style={{ fontSize: 10.5, color: 'var(--yb-subtle)', lineHeight: 1.5 }}>
+          {sujo
+            ? 'Grave e depois use "ver com estes valores" para ver como fica.'
+            : 'As cartas já enviadas continuam a mostrar a versão que receberam.'}
+        </span>
+      </div>
     </div>
   );
 }

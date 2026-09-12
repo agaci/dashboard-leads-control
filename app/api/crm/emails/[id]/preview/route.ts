@@ -1,5 +1,7 @@
 import { NextRequest } from 'next/server';
 import { modelo } from '@/lib/email/catalogo';
+import { getDb } from '@/lib/mongodb';
+import { lerTextosCarta } from '@/lib/crm/textos';
 import { operadorDaSessao } from '@/lib/crm/sessao';
 
 /**
@@ -20,12 +22,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const m = modelo(id);
+  // A previsualizacao mostra o texto que esta a valer, que e o mesmo que o envio usa.
+  const textos = await lerTextosCarta(await getDb()).catch(() => undefined);
+  const m = modelo(id, textos);
   if (!m) return new Response('modelo desconhecido', { status: 404 });
 
   const { searchParams } = new URL(request.url);
   const valores: Record<string, unknown> = {};
-  for (const [k, v] of searchParams.entries()) if (v.trim()) valores[k] = v;
+  for (const [k, v] of searchParams.entries()) {
+    // `_v` e a versao do texto, e vai no endereco so para o iframe recarregar depois de
+    // se gravar. Se entrasse nos valores, deixava de haver "sem valores" — e a carta
+    // aparecia com os campos vazios em vez da amostra.
+    if (k === '_v' || !v.trim()) continue;
+    valores[k] = v;
+  }
 
   try {
     const html = m.render(Object.keys(valores).length ? valores : undefined);

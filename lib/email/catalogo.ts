@@ -1,6 +1,7 @@
 import { botao, cartao, COR, envelope, lista, paragrafo, passos } from './layout';
 import { esc } from '@/lib/html';
 import { GUIAO_AUTORIZACAO_EMAIL } from '@/lib/crm/guiao';
+import { renderizar, type TextoCarta } from '@/lib/crm/textosCarta';
 import {
   APRESENTACOES, corpoApresentacao, RODAPE_OPOSICAO,
   type CampoApresentacao, type VarianteApresentacao,
@@ -75,16 +76,56 @@ const avisoAutorizacao = cartao(
 // ── as cartas de apresentação ────────────────────────────────────────────────
 
 /**
+ * Os valores em cru, para o `renderizar` os escapar ele.
+ *
+ * Escapá-los antes daria "Silva &amp;amp; Filhos": o `renderizar` escapa sempre, porque é
+ * ele que decide o que é marcação e o que é texto. O caminho antigo — sem textos da base
+ * de dados — continua a receber os valores já escapados, como sempre recebeu.
+ *
+ * `pedidosPorMes` é o nome do campo no formulário e `{pedidos}` o da variável no texto.
+ * Aceitam-se os dois para não obrigar ninguém a escrever `{pedidosPorMes}` numa frase.
+ */
+function valoresEmCru(v: Record<string, unknown>): Record<string, unknown> {
+  return {
+    categoria: v.categoria,
+    zona: v.zona,
+    pedidos: v.pedidos ?? v.pedidosPorMes,
+    pessoa: v.pessoa,
+    quemIndicou: v.quemIndicou,
+  };
+}
+
+/** O assunto de uma carta, já com as variáveis substituídas. */
+export function assuntoApresentacao(
+  variante: VarianteApresentacao,
+  v: Record<string, unknown>,
+  textos?: TextoCarta,
+): string {
+  const meta = APRESENTACOES.find((a) => a.id === variante)!;
+  if (!textos?.assunto) return meta.assunto;
+  // Volta a descodificar o que o `renderizar` escapou: isto vai no cabeçalho do email,
+  // que é texto e não HTML — um "&" tem de chegar como "&" e não como "&amp;".
+  return renderizar(textos.assunto, valoresEmCru(v))
+    .replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+}
+
+/**
  * Monta uma carta de apresentação.
  *
  * Exportada porque é a mesma função que o envio a sério usa: a pré-visualização e o email
  * que chega ao parceiro saem daqui os dois, e por isso não podem divergir.
+ *
+ * `textos` vem da base de dados (lib/crm/textos.ts) e manda no assunto, na abertura e nos
+ * parágrafos do meio. Sem ele vale o que está em código — é o que acontece se a base não
+ * responder, e é de propósito: uma carta velha é melhor do que carta nenhuma.
  */
 export function montarApresentacao(
   variante: VarianteApresentacao,
   v: Record<string, unknown>,
   urlFormulario = '#',
   urlOposicao = '#',
+  textos?: TextoCarta,
 ): string {
   const meta = APRESENTACOES.find((a) => a.id === variante)!;
   // Escapados AQUI, antes de entrarem no texto. O `corpoApresentacao` compoe frases com
@@ -101,12 +142,20 @@ export function montarApresentacao(
     assinatura: String(v.assinatura ?? ''),
   });
 
+  const cru = valoresEmCru(v);
+  // Já escapados pelo `renderizar`, e levam <strong> lá dentro: não podem ser escapados
+  // outra vez. O caminho antigo continua a escapar no uso, como sempre.
+  const intro = textos?.abertura ? renderizar(textos.abertura, cru) : c.intro;
+  const meio = textos?.oQueE?.length
+    ? textos.oQueE.map((p) => renderizar(p, cru))
+    : c.oQueE.map((p) => esc(p));
+
   return envelope({
     resumo: 'Temos pedidos de transporte na vossa zona que não conseguimos servir.',
-    titulo: meta.assunto,
-    subtitulo: c.intro,
+    titulo: assuntoApresentacao(variante, v, textos),
+    subtitulo: intro,
     corpo: [
-      c.oQueE.map((p) => paragrafo(esc(p))).join(''),
+      meio.map((p) => paragrafo(p)).join(''),
       cartao(tituloBloco('Como funciona')
         + passos(c.comoFunciona.map((p) => ({ titulo: p.titulo, texto: esc(p.texto) })))),
       paragrafo(c.fecho),
@@ -131,12 +180,12 @@ function amostraDaVariante(id: string): Record<string, unknown> {
 
 // ── o catálogo ───────────────────────────────────────────────────────────────
 
-export function catalogo(): ModeloEmail[] {
+export function catalogo(textos?: Partial<Record<string, TextoCarta>>): ModeloEmail[] {
   const cartas: ModeloEmail[] = APRESENTACOES.map((a) => ({
     id: `apresentacao_${a.id}`,
     nome: `Apresentação — ${a.nome}`,
     publico: 'parceiro' as const,
-    assunto: a.assunto,
+    assunto: textos?.[a.id]?.assunto || a.assunto,
     quando: a.quando,
     descricao:
       'A carta que abre a conversa com uma empresa que ainda não é parceira. Enviada à mão, '
@@ -145,7 +194,9 @@ export function catalogo(): ModeloEmail[] {
       + 'campos que gera as capacidades. Leva sempre o mecanismo de oposição no rodapé.',
     manual: true,
     campos: a.campos,
-    render: (valores) => montarApresentacao(a.id, valores ?? amostraDaVariante(a.id)),
+    render: (valores) => montarApresentacao(
+      a.id, valores ?? amostraDaVariante(a.id), '#', '#', textos?.[a.id],
+    ),
   }));
 
   const automaticos: ModeloEmail[] = [
@@ -316,6 +367,6 @@ export function catalogo(): ModeloEmail[] {
   return [...cartas, ...automaticos];
 }
 
-export function modelo(id: string): ModeloEmail | undefined {
-  return catalogo().find((m) => m.id === id);
+export function modelo(id: string, textos?: Partial<Record<string, TextoCarta>>): ModeloEmail | undefined {
+  return catalogo(textos).find((m) => m.id === id);
 }

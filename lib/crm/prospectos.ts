@@ -6,7 +6,8 @@ import {
   type CrmInteraccao, type TipoInteraccao, TIPOS_INTERACCAO,
 } from './angariacao';
 import { metaApresentacao, validarCampos, type VarianteApresentacao } from './apresentacao';
-import { montarApresentacao } from '@/lib/email/catalogo';
+import { assuntoApresentacao, montarApresentacao } from '@/lib/email/catalogo';
+import { lerTextosCarta } from './textos';
 import { linkOposicao, linkRegisto } from './tokens';
 import { sendHtmlBruto } from '@/lib/email/resend';
 
@@ -178,20 +179,29 @@ export async function enviarApresentacao(
     return { ok: false, erro: 'diga porque é que está a reenviar — fica no histórico' };
   }
 
+  // O texto que esta a valer, e a versao dele. A previsualizacao le daqui tambem: se
+  // divergissem, a operadora aprovava uma carta e enviava outra.
+  const todos = await lerTextosCarta(db).catch(() => undefined);
+  const texto0 = todos?.[variante as VarianteApresentacao];
+
   const html = montarApresentacao(
     variante as VarianteApresentacao,
     valores,
     linkRegisto(partnerId),
     linkOposicao(partnerId),
+    texto0,
   );
 
-  const enviado = await sendHtmlBruto({ to: destino, subject: meta.assunto, html });
+  const assunto = assuntoApresentacao(variante as VarianteApresentacao, valores, texto0);
+  const enviado = await sendHtmlBruto({ to: destino, subject: assunto, html });
 
   await registarInteraccao(
     db, partnerId, 'email',
     jaEnviada > 0 ? `Reenvio da carta "${meta.nome}": ${texto}` : `Carta "${meta.nome}" enviada`,
     actor,
-    { para: destino, template: `apresentacao_${variante}`, versao: meta.versao, motivo: texto || undefined, enviado },
+    // A versao do texto que foi mesmo enviado, e nao a do codigo: e por este rotulo que
+    // daqui a meio ano se sabe qual das cartas esta empresa recebeu.
+    { para: destino, template: `apresentacao_${variante}`, versao: texto0?.versao ?? meta.versao, motivo: texto || undefined, enviado },
   );
 
   if (!enviado) return { ok: false, erro: 'o serviço de email recusou a mensagem', para: destino };
