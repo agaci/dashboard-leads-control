@@ -1,6 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { zonaDeMorada, zonasEfectivas, limparZona, zonaConhecida } from './zonas.ts';
+import {
+  zonaDeMorada, zonasEfectivas, limparZona, zonaConhecida,
+  DISTRITOS, NOME_ZONA, nomeZona, nomesZonas, ZONA_NACIONAL, zonasDeCapacidade,
+} from './zonas.ts';
 
 /**
  * A regressão que justifica este ficheiro: a zona era o PRIMEIRO segmento da morada, e o
@@ -79,4 +82,73 @@ test('zonaConhecida distingue distrito de escrita livre', () => {
   assert.equal(zonaConhecida('Lisboa'), true);
   assert.equal(zonaConhecida('nacional'), true);
   assert.equal(zonaConhecida('amora'), false);
+});
+
+// ── nomes para mostrar ───────────────────────────────────────────────────────
+
+test('todo o distrito tem nome escrito como se le', () => {
+  // Um distrito sem entrada aparecia como slug — "braganca" — no meio dos outros.
+  for (const d of DISTRITOS) {
+    assert.ok(NOME_ZONA[d], `falta o nome de "${d}"`);
+  }
+});
+
+test('os acentos estao la', () => {
+  assert.equal(nomeZona('braganca'), 'Bragança');
+  assert.equal(nomeZona('evora'), 'Évora');
+  assert.equal(nomeZona('santarem'), 'Santarém');
+  assert.equal(nomeZona('setubal'), 'Setúbal');
+  assert.equal(nomeZona('acores'), 'Açores');
+});
+
+test('as preposicoes ficam em minusculas', () => {
+  // `capitalize` dava "Viana Do Castelo", que ninguem escreve.
+  assert.equal(nomeZona('viana do castelo'), 'Viana do Castelo');
+  assert.equal(nomeZona('castelo branco'), 'Castelo Branco');
+});
+
+test('nacional le-se em portugues corrente', () => {
+  assert.equal(nomeZona(ZONA_NACIONAL), 'todo o país');
+});
+
+test('uma zona escrita a mao devolve-se como esta', () => {
+  // Vale mais mostrar "amora" do que inventar um nome.
+  assert.equal(nomeZona('amora'), 'amora');
+  assert.equal(nomesZonas(['porto', 'amora']), 'Porto, amora');
+});
+
+test('o nome nunca entra numa comparacao de zonas', () => {
+  // Se alguem usasse o nome para cruzar, "Évora" nunca casava com "evora". Esta e a
+  // razao de a tabela existir a parte e de limparZona continuar a mandar.
+  assert.equal(limparZona(nomeZona('evora')), 'evora');
+  assert.equal(limparZona(nomeZona('viana do castelo')), 'viana do castelo');
+});
+
+// ── o que uma capacidade grava ───────────────────────────────────────────────
+
+test('vazio quer dizer "as da ficha", e continua vazio', () => {
+  // A regressao que isto trava: o PUT convertia [] em ['nacional'], e a capacidade
+  // ficava presa a "todo o pais" para sempre. A partir dai as zonas da ficha do
+  // parceiro nao tinham efeito nenhum, e quem as editasse via-as gravadas e via a
+  // lista continuar a dizer outra coisa, sem explicacao.
+  assert.deepEqual(zonasDeCapacidade([]), []);
+  assert.deepEqual(zonasDeCapacidade(undefined), []);
+  assert.deepEqual(zonasDeCapacidade(['', '  ']), []);
+});
+
+test('nacional so aparece se for mesmo pedido', () => {
+  assert.deepEqual(zonasDeCapacidade([ZONA_NACIONAL]), [ZONA_NACIONAL]);
+});
+
+test('normaliza como o lado da lead', () => {
+  // Se os dois lados nao normalizarem igual, "Evora" nunca casa com "evora".
+  assert.deepEqual(zonasDeCapacidade(['Évora', ' PORTO ']), ['evora', 'porto']);
+});
+
+test('vazio herda mesmo, ponta a ponta', () => {
+  // O que a interface promete: gravar sem zonas na capacidade faz valer a ficha.
+  const gravado = zonasDeCapacidade([]);
+  assert.deepEqual(zonasEfectivas(gravado, ['porto', 'lisboa']), ['porto', 'lisboa']);
+  // E com ['nacional'] a ficha deixa de contar — que e a outra afirmacao, a serio.
+  assert.deepEqual(zonasEfectivas(zonasDeCapacidade([ZONA_NACIONAL]), ['porto']), [ZONA_NACIONAL]);
 });

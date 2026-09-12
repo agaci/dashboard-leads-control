@@ -7,6 +7,7 @@ import { requisitosDoPedido } from '@/lib/crm/capacidades';
 import { procurarParceiros } from '@/lib/crm/procura';
 import { garantirIndices } from '@/lib/crm/indices';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
+import { zonasDeCapacidade } from '@/lib/crm/zonas';
 
 /**
  * Capacidades (`crm_capabilities`) — a peça mais crítica do sistema (spec §7).
@@ -78,15 +79,10 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: 'parceiro não encontrado' }, { status: 404 });
     }
 
-    // Zonas em minúsculas e sem acentos, como as que saem de zonaDeMorada(): se os dois
-    // lados não normalizarem igual, "Évora" nunca casa com "evora" e ninguém percebe
-    // porque é que o parceiro não recebe nada.
-    //
-    // Vazio deixou de querer dizer "nacional" e passou a querer dizer "as do parceiro"
-    // (ver lib/crm/zonas.ts). Sem zonas em lado nenhum, continua a ser nacional.
-    const zonas = Array.isArray(body.zonas)
-      ? body.zonas.map((z: string) => normalizar(String(z))).filter(Boolean)
-      : [];
+    // Vazio quer dizer "as da ficha do parceiro" e nao "todo o pais". A regra vive em
+    // lib/crm/zonas.ts, escrita uma vez: era estar em dois sitios que punha esta rota e
+    // o PUT a discordar uma da outra.
+    const zonas = zonasDeCapacidade(body.zonas);
 
     const doc: Omit<CrmCapability, '_id'> = {
       partnerId,

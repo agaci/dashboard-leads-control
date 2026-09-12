@@ -104,21 +104,39 @@ const PAINEL = `
     <section style="${CARTAO}">
       ${cabeca('O que fazem, e onde')}
       <div style="display:flex;flex-wrap:wrap;gap:4px 16px;margin-bottom:11px">
-        ${campo('Zonas', 'todo o país')}${campo('Dimensão', '2 a 5')}${campo('Viaturas', '5')}
+        ${campo('Zonas', 'Porto, Lisboa')}${campo('Dimensão', '2 a 5')}${campo('Viaturas', '5')}
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--yb-border)">
-        <span style="min-width:0">
-          <span style="display:block;font-size:12px;color:var(--yb-fg);font-weight:600">Mudanças</span>
-          <span style="display:block;font-size:11px;color:var(--yb-muted);line-height:1.45">todo o país</span>
-        </span>
-        <span style="margin-left:auto;flex-shrink:0"><button style="${FANTASMA_P}">apagar</button></span>
+      <div style="padding:7px 0;border-top:1px solid var(--yb-border)">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="min-width:0;flex:1">
+            <span style="display:block;font-size:12px;color:var(--yb-fg);font-weight:600">Mudanças</span>
+            <span style="display:block;font-size:11px;color:var(--yb-muted);line-height:1.5">Porto, Lisboa<span style="color:var(--yb-subtle)"> · da ficha do parceiro</span></span>
+          </span>
+          <span style="flex-shrink:0;display:flex;gap:2px"><button style="${FANTASMA}">editar</button><button style="${FANTASMA_P}">apagar</button></span>
+        </div>
       </div>
-      <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--yb-border)">
-        <span style="min-width:0">
-          <span style="display:block;font-size:12px;color:var(--yb-fg);font-weight:600">ADR <span style="font-size:10px;font-weight:600;color:var(--yb-aviso);margin-left:6px">por activar</span></span>
-          <span style="display:block;font-size:11px;color:var(--yb-muted);line-height:1.45">porto, braga · max 1200 kg</span>
-        </span>
-        <span style="margin-left:auto;flex-shrink:0"><button style="${FANTASMA_P}">apagar</button></span>
+      <div style="padding:7px 0;border-top:1px solid var(--yb-border)">
+        <div style="display:flex;align-items:flex-start;gap:8px">
+          <span style="min-width:0;flex:1">
+            <span style="display:block;font-size:12px;color:var(--yb-fg);font-weight:600">ADR <span style="font-size:10px;font-weight:600;color:var(--yb-aviso);margin-left:6px">por activar</span></span>
+            <span style="display:block;font-size:11px;color:var(--yb-muted);line-height:1.5">Braga<span style="color:var(--yb-aviso)"> · só desta capacidade</span> · max 1200 kg</span>
+          </span>
+          <span style="flex-shrink:0;display:flex;gap:2px"><button style="${FANTASMA}">editar</button><button style="${FANTASMA_P}">apagar</button></span>
+        </div>
+        <div style="margin-top:9px;padding:11px 12px;background:var(--yb-input);border:1px solid var(--yb-border);border-radius:9px">
+          <label style="font-size:11px;color:var(--yb-muted);display:block;margin-bottom:3px">Zonas de "ADR"</label>
+          <div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px">
+            ${['herdar da ficha', 'todo o país', 'Aveiro', 'Beja', 'Braga', 'Bragança', 'Castelo Branco', 'Coimbra', 'Évora', 'Faro', 'Guarda', 'Leiria', 'Lisboa', 'Portalegre', 'Porto', 'Santarém', 'Setúbal', 'Viana do Castelo', 'Vila Real', 'Viseu', 'Açores', 'Madeira'].map((z) => {
+              const on = z === 'Braga';
+              return `<button style="background:${on ? 'rgba(0,188,212,0.15)' : 'var(--yb-input)'};color:${on ? 'var(--yb-cyan)' : 'var(--yb-muted)'};border:1px solid ${on ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'};border-radius:20px;padding:3px 10px;font-size:11px;font-weight:${on ? 700 : 500};cursor:pointer">${z}</button>`;
+            }).join('')}
+          </div>
+          <p style="font-size:10px;color:var(--yb-subtle);margin:5px 0 0;line-height:1.5">1 zona(s), só nesta capacidade. A ficha do parceiro deixa de contar aqui.</p>
+          <label style="font-size:12px;color:var(--yb-fg);display:flex;gap:7px;align-items:flex-start;cursor:pointer;padding-top:9px;margin-top:9px;border-top:1px solid var(--yb-border)">
+            <input type="checkbox" style="margin-top:2px">
+            <span><span style="font-weight:600">Activa</span><span style="display:block;font-size:10px;color:var(--yb-subtle);line-height:1.5">Só as activas entram numa distribuição. Confirme o que a empresa declarou antes de acordar uma.</span></span>
+          </label>
+        </div>
       </div>
       <div style="margin-top:10px"><select style="${INPUT}"><option>acrescentar categoria...</option></select></div>
     </section>

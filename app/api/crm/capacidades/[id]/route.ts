@@ -3,6 +3,7 @@ import { ObjectId } from 'mongodb';
 import { getDb } from '@/lib/mongodb';
 import { eCategoriaValida, normalizar } from '@/lib/crm/categorias';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
+import { zonasDeCapacidade } from '@/lib/crm/zonas';
 
 /**
  * Uma linha de capacidade.
@@ -26,10 +27,9 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const $set: Record<string, unknown> = { updatedAt: new Date() };
 
     if (eCategoriaValida(body.categoria)) $set.categoria = body.categoria;
-    if (Array.isArray(body.zonas)) {
-      const zonas = body.zonas.map((z: string) => normalizar(String(z))).filter(Boolean);
-      $set.zonas = zonas.length ? zonas : ['nacional'];
-    }
+    // A mesma regra do POST, e da mesma funcao: era esta linha que convertia o vazio em
+    // ['nacional'] e prendia a capacidade a "todo o pais" para sempre.
+    if (Array.isArray(body.zonas)) $set.zonas = zonasDeCapacidade(body.zonas);
     if ('maxWeightKg' in body) $set.maxWeightKg = numero(body.maxWeightKg);
     if ('maxDimensionCm' in body) $set.maxDimensionCm = numero(body.maxDimensionCm);
     if ('adr' in body) $set.adr = !!body.adr;

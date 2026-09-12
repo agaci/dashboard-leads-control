@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { DISTRITOS, limparZona, ZONA_NACIONAL } from '@/lib/crm/zonas';
+import { DISTRITOS, limparZona, nomeZona, nomesZonas, ZONA_NACIONAL } from '@/lib/crm/zonas';
 import { DIMENSOES } from '@/lib/crm/filtros';
 import { ROTULO_ESTADO } from '@/lib/crm/angariacao';
 import MapaPortugal from './MapaPortugal';
@@ -1407,8 +1407,8 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
                   <span className="yb-p-so-medio" style={{
                     fontSize: 11, color: nacional ? 'var(--yb-cyan)' : 'var(--yb-muted)',
                     overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                  }} title={nacional ? 'todo o país' : zs.join(', ')}>
-                    {nacional ? 'todo o país' : (zs.length ? zs.join(', ') : '—')}
+                  }} title={nacional ? 'todo o país' : nomesZonas(zs)}>
+                    {nacional ? 'todo o país' : (zs.length ? nomesZonas(zs) : '—')}
                   </span>
 
                   <span className="yb-p-so-largo" style={{
@@ -1476,23 +1476,42 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
  * Botões e não caixa de texto porque a zona é uma chave de cruzamento: "Setúbal",
  * "setubal" e "Setubal " são a mesma coisa para quem escreve e três zonas diferentes
  * para a distribuição — e o parceiro que ficasse com a variante errada deixava de
- * receber leads sem ninguém dar por isso.
+ * receber leads sem ninguém dar por isso. O que se mostra é o nome bem escrito
+ * (lib/crm/zonas.ts); o que se grava é sempre o slug.
  *
  * Fica na mesma a hipótese de acrescentar uma zona fora da lista (concelhos, sobretudo),
  * já normalizada da mesma maneira que o lado da lead.
+ *
+ * **Com `heranca`, passa a ter três estados em vez de dois.** Numa capacidade, vazio não
+ * quer dizer "todo o país": quer dizer "as zonas da ficha do parceiro". São coisas
+ * diferentes e a diferença é invisível se o botão for um só — foi exactamente assim que
+ * uma capacidade ficou presa a `nacional` e as zonas da ficha deixaram de ter efeito.
  */
-function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: string[]) => void }) {
+function SelectorZonas({ valor, aoMudar, heranca, etiqueta }: {
+  valor: string[];
+  aoMudar: (z: string[]) => void;
+  /** As zonas da ficha do parceiro. Presente = modo capacidade, com o estado "herdar". */
+  heranca?: string[];
+  etiqueta?: string;
+}) {
   const [extra, setExtra] = useState('');
-  const nacional = !valor.length;
-  const fora = valor.filter((z) => !(DISTRITOS as readonly string[]).includes(z));
+  const capacidade = heranca !== undefined;
+  const vazio = !valor.length;
+  const nacional = valor.length === 1 && valor[0] === ZONA_NACIONAL;
+  const escolhidos = valor.filter((z) => z !== ZONA_NACIONAL);
+  const fora = escolhidos.filter((z) => !(DISTRITOS as readonly string[]).includes(z));
 
+  /** Escolher um distrito tira o "todo o país": as duas coisas não se somam. */
   function alternar(z: string) {
-    aoMudar(valor.includes(z) ? valor.filter((v) => v !== z) : [...valor, z]);
+    const sem = valor.filter((v) => v !== ZONA_NACIONAL);
+    aoMudar(sem.includes(z) ? sem.filter((v) => v !== z) : [...sem, z]);
   }
 
   function acrescentar() {
     const z = limparZona(extra);
-    if (z && z !== ZONA_NACIONAL && !valor.includes(z)) aoMudar([...valor, z]);
+    if (z && z !== ZONA_NACIONAL && !valor.includes(z)) {
+      aoMudar([...valor.filter((v) => v !== ZONA_NACIONAL), z]);
+    }
     setExtra('');
   }
 
@@ -1501,18 +1520,41 @@ function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: strin
     color: activo ? 'var(--yb-cyan)' : 'var(--yb-muted)',
     border: `1px solid ${activo ? 'rgba(0,188,212,0.35)' : 'var(--yb-border)'}`,
     borderRadius: 20, padding: '3px 10px', fontSize: 11,
-    fontWeight: activo ? 700 : 500, cursor: 'pointer', textTransform: 'capitalize',
+    fontWeight: activo ? 700 : 500, cursor: 'pointer',
   });
+
+  const nota = capacidade
+    ? (vazio
+      ? `Herda as da ficha: ${heranca!.length ? nomesZonas(heranca!) : 'todo o país'}. Muda com elas.`
+      : nacional
+        ? 'Todo o país, mesmo que a ficha do parceiro diga outra coisa.'
+        : `${escolhidos.length} zona(s), só nesta capacidade. A ficha do parceiro deixa de contar aqui.`)
+    : (vazio
+      ? 'Sem zonas escolhidas o parceiro conta como nacional e entra em qualquer distribuição.'
+      : `${escolhidos.length} zona(s). Cada capacidade herda estas zonas, a não ser que declare as suas.`);
 
   return (
     <div>
-      <label style={LABEL}>Zonas que serve</label>
+      <label style={LABEL}>{etiqueta ?? 'Zonas que serve'}</label>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
-        <button type="button" onClick={() => aoMudar([])} style={chip(nacional)}>
-          todo o país
-        </button>
+        {capacidade ? (
+          <>
+            <button type="button" onClick={() => aoMudar([])} style={chip(vazio)}>
+              herdar da ficha
+            </button>
+            <button type="button" onClick={() => aoMudar([ZONA_NACIONAL])} style={chip(nacional)}>
+              todo o país
+            </button>
+          </>
+        ) : (
+          <button type="button" onClick={() => aoMudar([])} style={chip(vazio)}>
+            todo o país
+          </button>
+        )}
         {DISTRITOS.map((d) => (
-          <button type="button" key={d} onClick={() => alternar(d)} style={chip(valor.includes(d))}>{d}</button>
+          <button type="button" key={d} onClick={() => alternar(d)} style={chip(escolhidos.includes(d))}>
+            {nomeZona(d)}
+          </button>
         ))}
         {fora.map((z) => (
           <button type="button" key={z} onClick={() => alternar(z)} style={{ ...chip(true), fontStyle: 'italic' }}>{z}</button>
@@ -1524,11 +1566,7 @@ function SelectorZonas({ valor, aoMudar }: { valor: string[]; aoMudar: (z: strin
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); acrescentar(); } }} />
         <button type="button" onClick={acrescentar} style={botao('neutro')}>juntar</button>
       </div>
-      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0' }}>
-        {nacional
-          ? 'Sem zonas escolhidas o parceiro conta como nacional e entra em qualquer distribuição.'
-          : `${valor.length} zona(s). Cada capacidade herda estas zonas, a não ser que declare as suas.`}
-      </p>
+      <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0', lineHeight: 1.5 }}>{nota}</p>
     </div>
   );
 }
@@ -1734,6 +1772,167 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
   );
 }
 
+/**
+ * Uma capacidade: o que a empresa faz, onde, e com que limites.
+ *
+ * **Editável, e não só criável e apagável.** Antes uma linha destas escrevia-se uma vez e
+ * a partir daí só se podia deitar fora. Quem tivesse uma capacidade com zonas erradas —
+ * ou adormecida, como nascem as que vêm do formulário de registo — não tinha por onde lhe
+ * pegar, e editar as zonas na ficha do parceiro não fazia nada, porque as da capacidade
+ * ganham sempre.
+ *
+ * A linha diz sempre de onde vêm as zonas que valem, e não só quais são: sem isso, ver
+ * "todo o país" numa empresa cuja ficha diz "Porto, Lisboa" não tem explicação nenhuma.
+ */
+function LinhaCapacidade({ capacidade: c, parceiro, categorias, aoMudar, aoApagar }: {
+  capacidade: Capacidade;
+  parceiro: Parceiro;
+  categorias: Categoria[];
+  aoMudar: () => void;
+  aoApagar: () => void;
+}) {
+  const [aEditar, setAEditar] = useState(false);
+  const [zonas, setZonas] = useState<string[]>(c.zonas ?? []);
+  const [limites, setLimites] = useState({
+    maxWeightKg: c.maxWeightKg == null ? '' : String(c.maxWeightKg),
+    maxDimensionCm: c.maxDimensionCm == null ? '' : String(c.maxDimensionCm),
+    adr: !!c.adr, temperatura: !!c.temperatura, active: c.active !== false,
+  });
+  const [aGravar, setAGravar] = useState(false);
+  const [erro, setErro] = useState('');
+
+  async function gravar() {
+    setErro('');
+    setAGravar(true);
+    const r = await fetch(`/api/crm/capacidades/${c._id}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        zonas,
+        maxWeightKg: limites.maxWeightKg ? Number(limites.maxWeightKg) : null,
+        maxDimensionCm: limites.maxDimensionCm ? Number(limites.maxDimensionCm) : null,
+        adr: limites.adr, temperatura: limites.temperatura, active: limites.active,
+      }),
+    }).then((x) => x.json()).catch(() => null);
+    setAGravar(false);
+    if (r?.success) { setAEditar(false); aoMudar(); }
+    else setErro(r?.error ?? 'não foi possível gravar');
+  }
+
+  const label = categorias.find((k) => k.id === c.categoria)?.label ?? c.categoria;
+  const proprias = (c.zonas ?? []).filter(Boolean);
+  const daFicha = parceiro.zonas?.length ? nomesZonas(parceiro.zonas) : 'todo o país';
+
+  // De onde vêm as zonas que valem. É esta frase que faltava: uma capacidade com zonas
+  // próprias ignora a ficha, e sem o dizer parece que a ficha não gravou.
+  const origem = proprias.length
+    ? { texto: nomesZonas(proprias), nota: 'só desta capacidade', avisa: true }
+    : { texto: daFicha, nota: 'da ficha do parceiro', avisa: false };
+
+  return (
+    <div style={{ padding: '7px 0', borderTop: '1px solid var(--yb-border)' }}>
+      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{ display: 'block', fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
+            {label}
+            {c.active === false && (
+              <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--yb-aviso)', marginLeft: 6 }}>
+                por activar
+              </span>
+            )}
+          </span>
+          <span style={{ display: 'block', fontSize: 11, color: 'var(--yb-muted)', lineHeight: 1.5 }}>
+            {origem.texto}
+            <span style={{ color: origem.avisa ? 'var(--yb-aviso)' : 'var(--yb-subtle)' }}>
+              {' · '}{origem.nota}
+            </span>
+            {c.maxWeightKg ? ` · max ${c.maxWeightKg} kg` : ''}
+            {c.maxDimensionCm ? ` · max ${c.maxDimensionCm} cm` : ''}
+            {c.adr ? ' · ADR' : ''}
+            {c.temperatura ? ' · frio' : ''}
+          </span>
+        </span>
+        <span style={{ flexShrink: 0, display: 'flex', gap: 2 }}>
+          <BotaoFantasma aoClicar={() => { setAEditar(!aEditar); setErro(''); }}>
+            {aEditar ? 'fechar' : 'editar'}
+          </BotaoFantasma>
+          <BotaoFantasma perigo aoClicar={aoApagar}>apagar</BotaoFantasma>
+        </span>
+      </div>
+
+      {aEditar && (
+        <div style={{
+          marginTop: 9, padding: '11px 12px', background: 'var(--yb-input)',
+          border: '1px solid var(--yb-border)', borderRadius: 9, display: 'grid', gap: 9,
+        }}>
+          <SelectorZonas
+            valor={zonas}
+            aoMudar={setZonas}
+            heranca={parceiro.zonas ?? []}
+            etiqueta={`Zonas de "${label}"`}
+          />
+
+          <div style={{ display: 'flex', gap: 6 }}>
+            <div style={{ flex: 1 }}>
+              <label style={LABEL}>Peso máximo (kg)</label>
+              <input style={INPUT} placeholder="sem limite" value={limites.maxWeightKg}
+                onChange={(e) => setLimites({ ...limites, maxWeightKg: e.target.value })} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={LABEL}>Dimensão máxima (cm)</label>
+              <input style={INPUT} placeholder="sem limite" value={limites.maxDimensionCm}
+                onChange={(e) => setLimites({ ...limites, maxDimensionCm: e.target.value })} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
+            <label style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>
+              <input type="checkbox" checked={limites.adr}
+                onChange={(e) => setLimites({ ...limites, adr: e.target.checked })} />
+              certificação ADR
+            </label>
+            <label style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>
+              <input type="checkbox" checked={limites.temperatura}
+                onChange={(e) => setLimites({ ...limites, temperatura: e.target.checked })} />
+              cadeia de frio
+            </label>
+          </div>
+
+          {/* O interruptor que faltava: as capacidades que vêm do formulário de registo
+              nascem adormecidas de propósito — qualquer um marca "ADR" num formulário, e
+              uma lead de ADR vale €60 — mas não havia ecrã nenhum onde as acordar. */}
+          <label style={{
+            fontSize: 12, color: 'var(--yb-fg)', display: 'flex', gap: 7, alignItems: 'flex-start',
+            cursor: 'pointer', paddingTop: 9, borderTop: '1px solid var(--yb-border)',
+          }}>
+            <input type="checkbox" checked={limites.active} style={{ marginTop: 2 }}
+              onChange={(e) => setLimites({ ...limites, active: e.target.checked })} />
+            <span>
+              <span style={{ fontWeight: 600 }}>Activa</span>
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-subtle)', lineHeight: 1.5 }}>
+                Só as activas entram numa distribuição. Confirme o que a empresa declarou
+                antes de acordar uma.
+              </span>
+            </span>
+          </label>
+
+          {erro && <p style={{ fontSize: 11, color: 'var(--yb-error)', margin: 0 }}>{erro}</p>}
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <button onClick={gravar} disabled={aGravar}
+              style={{ ...botao('primario'), opacity: aGravar ? 0.5 : 1 }}>
+              {aGravar ? 'a gravar...' : 'Gravar'}
+            </button>
+            <button onClick={() => { setAEditar(false); setZonas(c.zonas ?? []); }} style={{
+              background: 'none', border: 'none', padding: '7px 4px', cursor: 'pointer',
+              fontSize: 12, color: 'var(--yb-subtle)',
+            }}>Cancelar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── O painel de um parceiro ──────────────────────────────────────────────────
 
 /** Um cartão do painel. Título, acção opcional no canto, e o que lá dentro estiver. */
@@ -1859,7 +2058,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
   }
 
   const dim = DIMENSOES.find((d) => d.id === parceiro.dimensao);
-  const zonasFicha = parceiro.zonas?.length ? parceiro.zonas.join(', ') : 'todo o país';
+  const zonasFicha = parceiro.zonas?.length ? nomesZonas(parceiro.zonas) : 'todo o país';
 
   return (
     <div style={{
@@ -1920,35 +2119,14 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
           </div>
 
           {capacidades.map((c) => (
-            <div key={c._id} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '6px 0',
-              borderTop: '1px solid var(--yb-border)',
-            }}>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--yb-fg)', fontWeight: 600 }}>
-                  {categorias.find((k) => k.id === c.categoria)?.label ?? c.categoria}
-                  {c.active === false && (
-                    <span style={{ fontSize: 10, fontWeight: 600, color: 'var(--yb-aviso)', marginLeft: 6 }}>
-                      por activar
-                    </span>
-                  )}
-                </span>
-                <span style={{ display: 'block', fontSize: 11, color: 'var(--yb-muted)', lineHeight: 1.45 }}>
-                  {c.zonas?.length
-                    ? c.zonas.join(', ')
-                    : (parceiro.zonas?.length ? `${parceiro.zonas.join(', ')} (do parceiro)` : 'todo o país')}
-                  {c.maxWeightKg ? ` · max ${c.maxWeightKg} kg` : ''}
-                  {c.maxDimensionCm ? ` · max ${c.maxDimensionCm} cm` : ''}
-                  {c.adr ? ' · ADR' : ''}
-                  {c.temperatura ? ' · frio' : ''}
-                </span>
-              </span>
-              {/* Discreto até se lhe tocar: é a acção que menos se quer fazer por engano,
-                  e era o elemento mais gritante do painel. */}
-              <span style={{ marginLeft: 'auto', flexShrink: 0 }}>
-                <BotaoFantasma perigo aoClicar={() => apagarCapacidade(c._id)}>apagar</BotaoFantasma>
-              </span>
-            </div>
+            <LinhaCapacidade
+              key={c._id}
+              capacidade={c}
+              parceiro={parceiro}
+              categorias={categorias}
+              aoMudar={() => { carregar(); aoMudar(); }}
+              aoApagar={() => apagarCapacidade(c._id)}
+            />
           ))}
 
           {!capacidades.length && (

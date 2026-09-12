@@ -23,6 +23,74 @@ export const DISTRITOS = [
 /** Cobre tudo. É o valor por omissão de uma capacidade sem zonas declaradas. */
 export const ZONA_NACIONAL = 'nacional';
 
+/**
+ * Como se escreve cada zona quando se mostra a alguém.
+ *
+ * Os slugs são minúsculos e sem acentos porque é assim que se cruzam com a morada de uma
+ * lead — e é assim que têm de continuar. Mas mostrá-los tal e qual dá "Braganca" e
+ * "Evora", e com `text-transform: capitalize` dá "Viana Do Castelo" e "Todo O País", que
+ * ninguém escreve.
+ *
+ * A tabela é por isso só de apresentação: nada aqui entra numa comparação.
+ */
+export const NOME_ZONA: Record<string, string> = {
+  nacional: 'todo o país',
+  aveiro: 'Aveiro',
+  beja: 'Beja',
+  braga: 'Braga',
+  braganca: 'Bragança',
+  'castelo branco': 'Castelo Branco',
+  coimbra: 'Coimbra',
+  evora: 'Évora',
+  faro: 'Faro',
+  guarda: 'Guarda',
+  leiria: 'Leiria',
+  lisboa: 'Lisboa',
+  portalegre: 'Portalegre',
+  porto: 'Porto',
+  santarem: 'Santarém',
+  setubal: 'Setúbal',
+  'viana do castelo': 'Viana do Castelo',
+  'vila real': 'Vila Real',
+  viseu: 'Viseu',
+  acores: 'Açores',
+  madeira: 'Madeira',
+};
+
+/**
+ * O nome de uma zona para mostrar.
+ *
+ * Uma zona escrita à mão — um concelho, uma ilha — não está na tabela e devolve-se como
+ * está: é melhor mostrar "amora" do que inventar.
+ */
+export function nomeZona(zona: string): string {
+  return NOME_ZONA[zona] ?? zona;
+}
+
+/** Vários de uma vez, pela ordem em que vieram. */
+export function nomesZonas(zonas: readonly string[]): string {
+  return zonas.map(nomeZona).join(', ');
+}
+
+/**
+ * As zonas que uma capacidade grava, a partir do que veio de um formulário.
+ *
+ * Está aqui, e não dentro de uma rota, porque é uma **decisão de significado** e não uma
+ * limpeza: decide o que quer dizer uma lista vazia. E foi por estar escrita duas vezes
+ * que as duas rotas ficaram a discordar — o POST guardava `[]`, o PUT convertia `[]` em
+ * `['nacional']`, e uma capacidade que passasse pelo segundo ficava presa a "todo o país"
+ * para sempre. A partir daí as zonas da ficha do parceiro não tinham efeito nenhum, e
+ * quem as editasse via-as gravadas e via a lista continuar a dizer outra coisa.
+ *
+ * **Vazio quer dizer "as da ficha do parceiro".** Para declarar cobertura nacional na
+ * própria capacidade, manda-se `['nacional']` — que é uma afirmação diferente, e é a
+ * única que ignora a ficha.
+ */
+export function zonasDeCapacidade(entrada: unknown): string[] {
+  if (!Array.isArray(entrada)) return [];
+  return entrada.map((z) => limparZona(String(z))).filter(Boolean);
+}
+
 export type Zona = string;
 
 /** Minúsculas sem acentos — a mesma normalização que o resto do CRM usa. */
