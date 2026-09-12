@@ -204,6 +204,47 @@ export default function CrmPage() {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', height: '100%', background: 'var(--yb-bg)', padding: '20px 24px' }}>
+      {/* Os estilos vivem aqui e nao dentro de um separador: a grelha dos cartoes e usada
+          pelo painel do parceiro E pelo da consulta, e enquanto estava dentro do separador
+          dos Parceiros so existia quando esse separador estava aberto. */}
+      <style>{`
+        .yb-p-linha {
+          display: grid;
+          grid-template-columns: minmax(180px,2.2fr) 96px minmax(120px,1.4fr) minmax(110px,1.2fr) 74px 46px 84px;
+          gap: 10px; align-items: center; width: 100%; box-sizing: border-box;
+          background: transparent; border: none; cursor: pointer;
+          padding: 9px 14px; text-align: left;
+          border-bottom: 1px solid var(--yb-border);
+        }
+        .yb-p-linha:hover { background: rgba(255,255,255,0.03); }
+        .yb-p-cab { font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
+                    color: var(--yb-subtle); font-weight: 700; cursor: default; }
+        .yb-p-cab:hover { background: transparent; }
+        .yb-p-corpo { display: grid; grid-template-columns: 262px minmax(0,1fr); gap: 16px; align-items: start; }
+        /* Tres cartoes lado a lado quando ha espaco, dois quando ha menos, um no telemovel.
+           O de Resultados ocupa sempre a largura toda: sao seis numeros numa fila, e
+           partidos por coluna deixavam de se comparar. */
+        .yb-d-grelha { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; align-items: start; }
+        @media (max-width: 1180px) { .yb-d-grelha { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+        @media (max-width: 760px)  { .yb-d-grelha { grid-template-columns: minmax(0,1fr); } }
+        @media (max-width: 1100px) {
+          .yb-p-corpo { grid-template-columns: 1fr; }
+          /* Empilhado, o mapa passa a estar por cima da lista e a ocupar meio ecra antes
+             de se ver um parceiro. Limitado em altura encolhe na proporcao, continua a
+             dar a leitura de conjunto e continua clicavel. */
+          .yb-p-mapa svg { max-height: 300px; }
+          .yb-p-linha { grid-template-columns: minmax(150px,2fr) 90px 1fr 70px 84px; }
+          .yb-p-so-largo { display: none; }
+        }
+        @media (max-width: 640px) {
+          /* Tres colunas e nao duas: com duas, o saldo passava para a linha de baixo e
+             ficava debaixo do nome, onde se le como se fosse parte dele. */
+          .yb-p-linha { grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; }
+          .yb-p-cab { display: none; }
+          .yb-p-so-medio { display: none; }
+        }
+      `}</style>
+
       <div style={{ maxWidth: LARGURA_CONTEUDO, margin: '0 auto' }}>
         <header style={{ marginBottom: 18 }}>
           <h1 style={{ fontSize: 19, fontWeight: 700, color: 'var(--yb-fg)', margin: 0 }}>CRM de Parceiros</h1>
@@ -275,7 +316,9 @@ function Consultas({ labelCategoria, categorias, config, aoMudarConfig }: {
 }) {
   const [consultas, setConsultas] = useState<Consulta[]>([]);
   const [filtroRota, setFiltroRota] = useState<'' | 'lead_sale' | 'subcontract'>('lead_sale');
-  const [filtroData, setFiltroData] = useState('sempre');
+  // Abre em "Hoje": e o que se quer ver ao entrar, e "Sempre" obrigava a carregar o
+  // historico todo para mostrar as duas consultas do dia.
+  const [filtroData, setFiltroData] = useState('hoje');
   const [filtroCategoria, setFiltroCategoria] = useState('');
   const [aberta, setAberta] = useState<string | null>(null);
   const [aCarregar, setACarregar] = useState(true);
@@ -364,7 +407,7 @@ function Consultas({ labelCategoria, categorias, config, aoMudarConfig }: {
         <div style={CARD}>
           <p style={{ fontSize: 13, color: 'var(--yb-muted)', margin: 0 }}>
             {filtroData !== 'sempre' || filtroCategoria
-              ? 'Nada neste período ou categoria. Alargue o filtro para ver o resto.'
+              ? 'Nada neste período ou categoria. Carregue em "Sempre" para ver o resto.'
               : 'Sem consultas. Cole o id de uma lead acima para a triar, ou use a consulta manual para um pedido que chegou por telefone.'}
           </p>
         </div>
@@ -643,39 +686,68 @@ function DetalheConsulta({ consulta, aoMudar }: { consulta: Consulta; aoMudar: (
   }
 
   return (
-    <div style={{ borderTop: '1px solid var(--yb-border)', padding: '14px 16px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(210px,1fr))', gap: 14, marginBottom: 14 }}>
-        <div>
-          <p style={TITULO}>Cliente</p>
+    <div style={{
+      borderTop: '1px solid var(--yb-border)', background: 'var(--yb-card-2)',
+      padding: '14px 16px 16px',
+    }}>
+      {/* Cartoes sobre chao proprio, como no painel do parceiro: as tres colunas
+          flutuavam sobre o mesmo fundo das linhas e o painel encostava a consulta
+          seguinte sem separacao nenhuma. */}
+      <div className="yb-d-grelha" style={{ marginBottom: 12 }}>
+        <Painel titulo="Cliente">
           <Campo k="Nome" v={consulta.cliente.nome} />
           <Campo k="Telefone" v={consulta.cliente.telefone} />
           <Campo k="Email" v={consulta.cliente.email} />
-        </div>
-        <div>
-          <p style={TITULO}>Pedido</p>
+          {!consulta.cliente.telefone && !consulta.cliente.email && (
+            <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: 0, lineHeight: 1.5 }}>
+              Sem telefone nem email: esta consulta não pode ser entregue a ninguém.
+            </p>
+          )}
+        </Painel>
+
+        <Painel titulo="Pedido">
           <Campo k="Recolha" v={p.origem} />
           <Campo k="Entrega" v={p.destino} />
           <Campo k="Prazo" v={p.urgencia} />
           <Campo k="Carga" v={carga} />
-        </div>
-        <div>
-          <p style={TITULO}>Triagem</p>
-          <div style={{ marginBottom: 5 }}>
+
+          {/* O que o cliente escreveu por palavras dele. Com filete a esquerda, como uma
+              citacao: e a unica parte do pedido que nao foi a aplicacao que compos, e e
+              a que mais vezes muda a decisao. */}
+          {p.observacoes && (
+            <div style={{
+              marginTop: 10, paddingLeft: 10, borderLeft: '3px solid var(--yb-cyan)',
+            }}>
+              <p style={{
+                fontSize: 10, fontWeight: 700, textTransform: 'uppercase',
+                letterSpacing: '0.07em', color: 'var(--yb-subtle)', margin: '0 0 3px',
+              }}>Nas palavras do cliente</p>
+              <p style={{
+                fontSize: 12, lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap',
+                color: 'var(--yb-fg)',
+              }}>{p.observacoes}</p>
+            </div>
+          )}
+        </Painel>
+
+        <Painel titulo="Triagem">
+          <div style={{ marginBottom: 7 }}>
             <Etiqueta texto={`confiança ${consulta.triagem.confianca}`} cor={COR_CONFIANCA[consulta.triagem.confianca] ?? '#8B9EC9'} />
           </div>
-          <p style={{ fontSize: 12, color: 'var(--yb-muted)', margin: 0, lineHeight: 1.5 }}>{consulta.triagem.motivo}</p>
+          <p style={{ fontSize: 12, color: 'var(--yb-muted)', margin: '0 0 6px', lineHeight: 1.55 }}>
+            {consulta.triagem.motivo}
+          </p>
           {consulta.valorLead ? <Campo k="CPL" v={`${consulta.valorLead.toFixed(2)} EUR`} /> : null}
           {consulta.recusaExpiraEm && (
             <Campo k="Recusa até" v={new Date(consulta.recusaExpiraEm).toLocaleString('pt-PT')} />
           )}
-        </div>
+          {consulta.triagem.confianca === 'baixa' && (
+            <p style={{ fontSize: 11, color: 'var(--yb-aviso)', margin: '7px 0 0', lineHeight: 1.55 }}>
+              Confiança baixa trava a distribuição automática. Confirme antes de entregar.
+            </p>
+          )}
+        </Painel>
       </div>
-
-      {p.observacoes && (
-        <p style={{ fontSize: 12, color: 'var(--yb-muted)', background: 'var(--yb-input)', padding: '8px 10px', borderRadius: 8, margin: '0 0 14px' }}>
-          {p.observacoes}
-        </p>
-      )}
 
       {consulta.route === 'lead_sale' && !consulta.consentimento
         && ['triada', 'qualificada', 'recusada'].includes(consulta.estado) && (
@@ -1211,44 +1283,6 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
 
   return (
     <>
-      <style>{`
-        .yb-p-linha {
-          display: grid;
-          grid-template-columns: minmax(180px,2.2fr) 96px minmax(120px,1.4fr) minmax(110px,1.2fr) 74px 46px 84px;
-          gap: 10px; align-items: center; width: 100%; box-sizing: border-box;
-          background: transparent; border: none; cursor: pointer;
-          padding: 9px 14px; text-align: left;
-          border-bottom: 1px solid var(--yb-border);
-        }
-        .yb-p-linha:hover { background: rgba(255,255,255,0.03); }
-        .yb-p-cab { font-size: 10px; text-transform: uppercase; letter-spacing: .06em;
-                    color: var(--yb-subtle); font-weight: 700; cursor: default; }
-        .yb-p-cab:hover { background: transparent; }
-        .yb-p-corpo { display: grid; grid-template-columns: 262px minmax(0,1fr); gap: 16px; align-items: start; }
-        /* Tres cartoes lado a lado quando ha espaco, dois quando ha menos, um no telemovel.
-           O de Resultados ocupa sempre a largura toda: sao seis numeros numa fila, e
-           partidos por coluna deixavam de se comparar. */
-        .yb-d-grelha { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; align-items: start; }
-        @media (max-width: 1180px) { .yb-d-grelha { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-        @media (max-width: 760px)  { .yb-d-grelha { grid-template-columns: minmax(0,1fr); } }
-        @media (max-width: 1100px) {
-          .yb-p-corpo { grid-template-columns: 1fr; }
-          /* Empilhado, o mapa passa a estar por cima da lista e a ocupar meio ecra antes
-             de se ver um parceiro. Limitado em altura encolhe na proporcao, continua a
-             dar a leitura de conjunto e continua clicavel. */
-          .yb-p-mapa svg { max-height: 300px; }
-          .yb-p-linha { grid-template-columns: minmax(150px,2fr) 90px 1fr 70px 84px; }
-          .yb-p-so-largo { display: none; }
-        }
-        @media (max-width: 640px) {
-          /* Tres colunas e nao duas: com duas, o saldo passava para a linha de baixo e
-             ficava debaixo do nome, onde se le como se fosse parte dele. */
-          .yb-p-linha { grid-template-columns: minmax(0,1fr) auto auto; gap: 8px; }
-          .yb-p-cab { display: none; }
-          .yb-p-so-medio { display: none; }
-        }
-      `}</style>
-
       {/* ── filtros ───────────────────────────────────────────────────────── */}
       <div style={{ ...CARD, padding: '12px 14px' }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
