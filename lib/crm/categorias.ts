@@ -200,11 +200,25 @@ const MATERIAL_CATEGORIA: { padrao: RegExp; categoria: CrmCategoria; motivo: str
   { padrao: /grande volume|fora de medidas/, categoria: 'fora_gabarito', motivo: 'declarado no formulário: fora de medidas' },
 ];
 
-/** Materiais que sugerem mas não confirmam. Baixam a confiança em vez de decidir. */
-const MATERIAL_INDICIO: { padrao: RegExp; categoria: CrmCategoria; motivo: string }[] = [
-  { padrao: /pereciveis \/ refrigerados|perecivel/, categoria: 'temperatura', motivo: 'produtos perecíveis: pode exigir frio' },
-  { padrao: /pecas automoveis/, categoria: 'viaturas', motivo: 'peças automóveis: confirmar se é a viatura ou só peças' },
-];
+/**
+ * Não há indícios por material, e é de propósito.
+ *
+ * Havia dois — "peças automóveis" puxava para `viaturas`, "perecíveis" para `temperatura`
+ * — e ambos tiravam a lead da operação própria. Estavam errados por duas razões.
+ *
+ * **Contradiziam uma escolha já feita.** O menu tem "Viatura (carro, mota, atrelado)" e
+ * "Carga refrigerada / congelada" como opções próprias. Quem escolhe "Peças automóveis"
+ * teve à frente a hipótese de dizer que era um veículo e escolheu a outra: uma caixa de
+ * travões é carga normal. Escolher da lista dos servíveis É a resposta.
+ *
+ * **E decidiam apesar de se chamarem fracas.** Sem candidato forte, a `triar()` escolhia
+ * o fraco e encaminhava por ele — uma regra fraca só era fraca em relação a uma forte.
+ *
+ * O sítio para dizer que um material pertence a uma categoria é a própria lista
+ * (`crm_materiais`, campo `categoria`), que é editável no dashboard e não precisa de
+ * ninguém a adivinhar por padrões de texto. A dúvida sobre uma lead vem agora de outro
+ * lado: de quantas perguntas ficaram por responder (ver respostasVagas).
+ */
 
 /**
  * Categoria a partir do material escolhido no formulário, se houver.
@@ -216,9 +230,6 @@ export function categoriaDoMaterial(material?: string): { categoria: CrmCategori
   if (!m) return null;
   for (const r of MATERIAL_CATEGORIA) {
     if (r.padrao.test(m)) return { categoria: r.categoria, forca: 'forte', motivo: r.motivo };
-  }
-  for (const r of MATERIAL_INDICIO) {
-    if (r.padrao.test(m)) return { categoria: r.categoria, forca: 'fraca', motivo: r.motivo };
   }
   return null;
 }
@@ -258,16 +269,71 @@ export interface ResultadoTriagem {
  * O `motivo` não é decorativo. A spec exige que nada mude de estado sem registo, e é
  * este texto que fica no `history` da consulta a explicar a classificação.
  */
+/**
+ * A partir de quantas respostas vagas se pede olho humano.
+ *
+ * Duas. Uma só não preocupa — muita gente não sabe quanto pesa um móvel e sabe
+ * perfeitamente o que é e para onde vai. Duas já quer dizer que o orçamento assenta em
+ * estimativas nossas e não no que o cliente disse.
+ */
+export const LIMIAR_VAGAS = 2;
+
+/**
+ * As perguntas a que a pessoa não soube responder.
+ *
+ * **O quiz manda sempre um número.** Escolher "Não sei" no peso grava a estimativa média,
+ * porque o motor de preço precisa de um valor para mostrar alguma coisa ao cliente. O que
+ * esta lista faz é guardar que aquilo foi estimativa nossa, e não resposta dele — antes
+ * chegavam cá indistinguíveis.
+ *
+ * "Outro" no material conta na mesma linha: não é um "não sei" escrito, mas diz-nos tão
+ * pouco como um. Sai daqui e não do quiz, para valer também nas leads que entram por
+ * telefone ou pelo bot, onde não há botão nenhum.
+ */
+export function respostasVagas(sinais: SinaisTriagem): string[] {
+  const vagas = new Set<string>();
+  for (const v of sinais.naoSei ?? []) {
+    const n = String(v ?? '').trim();
+    if (n) vagas.add(n);
+  }
+  if (normalizar(String(sinais.material ?? '')) === 'outro') vagas.add('material');
+  return [...vagas];
+}
+
+const ROTULO_VAGA: Record<string, string> = {
+  peso: 'o peso', dimensoes: 'as dimensões', volumes: 'o número de volumes',
+  material: 'o que vai dentro',
+};
+
+/**
+ * Marca a lead para revisão quando ficaram respostas por dar.
+ *
+ * **Não mexe na categoria nem na rota** — mexe só na confiança, que é o que trava a
+ * distribuição automática (lib/crm/consultas.ts). Uma lead de mudanças com peso e
+ * dimensões por saber continua a ser de mudanças; o que muda é que alguém lhe pega antes
+ * de a vender, porque vendê-la assim é vender uma estimativa nossa.
+ */
+function comRevisao(r: ResultadoTriagem, vagas: string[]): ResultadoTriagem {
+  if (vagas.length < LIMIAR_VAGAS) return r;
+  const nomes = vagas.map((v) => ROTULO_VAGA[v] ?? v).join(', ');
+  return {
+    ...r,
+    confianca: 'baixa',
+    motivo: `${r.motivo} · por confirmar: ${nomes}`,
+  };
+}
+
 export function triar(sinais: SinaisTriagem, limites: LimitesTabela = LIMITES_FALLBACK): ResultadoTriagem {
+  const vagas = respostasVagas(sinais);
   // Categoria declarada na lista de materiais: nao ha nada para decidir.
   if (sinais.categoriaDeclarada) {
-    return {
+    return comRevisao({
       categoria: sinais.categoriaDeclarada,
       route: rotaDaCategoria(sinais.categoriaDeclarada),
       motivo: `declarado no formulário: ${labelDaCategoria(sinais.categoriaDeclarada).toLowerCase()}`,
       confianca: 'alta',
       candidatas: [{ categoria: sinais.categoriaDeclarada, forca: 'forte', motivo: 'escolhido no formulário' }],
-    };
+    }, vagas);
   }
 
   const texto = normalizar([sinais.observacoes, sinais.texto].filter(Boolean).join(' '));
@@ -310,7 +376,7 @@ export function triar(sinais: SinaisTriagem, limites: LimitesTabela = LIMITES_FA
     const escolhida = maisEspecializada(fortes);
     const outras = new Set(fortes.map((c) => c.categoria));
     outras.delete(escolhida.categoria);
-    return {
+    return comRevisao({
       categoria: escolhida.categoria,
       route: rotaDaCategoria(escolhida.categoria),
       motivo: escolhida.motivo,
@@ -318,30 +384,30 @@ export function triar(sinais: SinaisTriagem, limites: LimitesTabela = LIMITES_FA
       // mudança com material perigoso não vai para o mesmo parceiro. Pede olho humano.
       confianca: outras.size > 0 ? 'baixa' : 'alta',
       candidatas,
-    };
+    }, vagas);
   }
 
   if (fracas.length) {
     const escolhida = maisEspecializada(fracas);
-    return {
+    return comRevisao({
       categoria: escolhida.categoria,
       route: rotaDaCategoria(escolhida.categoria),
       motivo: escolhida.motivo,
       confianca: 'media',
       candidatas,
-    };
+    }, vagas);
   }
 
   // Sem sinal: fica na operação própria. O 24h separa-se do expresso porque tem tabela
   // de parceiro logístico e o expresso tem motor de preço interno.
   const arrasto = /24/.test(String(sinais.urgencia ?? ''));
-  return {
+  return comRevisao({
     categoria: arrasto ? 'arrasto' : 'expresso',
     route: 'subcontract',
     motivo: arrasto ? 'sem sinal de categoria especial, urgência de 24h' : 'sem sinal de categoria especial',
     confianca: 'alta',
     candidatas,
-  };
+  }, vagas);
 }
 
 function maisEspecializada(cs: ResultadoTriagem['candidatas']): ResultadoTriagem['candidatas'][number] {

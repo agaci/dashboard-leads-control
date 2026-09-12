@@ -51,6 +51,7 @@ export async function triarLeadNova(db: Db, leadId: string, leadData: any): Prom
       weightKg: numero(leadData?.weightKg),
       nVolumes: numero(leadData?.volumes),
       observacoes: leadData?.observacoes,
+      naoSei: Array.isArray(leadData?.naoSei) ? leadData.naoSei.map(String) : undefined,
     }, limites);
 
     // Linha A: a operação própria trata dela como sempre.

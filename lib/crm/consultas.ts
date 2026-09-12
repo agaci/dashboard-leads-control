@@ -123,6 +123,10 @@ export async function consultaDeLead(db: Db, leadId: string, actor: string): Pro
     nVolumes: numeroOuNulo(conversa?.nVolumes) ?? parseNVolumesFromText(observacoes),
     totalCm: numeroOuNulo(conversa?.totalCm) ?? parseTotalCm(observacoes),
     observacoes: observacoes || undefined,
+    // Guardadas no pedido, e nao so usadas de passagem: a consulta e a fonte de verdade
+    // e volta a ser triada a partir daqui. Sem isto, a segunda triagem via uma lead mais
+    // certa do que a primeira, sem nada ter mudado.
+    naoSei: Array.isArray(d.naoSei) ? d.naoSei.map(String) : undefined,
   };
 
   return criarConsulta(db, {

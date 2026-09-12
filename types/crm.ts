@@ -183,6 +183,15 @@ export interface CrmConsultaPedido {
   viatura?: string;
   /** Tipo de material escolhido no formulário. Sinal estruturado para a triagem. */
   material?: string;
+  /**
+   * Perguntas do quiz a que a pessoa respondeu "não sei".
+   *
+   * O quiz continua a mandar um número — a estimativa que mostrou ao cliente, porque o
+   * motor de preço precisa de um — mas aqui fica dito que foi estimativa e não resposta.
+   * Sem isto os dois casos chegam iguais: "Não sei" no peso gravava 10 kg, exactamente o
+   * mesmo que alguém que escolheu "5 a 15 kg" a sério.
+   */
+  naoSei?: string[];
   weightKg?: number | null;
   nVolumes?: number | null;
   totalCm?: number | null;

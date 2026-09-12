@@ -8,7 +8,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
-import { triar, normalizar, LIMITES_FALLBACK } from './categorias.ts';
+import {
+  triar, normalizar, LIMITES_FALLBACK, respostasVagas, LIMIAR_VAGAS,
+} from './categorias.ts';
 
 test('sem sinal nenhum a lead fica na operação própria', () => {
   const r = triar({ origem: 'Lisboa', destino: 'Porto', urgencia: '1 Hora' });
@@ -101,4 +103,78 @@ test('o motivo explica sempre a decisão — é o que fica no histórico', () =>
 test('peso a zero ou ausente não conta como carga leve nem pesada', () => {
   assert.equal(triar({ weightKg: 0 }).route, 'subcontract');
   assert.equal(triar({ weightKg: null }).route, 'subcontract');
+});
+
+// ── escolher da lista dos serviveis e a resposta ─────────────────────────────
+
+test('pecas de automovel sao carga normal, nao transporte de viatura', () => {
+  // A regressao: uma regra de texto puxava "pecas automoveis" para `viaturas` e a lead
+  // saia da operacao propria — vendida a um parceiro de reboques. O menu tem "Viatura
+  // (carro, mota, atrelado)" como opcao a parte: quem escolhe pecas ja recusou essa.
+  const r = triar({ material: 'Pecas automoveis' });
+  assert.equal(r.categoria, 'expresso');
+  assert.equal(r.route, 'subcontract');
+  assert.equal(r.confianca, 'alta');
+});
+
+test('produtos pereciveis tambem ficam na operacao propria', () => {
+  const r = triar({ material: 'Produtos alimentares (pereciveis / refrigerados)' });
+  assert.equal(r.route, 'subcontract');
+  assert.equal(r.confianca, 'alta');
+});
+
+test('quem quer mesmo declarar a categoria tem a opcao no menu', () => {
+  // O que distingue os dois casos e a escolha da pessoa, nao um padrao de texto.
+  const r = triar({ material: 'Viatura (carro, mota, atrelado)' });
+  assert.equal(r.categoria, 'viaturas');
+  assert.equal(r.route, 'lead_sale');
+});
+
+// ── a duvida vem das respostas por dar ───────────────────────────────────────
+
+test('uma resposta vaga nao chega para pedir revisao', () => {
+  // Muita gente nao sabe quanto pesa um movel e sabe muito bem o que e e para onde vai.
+  const r = triar({ material: 'Eletrodomesticos', naoSei: ['peso'] });
+  assert.equal(r.confianca, 'alta');
+});
+
+test('duas respostas vagas mandam a lead a revisao', () => {
+  const r = triar({ material: 'Eletrodomesticos', naoSei: ['peso', 'dimensoes'] });
+  assert.equal(r.confianca, 'baixa');
+  assert.match(r.motivo, /por confirmar/);
+  assert.match(r.motivo, /o peso/);
+});
+
+test('a revisao nao mexe na categoria nem na rota', () => {
+  // So trava a distribuicao automatica. Uma mudanca continua a ser uma mudanca.
+  const certa = triar({ categoriaDeclarada: 'mudancas' });
+  const vaga = triar({ categoriaDeclarada: 'mudancas', naoSei: ['peso', 'dimensoes'] });
+  assert.equal(vaga.categoria, certa.categoria);
+  assert.equal(vaga.route, certa.route);
+  assert.equal(certa.confianca, 'alta');
+  assert.equal(vaga.confianca, 'baixa');
+});
+
+test('"Outro" no material conta como resposta vaga', () => {
+  // Nao e um "nao sei" escrito, mas diz-nos tao pouco como um.
+  assert.deepEqual(respostasVagas({ material: 'Outro' }), ['material']);
+  const r = triar({ material: 'Outro', naoSei: ['peso'] });
+  assert.equal(r.confianca, 'baixa');
+});
+
+test('as vagas nao se contam a dobrar', () => {
+  const v = respostasVagas({ material: 'Outro', naoSei: ['material', 'peso'] });
+  assert.equal(v.length, 2);
+});
+
+test('vazios e lixo nao contam como resposta vaga', () => {
+  assert.deepEqual(respostasVagas({ naoSei: ['', '  '] }), []);
+  assert.deepEqual(respostasVagas({}), []);
+});
+
+test('um sinal forte nao apaga o pedido de revisao', () => {
+  // Saber que e ADR nao diz quanto pesa: continua a valer a pena olhar antes de vender.
+  const r = triar({ material: 'Mercadorias perigosas (ADR)', naoSei: ['peso', 'dimensoes'] });
+  assert.equal(r.categoria, 'adr');
+  assert.equal(r.confianca, 'baixa');
 });

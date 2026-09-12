@@ -280,6 +280,11 @@ export async function POST(req: NextRequest) {
             // observacoes que nao foi a aplicacao que compos — e por isso a unica
             // que a triagem pode mesmo ler (lib/crm/categorias.ts).
             observacoes: d.observacoes ?? null,
+            // As perguntas a que a pessoa respondeu "nao sei". Os valores vao na mesma —
+            // sao a estimativa que o quiz lhe mostrou — e esta lista e o que permite
+            // distinguir a estimativa da resposta. Ver respostasVagas em
+            // lib/crm/categorias.ts.
+            naoSei: Array.isArray(d.naoSei) ? d.naoSei.map(String) : [],
             // Dimensoes e peso por volume: existiam na conversa mas nao passavam para a
             // lead, e faziam falta a quem trata dela.
             comprimento: d.comprimento ?? null, largura: d.largura ?? null, altura: d.altura ?? null,
