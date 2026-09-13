@@ -107,6 +107,19 @@ const RANGES: { key: Range; label: string }[] = [
   { key: 'tudo', label: 'Tudo' },
 ];
 
+/**
+ * Como se le cada intervalo a seguir ao numero.
+ *
+ * "6 visitas hoje", "754 visitas nos ultimos 7 dias". Escrito por extenso e nao com o
+ * rotulo do botao: "754 visitas Semana" nao e portugues.
+ */
+const SUFIXO_RANGE: Record<Range, string> = {
+  hoje: 'hoje',
+  ontem: 'ontem',
+  semana: 'nos últimos 7 dias',
+  tudo: 'ao todo',
+};
+
 function timeAgo(iso?: string): string {
   if (!iso) return '';
   const s = Math.max(0, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
@@ -216,11 +229,11 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
     [visits],
   );
   const [range, setRange] = useState<Range>('hoje');
-  const [todayCount, setTodayCount] = useState(0);
-  // Quantas das visitas de hoje chegaram a inbox e a lead. Vem do servidor no mesmo
-  // pedido, para nao haver duas contas do mesmo numero a poderem divergir.
-  const [todayInbox, setTodayInbox] = useState(0);
-  const [todayLeads, setTodayLeads] = useState(0);
+  // Os totais do intervalo escolhido. Vem do servidor no mesmo pedido, para nao haver
+  // duas contas do mesmo numero a poderem divergir — e sem tecto, ao contrario da lista.
+  const [totalVisitas, setTotalVisitas] = useState(0);
+  const [totalInbox, setTotalInbox] = useState(0);
+  const [totalLeads, setTotalLeads] = useState(0);
   const [loading, setLoading] = useState(true);
   const [tick, setTick] = useState(0); // refresca os "há X" periodicamente
   const cursorRef = useRef<string>(new Date().toISOString());
@@ -268,9 +281,9 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
       const data = await res.json();
       const rows: Visit[] = data.visits || [];
       setVisits(rows);
-      setTodayCount(data.todayCount ?? 0);
-      setTodayInbox(data.todayInbox ?? 0);
-      setTodayLeads(data.todayLeads ?? 0);
+      setTotalVisitas(data.totalVisitas ?? 0);
+      setTotalInbox(data.totalInbox ?? 0);
+      setTotalLeads(data.totalLeads ?? 0);
       seenIds.current = new Set(rows.map((v) => v.sessionId));
       // O cursor do "ao vivo" começa em agora — só anima quem chega DEPOIS de abrir.
       cursorRef.current = new Date().toISOString();
@@ -303,7 +316,9 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
             if (range === 'hoje' || range === 'tudo' || range === 'semana') {
               setVisits((prev) => [...novos.reverse(), ...prev]);
             }
-            setTodayCount((c) => c + novos.length);
+            // So conta se o intervalo escolhido inclui agora: com "Ontem" escolhido,
+            // uma visita que entra neste momento nao pertence ao que esta a ser contado.
+            if (range !== 'ontem') setTotalVisitas((c) => c + novos.length);
             pushPings(novos);
           }
         }
@@ -322,9 +337,9 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
         const data = await res.json();
         const rows: Visit[] = data.visits || [];
         setVisits(rows);
-        setTodayCount(data.todayCount ?? 0);
-      setTodayInbox(data.todayInbox ?? 0);
-      setTodayLeads(data.todayLeads ?? 0);
+        setTotalVisitas(data.totalVisitas ?? 0);
+      setTotalInbox(data.totalInbox ?? 0);
+      setTotalLeads(data.totalLeads ?? 0);
         seenIds.current = new Set(rows.map((v) => v.sessionId));
       } catch { /* silencioso */ }
     }, 15000);
@@ -366,19 +381,19 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
           </span>
         </div>
 
-        {/* Os tres numeros do dia, pela ordem do funil e com as cores dele — as mesmas
-            dos satelites das bolhas do mapa. Sao sempre de HOJE, mesmo quando a coluna
-            esta a mostrar ontem ou a semana; por isso o "hoje" fica a governar os tres. */}
-        <span style={{ fontSize: 12, color: MUTED, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}
-          title="Sempre do dia de hoje, mesmo com outro intervalo escolhido à direita.">
-          <strong style={{ color: NAVY, fontSize: 14 }}>{todayCount}</strong> visitas hoje
+        {/* Os tres numeros do intervalo escolhido, pela ordem do funil e com as cores
+            dele — as mesmas dos satelites das bolhas do mapa. Seguem os botoes da
+            direita: um topo que dissesse "hoje" com a semana escolhida era um numero
+            verdadeiro a contradizer outro numero verdadeiro. */}
+        <span style={{ fontSize: 12, color: MUTED, display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}>
+          <strong style={{ color: NAVY, fontSize: 14 }}>{totalVisitas}</strong> visitas {SUFIXO_RANGE[range]}
           <span style={{ color: '#cbd5e1' }}>·</span>
           {/* Zero fica apagado: um numero a verde le-se, de relance, como coisa que
               aconteceu — e a meio da manha um "0 leads" a verde engana. */}
-          <strong style={{ color: todayInbox ? CYAN : MUTED, fontSize: 14 }}>{todayInbox}</strong> na inbox
+          <strong style={{ color: totalInbox ? CYAN : MUTED, fontSize: 14 }}>{totalInbox}</strong> na inbox
           <span style={{ color: '#cbd5e1' }}>·</span>
-          <strong style={{ color: todayLeads ? '#22c55e' : MUTED, fontSize: 14 }}>{todayLeads}</strong>
-          {todayLeads === 1 ? ' lead' : ' leads'}
+          <strong style={{ color: totalLeads ? '#22c55e' : MUTED, fontSize: 14 }}>{totalLeads}</strong>
+          {totalLeads === 1 ? ' lead' : ' leads'}
         </span>
 
         <div style={{ flex: 1 }} />
@@ -442,7 +457,17 @@ export default function VisitasPage({ onOpenConv, onOpenLead }: { onOpenConv?: (
             fontSize: 12, fontWeight: 800, color: NAVY, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           }}>
             <span>Todas as visitas</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: SUBTLE }}>{visits.length}</span>
+            {/* Quando a lista bate no tecto do servidor, diz-se. Antes mostrava so o
+                numero de linhas carregadas — numa semana de 754 aparecia "400", e lia-se
+                como se fosse o total. */}
+            <span style={{ fontSize: 11, fontWeight: 700, color: SUBTLE }}
+              title={visits.length < totalVisitas
+                ? `Mostradas as ${visits.length} mais recentes de ${totalVisitas}.`
+                : undefined}>
+              {visits.length < totalVisitas
+                ? `${visits.length} de ${totalVisitas}`
+                : visits.length}
+            </span>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: 10 }}>

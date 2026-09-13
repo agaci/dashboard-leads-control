@@ -11,6 +11,15 @@ import { normalizeAttribution } from '@/lib/attribution';
 // (contorna o IP mascarado pelo Docker no servidor) e enviado no payload. IP guardado
 // ANONIMIZADO (ultimo octeto a zero). TTL de 90 dias na coleccao `visits`.
 
+/**
+ * Quantas visitas se mandam para o browser de uma vez.
+ *
+ * Os totais do topo contam tudo; isto e so o que a coluna e o mapa desenham. Subiu de 400
+ * para caber uma semana inteira — era o tecto antigo que fazia a coluna dizer "400" numa
+ * semana de 754, como se fosse o total.
+ */
+const LIMITE_LISTA = 1000;
+
 const CORS: Record<string, string> = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
@@ -110,24 +119,30 @@ function eLead(c: any): boolean {
 }
 
 /**
- * Quantas visitas houve hoje, e quantas delas chegaram a inbox e a lead.
+ * Quantas visitas houve no intervalo escolhido, e quantas delas chegaram a inbox e a lead.
+ *
+ * **Do intervalo, e nao sempre de hoje.** Comecou por ser so de hoje, e com a semana
+ * escolhida o topo dizia "6 visitas" enquanto a coluna mostrava centenas — dois numeros
+ * verdadeiros a dizerem coisas diferentes sao piores do que um numero so.
+ *
+ * **Sem tecto.** A lista tem limite de LIMITE_LISTA para nao mandar milhares de documentos
+ * para o browser; estes totais contam tudo. Era por isso que a coluna dizia "400" numa
+ * semana de 754: o numero que se via era o tecto, nao o total.
  *
  * Conta VISITAS e nao conversas: uma visita que abriu duas conversas continua a ser uma
  * que chegou a inbox. E a mesma contagem que o mapa faz nas bolhas, e tem de ser — sao o
  * mesmo numero visto de duas maneiras.
- *
- * Independente do intervalo escolhido na pagina: o topo diz sempre "hoje", mesmo quando a
- * coluna esta a mostrar ontem ou a semana.
  */
-async function totaisDeHoje(db: Awaited<ReturnType<typeof getDb>>) {
-  const inicio = lisbonStartOfTodayUtc();
+async function totais(db: Awaited<ReturnType<typeof getDb>>, query: Record<string, unknown>) {
   const visitas: any[] = await db.collection('visits')
-    .find({ firstSeen: { $gte: inicio } }, { projection: { sessionId: 1, _id: 0 } })
+    .find(query, { projection: { sessionId: 1, _id: 0 } })
     .toArray();
 
   const sids = visitas.map((v) => v.sessionId).filter(Boolean);
-  if (!sids.length) return { todayCount: 0, todayInbox: 0, todayLeads: 0 };
+  if (!sids.length) return { totalVisitas: 0, totalInbox: 0, totalLeads: 0 };
 
+  // Depende do indice esparso em conversations.visitSid (ver ensureIndexes). Sem ele isto
+  // varre a coleccao inteira: media segundo em "Tudo", a cada refrescamento.
   const convs: any[] = await db.collection('conversations')
     .find({ visitSid: { $in: sids } }, { projection: { visitSid: 1, step: 1, leadId: 1 } })
     .toArray();
@@ -140,7 +155,7 @@ async function totaisDeHoje(db: Awaited<ReturnType<typeof getDb>>) {
     if (eLead(c)) comLead.add(s);
   }
 
-  return { todayCount: sids.length, todayInbox: comInbox.size, todayLeads: comLead.size };
+  return { totalVisitas: sids.length, totalInbox: comInbox.size, totalLeads: comLead.size };
 }
 
 // Inicio do dia de HOJE em Lisboa, como instante UTC (independente do fuso do servidor).
@@ -161,6 +176,10 @@ async function ensureIndexes(db: Awaited<ReturnType<typeof getDb>>) {
     await db.collection('visits').createIndex({ createdAt: 1 }, { expireAfterSeconds: 90 * 24 * 3600 });
     await db.collection('visits').createIndex({ firstSeen: -1 });
     await db.collection('visits').createIndex({ sessionId: 1 }, { unique: true });
+    // A ligacao visita -> conversa. Esparso porque so as conversas novas o tem. Sem este
+    // indice, contar quantas visitas chegaram a inbox varre a coleccao das conversas
+    // inteira — quase um segundo em "Tudo", e a pagina refresca de 15 em 15 segundos.
+    await db.collection('conversations').createIndex({ visitSid: 1 }, { sparse: true });
     // Atribuição: esparso porque só uma minoria das visitas vem de campanha paga.
     await db.collection('visits').createIndex({ 'attribution.gclid': 1 }, { sparse: true });
   } catch { /* indices ja existem */ }
@@ -280,12 +299,12 @@ export async function GET(req: NextRequest) {
       query = { firstSeen: { $gte: lisbonStartOfTodayUtc() } };
     }
 
-    const [rows, hoje] = await Promise.all([
-      col.find(query, projection).sort({ firstSeen: -1 }).limit(400).toArray(),
-      totaisDeHoje(db),
+    const [rows, contas] = await Promise.all([
+      col.find(query, projection).sort({ firstSeen: -1 }).limit(LIMITE_LISTA).toArray(),
+      totais(db, query),
     ]);
 
-    return json({ visits: await withStages(db, rows.map(shapeVisit)), ...hoje });
+    return json({ visits: await withStages(db, rows.map(shapeVisit)), ...contas });
   } catch (err: any) {
     return json({ error: err.message }, 500);
   }
