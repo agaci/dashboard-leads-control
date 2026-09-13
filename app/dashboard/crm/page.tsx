@@ -1654,10 +1654,32 @@ function SelectorDimensao({ dimensao, viaturas, aoMudar }: {
   );
 }
 
+/**
+ * O que se pede nas notas de um parceiro.
+ *
+ * Escrito num sitio so porque aparece no formulario de criacao e no de edicao, e porque
+ * e este texto que decide a qualidade do que la vai parar: um campo chamado "Notas" sem
+ * mais nada recebe "ok" e "falar com o Joao"; com exemplos concretos recebe o que
+ * interessa.
+ *
+ * **Isto nao e um campo de recados.** E a unica parte da ficha onde cabe o que nao tem
+ * coluna — que viaturas tem mesmo, que rotas fazem todas as semanas, onde tem armazem,
+ * o que nao fazem. Hoje ja entra na procura por texto; e o que ha-de alimentar o
+ * cruzamento fino quando forem centenas de parceiros e a zona e a categoria deixarem de
+ * chegar para escolher.
+ */
+const AJUDA_NOTAS = 'O que não cabe nos campos acima: que viaturas têm, que rotas fazem '
+  + 'com frequência, onde têm armazém, horários, o que não fazem. Quanto mais concreto, '
+  + 'melhor se encontra este parceiro depois.';
+
+const EXEMPLO_NOTAS = 'ex.: duas carrinhas de 3,5t (uma com plataforma elevatória) e um '
+  + 'camião de 12t · fazem Lisboa–Porto quase todos os dias · armazém em Alverca · não '
+  + 'trabalham ao fim-de-semana · não fazem mudanças com piano';
+
 function FormNovoParceiro({ aoCriar, aoFechar, categorias }: {
   aoCriar: () => void; aoFechar: () => void; categorias: Categoria[];
 }) {
-  const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial' });
+  const [dados, setDados] = useState({ nome: '', contacto: '', telefone: '', email: '', nif: '', morada: '', estado: 'trial', notas: '' });
   const [zonas, setZonas] = useState<string[]>([]);
   const [porte, setPorte] = useState({ dimensao: '', viaturas: '' });
   const [cats, setCats] = useState<string[]>([]);
@@ -1734,6 +1756,19 @@ function FormNovoParceiro({ aoCriar, aoFechar, categorias }: {
           {cats.length
             ? `${cats.length} serviço(s), a cobrir as zonas da ficha. Os limites de peso e dimensão afinam-se depois, na ficha.`
             : 'Sem nenhum, o parceiro fica criado mas nunca aparece numa distribuição.'}
+        </p>
+      </div>
+
+      <div style={{ marginBottom: 12 }}>
+        <label style={LABEL}>Notas</label>
+        <textarea
+          style={{ ...INPUT, minHeight: 76, resize: 'vertical', lineHeight: 1.55 }}
+          placeholder={EXEMPLO_NOTAS}
+          value={dados.notas}
+          onChange={(e) => setDados({ ...dados, notas: e.target.value })}
+        />
+        <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0', lineHeight: 1.55 }}>
+          {AJUDA_NOTAS}
         </p>
       </div>
       {erro && <p style={{ fontSize: 12, color: 'var(--yb-error)', margin: '0 0 10px' }}>{erro}</p>}
@@ -1828,8 +1863,12 @@ function FormEditarParceiro({ parceiro, aoGravar }: { parceiro: Parceiro; aoGrav
 
       <div>
         <label style={LABEL}>Notas</label>
-        <textarea style={{ ...INPUT, minHeight: 52, resize: 'vertical' }} value={dados.notas}
+        <textarea style={{ ...INPUT, minHeight: 76, resize: 'vertical', lineHeight: 1.55 }}
+          placeholder={EXEMPLO_NOTAS} value={dados.notas}
           onChange={(e) => setDados({ ...dados, notas: e.target.value })} />
+        <p style={{ fontSize: 10, color: 'var(--yb-subtle)', margin: '5px 0 0', lineHeight: 1.55 }}>
+          {AJUDA_NOTAS}
+        </p>
       </div>
 
       {erro && <p style={{ fontSize: 11, color: 'var(--yb-error)', margin: 0 }}>{erro}</p>}
@@ -2173,7 +2212,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
                 <p style={{
                   fontSize: 12, lineHeight: 1.55, margin: 0, whiteSpace: 'pre-wrap',
                   color: parceiro.notas ? 'var(--yb-fg)' : 'var(--yb-subtle)',
-                }}>{parceiro.notas || 'Sem notas. Abra "editar" para escrever o que convém saber sobre esta empresa.'}</p>
+                }}>{parceiro.notas || 'Sem notas. Abra "editar" e escreva que viaturas têm, que rotas fazem e o que não fazem — é por aqui que este parceiro se encontra depois.'}</p>
               </div>
             </>
           )}

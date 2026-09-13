@@ -121,7 +121,10 @@ export function aplicarFiltros(itens: ParceiroListado[], f: Filtros): ParceiroLi
 
   return itens.filter(({ parceiro: p, capacidades }) => {
     if (q) {
-      const alvo = normalizar([p.nome, p.nif, p.contacto, p.email, p.morada].filter(Boolean).join(' '));
+      // As notas entram na procura. E o campo onde cabe o que nao tem coluna — "plataforma
+      // elevatoria", "armazem em Alverca", "faz Lisboa-Porto" — e sem isto so se podia
+      // procurar por nome e NIF, que e o que ja se sabe antes de procurar.
+      const alvo = normalizar([p.nome, p.nif, p.contacto, p.email, p.morada, p.notas].filter(Boolean).join(' '));
       if (!alvo.includes(q)) return false;
     }
     if (f.estados?.length && !f.estados.includes(p.estado)) return false;

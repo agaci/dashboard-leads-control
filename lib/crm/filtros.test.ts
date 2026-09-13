@@ -222,3 +222,27 @@ test('os escaloes estao ordenados do menor para o maior', () => {
     ['individual', 'micro', 'pequena', 'media', 'grande']);
   assert.deepEqual(DIMENSAO_IDS, DIMENSOES.map((d) => d.id));
 });
+
+// ── as notas na procura ──────────────────────────────────────────────────────
+
+test('a procura por texto olha para as notas', () => {
+  // E o campo onde cabe o que nao tem coluna. Sem isto so se podia procurar por nome e
+  // NIF — que e o que ja se sabe antes de procurar.
+  const itens = [
+    item({ nome: 'Silva', notas: 'duas carrinhas com plataforma elevatória, armazém em Alverca' }),
+    item({ nome: 'Costa', notas: 'só carga seca' }),
+  ];
+  assert.deepEqual(aplicarFiltros(itens, { q: 'plataforma' }).map((x) => x.parceiro.nome), ['Silva']);
+  assert.deepEqual(aplicarFiltros(itens, { q: 'alverca' }).map((x) => x.parceiro.nome), ['Silva']);
+});
+
+test('procurar nas notas ignora acentos, como no resto', () => {
+  const itens = [item({ nome: 'A', notas: 'faz Lisboa–Porto e Évora' })];
+  assert.equal(aplicarFiltros(itens, { q: 'evora' }).length, 1);
+});
+
+test('um parceiro sem notas nao rebenta a procura', () => {
+  const itens = [item({ nome: 'Sem notas' })];
+  assert.equal(aplicarFiltros(itens, { q: 'sem' }).length, 1);
+  assert.equal(aplicarFiltros(itens, { q: 'plataforma' }).length, 0);
+});
