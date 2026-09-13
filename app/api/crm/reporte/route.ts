@@ -52,6 +52,21 @@ export async function GET(request: NextRequest) {
     const db = await getDb();
     const resultado = await gravar(db, consultaId, partnerId, tipo, searchParams.get('v'), `parceiro:${partnerId}`);
     if (!resultado.ok) return paginaHtml('Não foi possível registar', escapar(resultado.erro ?? ''), false);
+
+    // Segundo clique: diz-se o que ficou, e por onde se corrige. Responder "fica
+    // registado" a quem acabou de escolher outra coisa era mandá-lo embora convencido de
+    // que tinha corrigido.
+    if (resultado.repetido) {
+      const antes = ROTULOS[resultado.anterior ?? ''] ?? resultado.anterior ?? '';
+      return paginaHtml(
+        'Já tínhamos o seu reporte',
+        // O rotulo tal como estava no botao que ele carregou da primeira vez: e assim que
+        // ele reconhece o que escolheu, em vez de ter de traduzir um termo nosso.
+        (antes ? `O que ficou registado foi: <strong>${escapar(String(antes))}</strong>. ` : '')
+        + 'É esse que vale. Se foi engano, responda ao email que recebeu e corrigimos à mão.',
+      );
+    }
+
     return paginaHtml('Obrigado pelo reporte', 'Fica registado. É isto que mantém as leads a chegar.');
   } catch (err: any) {
     return paginaHtml('Não foi possível registar', escapar(err.message ?? 'erro'), false);
@@ -67,12 +82,26 @@ export async function POST(request: NextRequest) {
     const db = await getDb();
     const r = await gravar(db, String(body.consultaId ?? ''), String(body.partnerId ?? ''), String(body.tipo ?? ''), body.valorServico, operador.nome);
     if (!r.ok) return Response.json({ error: r.erro }, { status: 400 });
-    return Response.json({ success: true });
+    // `repetido` vai na resposta: a operadora tem de saber que o reporte que ja la estava
+    // se manteve, em vez de julgar que acabou de o mudar.
+    return Response.json({ success: true, repetido: !!r.repetido, anterior: r.anterior });
   } catch (err: any) {
     return Response.json({ error: err.message }, { status: 500 });
   }
 }
 
+/**
+ * Grava o reporte, se ainda não houver um.
+ *
+ * **Um reporte não se troca.** A chave única em `crm_outcomes` garante-o desde sempre: o
+ * segundo clique bate no índice e nada muda. O que faltava era dizê-lo — a página
+ * respondia "fica registado" na mesma, e quem tivesse clicado na opção errada ia-se
+ * embora convencido de que a tinha corrigido.
+ *
+ * Fica imutável de propósito. O reporte alimenta o score e é a base de qualquer crédito;
+ * deixá-lo trocar livremente era convidar a reportar "não fechei" para pedir estorno. O
+ * caminho para um engano honesto é uma pessoa, e é isso que a página passa a dizer.
+ */
 async function gravar(
   db: any,
   consultaId: string,
@@ -80,7 +109,7 @@ async function gravar(
   tipo: string,
   valorBruto: unknown,
   actor: string,
-): Promise<{ ok: boolean; erro?: string }> {
+): Promise<{ ok: boolean; erro?: string; repetido?: boolean; anterior?: string }> {
   if (!(TIPOS as readonly string[]).includes(tipo)) return { ok: false, erro: 'tipo de reporte inválido' };
 
   const consulta = await lerConsulta(db, consultaId);
@@ -89,7 +118,7 @@ async function gravar(
   const dispatch = await envioDaConsulta(db, consultaId, partnerId);
   if (!dispatch) return { ok: false, erro: 'este parceiro não recebeu esta lead' };
 
-  await registarOutcome(db, {
+  const r = await registarOutcome(db, {
     consultaId,
     partnerId,
     fonte: 'parceiro',
@@ -98,6 +127,13 @@ async function gravar(
     motivo: `reporte do parceiro: ${tipo}`,
     chaveUnica: `${consultaId}:${partnerId}:reporte`,
   });
+
+  // Já havia reporte: não se mexe em mais nada. Marcar o envio outra vez ou recalcular o
+  // score não mudaria resultado nenhum, e escreveria histórico por um clique que não
+  // alterou nada.
+  if (r.repetido) {
+    return { ok: true, repetido: true, anterior: String(r.outcome?.tipo ?? '') };
+  }
 
   // Um reporte é a primeira acção do parceiro sobre o envio, e alimenta a métrica de
   // responsividade. Falhar a transição não é motivo para perder o reporte.
@@ -109,7 +145,7 @@ async function gravar(
   }
 
   await actualizarScore(db, partnerId).catch(() => {});
-  return { ok: true };
+  return { ok: true, repetido: false };
 }
 
 function numero(v: unknown): number | null {
