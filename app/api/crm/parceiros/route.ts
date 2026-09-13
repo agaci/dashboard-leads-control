@@ -8,7 +8,7 @@ import { limparZona } from '@/lib/crm/zonas';
 import { ESTADOS_PARCEIRO } from '@/lib/crm/angariacao';
 import { listarParceiros } from '@/lib/crm/listaParceiros';
 import { limparDimensao, limparViaturas, ORDENS, type Ordem } from '@/lib/crm/filtros';
-import { CATEGORIAS_ORDENADAS } from '@/lib/crm/categorias';
+import { CATEGORIAS_DECLARAVEIS } from '@/lib/crm/categorias';
 import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 
 /**
@@ -26,8 +26,8 @@ import { operadorDaSessao, semSessao } from '@/lib/crm/sessao';
 const ESTADOS: readonly string[] = ESTADOS_PARCEIRO;
 const CANAIS = ['whatsapp', 'email', 'sms', 'push'];
 
-/** As categorias que se vendem como leads. A Linha A nao se declara num parceiro. */
-const CATEGORIAS_VENDA = CATEGORIAS_ORDENADAS.filter((c) => c.route === 'lead_sale').map((c) => c.id);
+/** O que um parceiro pode declarar que faz. Ver `declaravel` em lib/crm/categorias.ts. */
+const CATEGORIAS_VENDA: readonly string[] = CATEGORIAS_DECLARAVEIS.map((c) => c.id);
 
 /**
  * Lista de parceiros, com filtros, ordenação, paginação e a contagem para o mapa.

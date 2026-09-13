@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  triar, normalizar, LIMITES_FALLBACK, respostasVagas, LIMIAR_VAGAS,
+  triar, normalizar, LIMITES_FALLBACK, respostasVagas, LIMIAR_VAGAS, CATEGORIAS, CATEGORIAS_DECLARAVEIS,
 } from './categorias.ts';
 
 test('sem sinal nenhum a lead fica na operação própria', () => {
@@ -177,4 +177,62 @@ test('um sinal forte nao apaga o pedido de revisao', () => {
   const r = triar({ material: 'Mercadorias perigosas (ADR)', naoSei: ['peso', 'dimensoes'] });
   assert.equal(r.categoria, 'adr');
   assert.equal(r.confianca, 'baixa');
+});
+
+// ── transporte corrente ──────────────────────────────────────────────────────
+
+test('o parceiro pode declarar transporte corrente', () => {
+  // Uma empresa que so faca transporte normal nao tinha nada para marcar no formulario,
+  // e a ficha dela ficava vazia.
+  const ids = CATEGORIAS_DECLARAVEIS.map((c) => c.id);
+  for (const c of ['encomendas', 'paletes', 'distribuicao']) {
+    assert.ok(ids.includes(c as any), `falta ${c}`);
+  }
+});
+
+test('as seis especiais continuam declaraveis', () => {
+  const ids = CATEGORIAS_DECLARAVEIS.map((c) => c.id);
+  for (const c of ['adr', 'temperatura', 'viaturas', 'mudancas', 'fora_gabarito', 'sobrepeso']) {
+    assert.ok(ids.includes(c as any), `falta ${c}`);
+  }
+});
+
+test('arrasto e expresso nao se declaram', () => {
+  // Sao nomes internos de encaminhamento. Perguntar "faz arrasto 24h?" a quem esta de
+  // fora so confunde.
+  const ids = CATEGORIAS_DECLARAVEIS.map((c) => c.id);
+  assert.ok(!ids.includes('arrasto' as any));
+  assert.ok(!ids.includes('expresso' as any));
+});
+
+test('o transporte corrente subcontrata-se, nao se vende', () => {
+  // Sao servicos que a YourBox faz e quer continuar a fazer: quando nao consegue, o que
+  // se quer e subcontratar e ficar com o cliente, nao vender a lead e perde-lo.
+  for (const c of ['encomendas', 'paletes', 'distribuicao'] as const) {
+    assert.equal(CATEGORIAS[c].route, 'subcontract', c);
+  }
+});
+
+test('a triagem nunca cai sozinha no transporte corrente', () => {
+  // Nao ha regras para elas de proposito: hoje servem para o parceiro dizer o que faz, e
+  // para a operadora reclassificar a mao. Se a triagem comecasse a escolhe-las, leads
+  // normais saiam da operacao propria sem ninguem ter decidido isso.
+  const textos = [
+    'preciso de enviar uma encomenda', 'duas paletes para o Porto',
+    'distribuicao por varias lojas', 'entrega de paquetaria',
+  ];
+  for (const texto of textos) {
+    const r = triar({ observacoes: texto });
+    assert.ok(!['encomendas', 'paletes', 'distribuicao'].includes(r.categoria), `"${texto}" caiu em ${r.categoria}`);
+  }
+});
+
+test('o transporte corrente e menos especializado do que as especiais', () => {
+  // Uma palete de ADR e ADR. Se a ordem se invertesse, passava a ser uma palete.
+  for (const corrente of ['encomendas', 'paletes', 'distribuicao'] as const) {
+    for (const especial of ['adr', 'temperatura', 'viaturas', 'mudancas'] as const) {
+      assert.ok(CATEGORIAS[corrente].ordem > CATEGORIAS[especial].ordem,
+        `${corrente} devia ser menos especializada do que ${especial}`);
+    }
+  }
 });

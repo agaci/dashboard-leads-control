@@ -21,6 +21,18 @@ export interface CategoriaMeta {
   /** Ordem de especialização. Menor decide primeiro quando há empate. */
   ordem: number;
   descricao: string;
+  /**
+   * Uma empresa de transportes reconhece-se nisto e pode dizer "sim, fazemos".
+   *
+   * Separado da rota de propósito, porque as duas coisas andavam coladas por acaso.
+   * `arrasto` e `expresso` são nomes internos de encaminhamento — ninguém de fora sabe
+   * o que são, e perguntá-lo num formulário público só confundia. Já "carga paletizada"
+   * é uma frase que um gerente de transportes diz todos os dias.
+   *
+   * É isto que decide o que aparece no formulário de registo e nas fichas, e não o
+   * facto de a categoria se vender ou se subcontratar.
+   */
+  declaravel?: boolean;
 }
 
 export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
@@ -30,6 +42,7 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 1,
     descricao: 'Mercadorias perigosas, explosivos, material radioactivo. Poucos players, exige certificação.',
+    declaravel: true,
   },
   temperatura: {
     id: 'temperatura',
@@ -37,6 +50,7 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 2,
     descricao: 'Cadeia de frio, refrigerado, congelado, farmacêutico a 2-8 graus.',
+    declaravel: true,
   },
   viaturas: {
     id: 'viaturas',
@@ -44,6 +58,7 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 3,
     descricao: 'Automóveis, motos, reboques, embarcações. Mercado competitivo.',
+    declaravel: true,
   },
   mudancas: {
     id: 'mudancas',
@@ -51,6 +66,7 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 4,
     descricao: 'Mudanças de casa ou escritório, recheios, guarda-móveis.',
+    declaravel: true,
   },
   fora_gabarito: {
     id: 'fora_gabarito',
@@ -58,6 +74,7 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 5,
     descricao: 'Dimensões acima do que a tabela dos parceiros logísticos cobre.',
+    declaravel: true,
   },
   sobrepeso: {
     id: 'sobrepeso',
@@ -65,7 +82,44 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
     route: 'lead_sale',
     ordem: 6,
     descricao: 'Peso acima da capacidade própria e dos parceiros de tabela.',
+    declaravel: true,
   },
+  // ── Transporte corrente ────────────────────────────────────────────────────
+  //
+  // Rota `subcontract` e nao `lead_sale`: sao servicos que a YourBox faz e quer
+  // continuar a fazer. Quando nao consegue — falta de viatura, de pessoal, de dia — o
+  // que se quer e subcontratar e ficar com o cliente, nao vender a lead e perde-lo.
+  //
+  // A triagem nunca chega a estas categorias sozinha (nao ha regras para elas): hoje
+  // servem para o parceiro dizer o que faz, e para a operadora reclassificar um pedido
+  // a mao quando precisar de o passar a alguem.
+  //
+  // Ordem acima das seis especiais: sao menos especializadas. Uma palete de ADR e ADR.
+  encomendas: {
+    id: 'encomendas',
+    label: 'Encomendas e paquetaria',
+    route: 'subcontract',
+    ordem: 20,
+    descricao: 'Volumes soltos, documentos, ponto a ponto. O transporte do dia-a-dia.',
+    declaravel: true,
+  },
+  paletes: {
+    id: 'paletes',
+    label: 'Carga paletizada',
+    route: 'subcontract',
+    ordem: 21,
+    descricao: 'Paletes e grupagem, com ou sem empilhador ao carregar.',
+    declaravel: true,
+  },
+  distribuicao: {
+    id: 'distribuicao',
+    label: 'Distribuição e rotas',
+    route: 'subcontract',
+    ordem: 22,
+    descricao: 'Várias entregas na mesma volta: lojas, clínicas, obras, oficinas.',
+    declaravel: true,
+  },
+
   arrasto: {
     id: 'arrasto',
     label: 'Arrasto 24h',
@@ -84,6 +138,15 @@ export const CATEGORIAS: Record<CrmCategoria, CategoriaMeta> = {
 
 export const CATEGORIAS_ORDENADAS: CategoriaMeta[] =
   Object.values(CATEGORIAS).sort((a, b) => a.ordem - b.ordem);
+
+/**
+ * O que um parceiro pode declarar que faz.
+ *
+ * Inclui as seis especiais e o transporte corrente. Nao inclui `arrasto` nem `expresso`,
+ * que sao nomes internos de encaminhamento e nao servicos que alguem reconheca.
+ */
+export const CATEGORIAS_DECLARAVEIS: CategoriaMeta[] =
+  CATEGORIAS_ORDENADAS.filter((c) => c.declaravel);
 
 /** As que a spec §3 manda sempre para a venda de lead. */
 export const CATEGORIAS_LEAD_SALE: CrmCategoria[] =

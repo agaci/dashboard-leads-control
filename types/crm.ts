@@ -25,7 +25,13 @@ export type CrmCategoria =
   | 'adr'             // B — mercadorias perigosas, radioactivo
   | 'temperatura'     // B — cadeia de frio, temperatura controlada
   | 'fora_gabarito'   // B — dimensões acima do que a tabela cobre
-  | 'sobrepeso';      // B — peso acima da capacidade própria e dos parceiros de tabela
+  | 'sobrepeso'       // B — peso acima da capacidade própria e dos parceiros de tabela
+  // Transporte corrente. A YourBox faz isto todos os dias; estas categorias existem
+  // para um parceiro poder dizer que também o faz, e para se lhe poder passar um
+  // serviço que a operação não consiga cobrir — falta de viatura, de pessoal, de dia.
+  | 'encomendas'      // A — encomendas e paquetaria, ponto a ponto
+  | 'paletes'         // A — carga paletizada e grupagem
+  | 'distribuicao';   // A — rotas com várias entregas
 
 /** Confiança da triagem. 'baixa' pede olho humano antes de distribuir. */
 export type CrmConfianca = 'alta' | 'media' | 'baixa';

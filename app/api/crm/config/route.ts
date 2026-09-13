@@ -29,6 +29,9 @@ export async function GET() {
       limites,
       categorias: CATEGORIAS_ORDENADAS.map((c) => ({
         id: c.id, label: c.label, route: c.route, descricao: c.descricao,
+        // O que o parceiro pode declarar. Os formularios filtram por isto e nao pela
+        // rota: sao perguntas diferentes, e andavam coladas por acaso.
+        declaravel: !!c.declaravel,
       })),
     });
   } catch (err: any) {

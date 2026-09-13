@@ -27,7 +27,7 @@ import Prospecto from './Prospecto';
 
 // ── Tipos do lado do cliente ─────────────────────────────────────────────────
 
-type Categoria = { id: string; label: string; route: string; descricao: string };
+type Categoria = { id: string; label: string; route: string; descricao: string; declaravel?: boolean };
 
 type Consulta = {
   _id: string;
@@ -1279,7 +1279,9 @@ function Parceiros({ categorias }: { categorias: Categoria[] }) {
   }
 
   const paginas = Math.max(1, Math.ceil(total / POR_PAGINA));
-  const catsVenda = categorias.filter((c) => c.route === 'lead_sale');
+  // O que o parceiro pode declarar, e nao o que se vende como lead: passaram a ser
+  // perguntas diferentes desde que ha categorias de transporte corrente.
+  const catsVenda = categorias.filter((c) => c.declaravel);
 
   return (
     <>
@@ -1737,7 +1739,7 @@ function FormNovoParceiro({ aoCriar, aoFechar, categorias }: {
       <div style={{ marginBottom: 12 }}>
         <label style={LABEL}>Que serviços faz</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 6 }}>
-          {categorias.filter((c) => c.route === 'lead_sale').map((c) => {
+          {categorias.filter((c) => c.declaravel).map((c) => {
             const on = cats.includes(c.id);
             return (
               <button type="button" key={c.id} title={c.descricao}
@@ -2249,7 +2251,7 @@ function DetalheParceiro({ parceiro, categorias, aoMudar }: { parceiro: Parceiro
           <div style={{ marginTop: 10, display: 'grid', gap: 6 }}>
             <select style={INPUT} value={novaCap.categoria} onChange={(e) => setNovaCap({ ...novaCap, categoria: e.target.value })}>
               <option value="">acrescentar categoria...</option>
-              {categorias.filter((c) => c.route === 'lead_sale').map((c) => (
+              {categorias.filter((c) => c.declaravel).map((c) => (
                 <option key={c.id} value={c.id}>{c.label}</option>
               ))}
             </select>
@@ -2561,7 +2563,7 @@ function Configuracao({
           Uma categoria a zero não é distribuída.
         </p>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10 }}>
-          {categorias.filter((c) => c.route === 'lead_sale').map((c) => (
+          {categorias.filter((c) => c.declaravel).map((c) => (
             <Numero key={c.id} label={c.label} valor={local.cpl[c.id] ?? 0} passo={0.5}
               aoMudar={(v) => setLocal({ ...local, cpl: { ...local.cpl, [c.id]: v } })} />
           ))}

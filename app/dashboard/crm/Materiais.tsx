@@ -65,6 +65,8 @@ export default function Materiais({ categorias }: { categorias: Categoria[] }) {
 
   // Só as da Linha B: um material nunca é "expresso" nem "arrasto" — isso sai da
   // urgência, não do que vai dentro da caixa.
+  // Aqui a rota e mesmo o criterio: esta lista diz que material manda uma lead para
+  // fora do ambito, e o transporte corrente nao manda.
   const naoServidas = categorias.filter((c) => c.route === 'lead_sale');
 
   const carregar = useCallback(async () => {

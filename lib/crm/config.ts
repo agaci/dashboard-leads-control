@@ -21,6 +21,11 @@ export const CONFIG_DEFAULT: CrmConfig = {
     mudancas:      22,   // €15-30
     temperatura:   60,   // frio/ADR/especiais: €40-100+
     adr:           60,
+    // Transporte corrente: mercado largo e concorrido, vale menos por lead. Nao esta na
+    // grelha da spec §5.2 porque na altura nao se passavam estes servicos a ninguem.
+    encomendas:     8,
+    paletes:       12,
+    distribuicao:  12,
   },
   // A spec defende a lead exclusiva: "lead exclusiva vale 3 a 5x uma lead partilhada".
   maxParceirosPorLead: 1,

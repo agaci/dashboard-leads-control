@@ -1,7 +1,7 @@
 import type { Db } from 'mongodb';
 import { ObjectId } from 'mongodb';
 import type { CrmContacto, CrmPartner } from '@/types/crm';
-import { CATEGORIAS_ORDENADAS } from './categorias';
+import { CATEGORIAS_DECLARAVEIS } from './categorias';
 import { DISTRITOS, limparZona } from './zonas';
 import { DIMENSOES, limparDimensao, limparViaturas } from './filtros';
 import { mudarEstadoParceiro, registarInteraccao } from './prospectos';
@@ -46,11 +46,20 @@ export interface ResultadoRegisto {
   capacidades?: number;
 }
 
-/** As categorias que se oferecem: só as da venda de leads. A Linha A não se declara aqui. */
+/**
+ * As categorias que se oferecem.
+ *
+ * Passou a incluir o transporte corrente — encomendas, paletes, distribuição — e não só
+ * os serviços que a YourBox não faz. Uma empresa que só faça transporte normal não tinha
+ * aqui nada para marcar, e a ficha dela ficava vazia; e no dia em que a operação não
+ * consegue cobrir um serviço destes, por falta de viatura ou de pessoal, não havia onde
+ * ir ver quem o faz.
+ *
+ * O que fica de fora é `arrasto` e `expresso`: são nomes internos de encaminhamento, e
+ * perguntá-los a quem está de fora só confunde. Ver `declaravel` em lib/crm/categorias.ts.
+ */
 export function categoriasOferecidas(): { id: string; label: string; descricao: string }[] {
-  return CATEGORIAS_ORDENADAS
-    .filter((c) => c.route === 'lead_sale')
-    .map((c) => ({ id: c.id, label: c.label, descricao: c.descricao }));
+  return CATEGORIAS_DECLARAVEIS.map((c) => ({ id: c.id, label: c.label, descricao: c.descricao }));
 }
 
 export function zonasOferecidas(): readonly string[] {

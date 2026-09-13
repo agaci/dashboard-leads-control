@@ -109,7 +109,7 @@ ${erro ? `<p style="background:#fdf2f2;border:1px solid #f5c6c6;color:#a33;borde
   </div>
 
   <p style="font-size:12px;color:${COR.suave};text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;padding-top:14px;border-top:1px solid ${COR.linha}">Que serviços fazem</p>
-  <p style="${NOTA};margin:0 0 10px">Escolham todos os que fazem. Cada um tem um tipo de pedido diferente.</p>
+  <p style="${NOTA};margin:0 0 10px">Escolham todos os que fazem, incluindo o transporte do dia-a-dia &mdash; não é preciso ser especialista para nos interessar. Cada opção corresponde a um tipo de pedido diferente.</p>
   ${servicos}
 
   <p style="font-size:12px;color:${COR.suave};text-transform:uppercase;letter-spacing:.5px;margin:22px 0 10px;padding-top:14px;border-top:1px solid ${COR.linha}">Que zonas cobrem</p>
