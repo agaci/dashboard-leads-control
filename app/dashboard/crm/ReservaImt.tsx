@@ -20,6 +20,17 @@ import { DISTRITOS, nomeZona } from '@/lib/crm/zonas';
  * receber uma lead, e criá-lo era só adiar a descoberta.
  */
 
+type EmailAchado = { endereco: string; tipo: 'geral' | 'pessoal'; doDominio: boolean };
+
+type Contactos = {
+  telefone: string | null;
+  site: string | null;
+  nomeNoGoogle: string | null;
+  moradaNoGoogle: string | null;
+  emails: EmailAchado[];
+  notas: string[];
+};
+
 type Linha = {
   _id: string;
   alvara: string;
@@ -255,7 +266,39 @@ function Promover({ linha, aoPromover, aoFechar }: {
   const [erro, setErro] = useState('');
   const [aGravar, setAGravar] = useState(false);
 
+  const [site, setSite] = useState('');
+  const [achado, setAchado] = useState<Contactos | null>(null);
+  const [aProcurar, setAProcurar] = useState(false);
+
   const procurar = `https://www.google.com/search?q=${encodeURIComponent(`${linha.nome} ${linha.localidade} contacto`)}`;
+
+  /**
+   * Procura e PREENCHE, sem gravar.
+   *
+   * O que vem preenchido pode estar errado — o Google acerta na empresa errada quando os
+   * nomes se parecem. Por isso a resposta mostra tambem o nome e a morada como o Google
+   * os conhece: e o que permite ver, num relance, se e mesmo esta empresa.
+   */
+  async function procurarContactos(forcar = false) {
+    setErro('');
+    setAProcurar(true);
+    const r = await fetch('/api/crm/imt/contactos', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ alvara: linha.alvara, site: site.trim() || undefined, forcar }),
+    }).then((x) => x.json()).catch(() => null);
+    setAProcurar(false);
+
+    if (!r?.success) { setErro(r?.error ?? 'não foi possível procurar'); return; }
+    const c: Contactos = r.contactos;
+    setAchado(c);
+    if (c.site && !site) setSite(c.site);
+    // So preenche o que ainda esta vazio: o que a operadora ja escreveu manda.
+    setDados((d) => ({
+      ...d,
+      telefone: d.telefone || c.telefone || '',
+      email: d.email || c.emails[0]?.endereco || '',
+    }));
+  }
 
   async function gravar() {
     setErro('');
@@ -276,10 +319,75 @@ function Promover({ linha, aoPromover, aoFechar }: {
     }}>
       <p style={{ fontSize: 11.5, color: 'var(--yb-muted)', margin: '0 0 11px', lineHeight: 1.6 }}>
         A ficha fica com o nome, a morada, o alvará e o distrito da sede. Falta por onde
-        lhes falar &mdash; é a única coisa que esta lista não tem.{' '}
-        <a href={procurar} target="_blank" rel="noreferrer"
-          style={{ color: 'var(--yb-cyan)', fontWeight: 600 }}>procurar no Google</a>
+        lhes falar &mdash; é a única coisa que esta lista não tem.
       </p>
+
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 11 }}>
+        <div style={{ flex: '1 1 240px' }}>
+          <label style={{ fontSize: 11, color: 'var(--yb-muted)', display: 'block', marginBottom: 3 }}>
+            Site (se já souber, poupa uma consulta paga)
+          </label>
+          <input style={INPUT} value={site} placeholder="empresa.pt"
+            onChange={(e) => setSite(e.target.value)} />
+        </div>
+        <button type="button" onClick={() => procurarContactos(false)} disabled={aProcurar}
+          style={{ ...botao(true), opacity: aProcurar ? 0.5 : 1 }}>
+          {aProcurar ? 'a procurar...' : 'Procurar contactos'}
+        </button>
+        <a href={procurar} target="_blank" rel="noreferrer" style={{
+          fontSize: 11, color: 'var(--yb-cyan)', fontWeight: 600, padding: '8px 0',
+        }}>procurar no Google à mão</a>
+      </div>
+
+      {achado && (
+        <div style={{
+          marginBottom: 11, padding: '10px 12px', background: 'var(--yb-input)',
+          border: '1px solid var(--yb-border)', borderRadius: 9,
+        }}>
+          {/* O nome e a morada como o Google os conhece: e o que permite ver, num
+              relance, se ele acertou na empresa certa. Sem isto, um telefone errado
+              entrava na ficha sem ninguem desconfiar. */}
+          {achado.nomeNoGoogle && (
+            <p style={{ fontSize: 11.5, color: 'var(--yb-fg)', margin: '0 0 6px', lineHeight: 1.5 }}>
+              O Google diz: <strong>{achado.nomeNoGoogle}</strong>
+              {achado.moradaNoGoogle && (
+                <span style={{ color: 'var(--yb-muted)' }}> &mdash; {achado.moradaNoGoogle}</span>
+              )}
+              <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-subtle)' }}>
+                Confirme que é mesmo esta empresa antes de criar a ficha.
+              </span>
+            </p>
+          )}
+
+          {achado.emails.length > 1 && (
+            <p style={{ fontSize: 11, color: 'var(--yb-muted)', margin: '0 0 5px', lineHeight: 1.6 }}>
+              Outros endereços no site:{' '}
+              {achado.emails.slice(1, 5).map((e) => (
+                <button type="button" key={e.endereco}
+                  onClick={() => setDados((d) => ({ ...d, email: e.endereco }))}
+                  title={e.tipo === 'pessoal'
+                    ? 'É o endereço de uma pessoa — dado pessoal. Prefira a caixa da empresa.'
+                    : 'Caixa da empresa.'}
+                  style={{
+                    background: 'none', border: 'none', padding: '0 6px 0 0', cursor: 'pointer',
+                    fontSize: 11, color: e.tipo === 'pessoal' ? 'var(--yb-aviso)' : 'var(--yb-cyan)',
+                  }}>{e.endereco}{e.tipo === 'pessoal' ? ' (pessoal)' : ''}</button>
+              ))}
+            </p>
+          )}
+
+          {achado.notas.map((n, i) => (
+            <p key={i} style={{ fontSize: 11, color: 'var(--yb-subtle)', margin: '0 0 3px', lineHeight: 1.5 }}>
+              {n}
+            </p>
+          ))}
+
+          <button type="button" onClick={() => procurarContactos(true)} style={{
+            background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            fontSize: 10.5, color: 'var(--yb-cyan)', fontWeight: 600, marginTop: 4,
+          }}>procurar outra vez</button>
+        </div>
+      )}
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(170px,1fr))', gap: 10, marginBottom: 11 }}>
         {([
