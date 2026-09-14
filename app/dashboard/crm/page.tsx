@@ -10,6 +10,7 @@ import Materiais from './Materiais';
 import Procura from './Procura';
 import Emails from './Emails';
 import Prospecto from './Prospecto';
+import ReservaImt from './ReservaImt';
 
 /**
  * CRM de Parceiros — painel da operadora (spec §12, fase 1).
@@ -188,7 +189,7 @@ const ROTULO_OUTCOME: Record<string, string> = {
 // ── Página ───────────────────────────────────────────────────────────────────
 
 export default function CrmPage() {
-  const [aba, setAba] = useState<'consultas' | 'parceiros' | 'procura' | 'emails' | 'config'>('consultas');
+  const [aba, setAba] = useState<'consultas' | 'parceiros' | 'imt' | 'procura' | 'emails' | 'config'>('consultas');
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [config, setConfig] = useState<Config | null>(null);
   const [limites, setLimites] = useState<{ maxKg: number; maxCm: number } | null>(null);
@@ -261,6 +262,7 @@ export default function CrmPage() {
             ['consultas', 'Consultas'],
             ['parceiros', 'Parceiros'],
             ['procura', 'Por servir'],
+            ['imt', 'Reserva IMT'],
             ['emails', 'Emails'],
             ['config', 'Configuração'],
           ] as const).map(([id, label]) => (
@@ -277,6 +279,7 @@ export default function CrmPage() {
         )}
         {aba === 'parceiros' && <Parceiros categorias={categorias} />}
         {aba === 'procura' && <Procura />}
+        {aba === 'imt' && <ReservaImt />}
         {aba === 'emails' && <Emails />}
         {aba === 'config' && (
           <Configuracao config={config} categorias={categorias} limites={limites} aoGravar={carregarConfig} />
