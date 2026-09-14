@@ -5,7 +5,8 @@ import type {
 } from '@/types/crm';
 import { parseNVolumesFromText, parseTotalCm, parseWeightKgFromText } from '@/lib/agent/partnerPricing';
 import { normalizar } from './categorias';
-import { zonaDeMorada } from './zonas';
+import { zonaDaMorada } from './zonas';
+import { distritoDaMorada } from './codigosPostais';
 import { categoriaDoMaterialBD } from './materiais';
 import { cplDaCategoria, lerConfig } from './config';
 import { debitar, estornar, lerCarteira, lerCarteirasEmLote } from './carteira';
@@ -68,7 +69,7 @@ export async function criarConsulta(db: Db, entrada: EntradaConsulta, actor: str
     estado: 'triada',
     origem: entrada.origem,
     cliente: entrada.cliente ?? {},
-    pedido: { ...entrada.pedido, zona: entrada.pedido.zona ?? zonaDeMorada(entrada.pedido.origem) },
+    pedido: { ...entrada.pedido, zona: entrada.pedido.zona ?? zonaDaMorada(entrada.pedido.origem, distritoDaMorada) },
     triagem: {
       categoria: resultado.categoria,
       route: resultado.route,
@@ -115,7 +116,7 @@ export async function consultaDeLead(db: Db, leadId: string, actor: string): Pro
   const pedido: CrmConsultaPedido = {
     origem: d.origem ?? undefined,
     destino: d.destino ?? undefined,
-    zona: zonaDeMorada(d.origem),
+    zona: zonaDaMorada(d.origem, distritoDaMorada),
     urgencia: d.urgencia ?? undefined,
     viatura: d.viatura ?? undefined,
     material: d.material ?? undefined,

@@ -148,6 +148,35 @@ export function zonaConhecida(z: string): boolean {
 }
 
 /**
+ * A zona de uma morada, com a tabela dos códigos postais a mandar.
+ *
+ * `zonaDeMorada` só conhece os vinte nomes de distrito, e as moradas reais não os trazem:
+ * "Av. Central 578, Amora, Portugal" é uma lead verdadeira e dava a zona "amora", que
+ * nenhum parceiro declara. Das onze consultas em produção, nove ficaram assim.
+ *
+ * A tabela vive à parte (lib/crm/codigosPostais.ts) e entra por aqui **injectada**: são
+ * 433 KB, e este módulo é importado pelo dashboard. Passá-lo a depender dela punha a
+ * tabela toda no pacote do browser, para ler três nomes de distrito.
+ *
+ * Quem chama do lado do servidor passa `distritoDaMorada`; quem não passar fica com o
+ * comportamento de sempre.
+ */
+export function zonaDaMorada(
+  morada: string | undefined | null,
+  resolver?: (m: string) => string | null,
+): Zona | undefined {
+  const texto = String(morada ?? '').trim();
+  if (!texto) return undefined;
+
+  // A tabela primeiro: sabe de códigos postais e de dezanove mil terras.
+  const pelaTabela = resolver?.(texto) ?? null;
+  if (pelaTabela) return pelaTabela;
+
+  // Sem tabela, ou sem resposta dela: o que sempre houve.
+  return zonaDeMorada(texto);
+}
+
+/**
  * As zonas que valem para uma capacidade.
  *
  * Uma capacidade sem zonas herda as do parceiro: declara-se a cobertura uma vez na ficha
