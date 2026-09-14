@@ -194,7 +194,9 @@ export default function ReservaImt() {
             </span>
 
             {l.partnerId ? (
-              <span style={{ fontSize: 11, color: 'var(--yb-success)', fontWeight: 600 }}>já é parceiro</span>
+              <span style={{ fontSize: 11, color: 'var(--yb-success)', fontWeight: 600 }}>
+                promovido{l.promovidoPor ? ` · ${l.promovidoPor}` : ''}
+              </span>
             ) : (
               <span style={{ fontSize: 11, color: 'var(--yb-cyan)', fontWeight: 600 }}>
                 {aberta === l.alvara ? 'fechar' : 'promover'}
@@ -203,7 +205,17 @@ export default function ReservaImt() {
           </button>
 
           {aberta === l.alvara && !l.partnerId && (
-            <Promover linha={l} aoPromover={carregar} aoFechar={() => setAberta(null)} />
+            <Promover
+              linha={l}
+              // A linha muda no sitio em vez de a lista voltar a carregar. Com o filtro
+              // "so por promover" ligado, recarregar fazia a empresa desaparecer no
+              // momento em que se acabou de trabalhar nela — e perdia-se o sitio onde se
+              // ia na lista.
+              aoPromover={(partnerId) => setLinhas((antes) => antes.map(
+                (x) => (x.alvara === l.alvara ? { ...x, partnerId } : x),
+              ))}
+              aoFechar={() => setAberta(null)}
+            />
           )}
         </div>
       ))}
@@ -237,7 +249,7 @@ export default function ReservaImt() {
  * ao site da empresa, ou a uma chamada.
  */
 function Promover({ linha, aoPromover, aoFechar }: {
-  linha: Linha; aoPromover: () => void; aoFechar: () => void;
+  linha: Linha; aoPromover: (partnerId: string) => void; aoFechar: () => void;
 }) {
   const [dados, setDados] = useState({ telefone: '', email: '', contacto: '' });
   const [erro, setErro] = useState('');
@@ -253,7 +265,7 @@ function Promover({ linha, aoPromover, aoFechar }: {
       body: JSON.stringify({ alvara: linha.alvara, ...dados }),
     }).then((x) => x.json()).catch(() => null);
     setAGravar(false);
-    if (r?.success) { aoFechar(); aoPromover(); }
+    if (r?.success) { aoFechar(); aoPromover(String(r.partnerId)); }
     else setErro(r?.error ?? 'não foi possível promover');
   }
 

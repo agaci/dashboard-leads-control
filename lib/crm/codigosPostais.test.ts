@@ -103,3 +103,27 @@ test('as tabelas não vieram vazias', () => {
   assert.ok(TAMANHOS.codigosPostais > 700, `só ${TAMANHOS.codigosPostais} códigos postais`);
   assert.ok(TAMANHOS.localidades > 15000, `só ${TAMANHOS.localidades} localidades`);
 });
+
+// ── os prefixos que atravessam distritos ─────────────────────────────────────
+
+test('o código completo desempata onde os quatro dígitos não chegam', () => {
+  // 2495 é Leiria e é Santarém, conforme a rua. Por treze prefixos como este caíam 86
+  // das 7858 empresas do IMT, sem distrito nenhum.
+  assert.equal(distritoDoCodigoPostal('2495'), null);
+  assert.ok(distritoDoCodigoPostal('2495-023'), '2495-023 devia resolver pelo código completo');
+});
+
+test('os treze prefixos ambíguos resolvem com o código completo', () => {
+  // Codigos verdadeiros, tirados da lista do IMT: inventar um "-000" so provava que o
+  // teste nao sabia do que falava.
+  for (const cp of ['2100-053', '3020-084', '4620-010', '2890-042', '6250-024']) {
+    assert.ok(distritoDoCodigoPostal(cp), `${cp} não resolve`);
+  }
+});
+
+test('a tabela dos completos só tem o que faz falta', () => {
+  // Guardar os 320 mil códigos do país seriam dez megabytes para resolver o que os
+  // quatro dígitos já resolvem em 96,7% dos casos.
+  assert.ok(TAMANHOS.codigosCompletos > 4000, `só ${TAMANHOS.codigosCompletos}`);
+  assert.ok(TAMANHOS.codigosCompletos < 10000, `${TAMANHOS.codigosCompletos} é de mais`);
+});

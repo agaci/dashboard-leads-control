@@ -59,14 +59,15 @@ for (const l of fs.readFileSync(fDistritos, 'utf8').split(/\r?\n/).slice(1)) {
 
 // ── varrer os códigos postais ────────────────────────────────────────────────
 const cp4 = new Map();                 // '2600' -> Set de distritos
+const cp7 = new Map();                 // '2495-122' -> Set de distritos
 const localidade = new Map();          // 'amora' -> Set de distritos
-const concelho = new Map();            // idem, pelo par distrito+concelho
 
 const linhas = fs.readFileSync(fCp, 'utf8').split(/\r?\n/);
 const cab = linhas[0].split(',');
 const iDistrito = cab.indexOf('cod_distrito');
 const iLocalidade = cab.indexOf('nome_localidade');
 const iCp4 = cab.indexOf('num_cod_postal');
+const iCp3 = cab.indexOf('ext_cod_postal');
 const iDesig = cab.indexOf('desig_postal');
 if (iDistrito < 0 || iLocalidade < 0 || iCp4 < 0) {
   console.error('o CSV não tem as colunas esperadas');
@@ -85,7 +86,9 @@ for (let i = 1; i < linhas.length; i++) {
   const d = distritoPorCodigo.get(String(c[iDistrito]).trim());
   if (!d) continue;
 
-  juntar(cp4, String(c[iCp4]).trim(), d);
+  const n4 = String(c[iCp4]).trim();
+  juntar(cp4, n4, d);
+  if (iCp3 >= 0) juntar(cp7, `${n4}-${String(c[iCp3]).trim().padStart(3, '0')}`, d);
   juntar(localidade, normalizar(c[iLocalidade]), d);
   if (iDesig >= 0) juntar(localidade, normalizar(c[iDesig]), d);
 }
@@ -105,6 +108,22 @@ const semDuvida = (mapa) => {
 const r4 = semDuvida(cp4);
 const rLoc = semDuvida(localidade);
 
+// O codigo completo entra SO onde os quatro primeiros digitos nao chegam.
+//
+// Treze codigos atravessam fronteiras de distrito — 2495, 2100, 4620 e mais dez — e por
+// eles caiam 86 das 7858 empresas do IMT, sem distrito nenhum. Ao nivel do codigo
+// completo nao ha ambiguidade em nenhum: 5014 entradas resolvem os treze por inteiro.
+//
+// Guardar os 320 mil codigos completos do pais seria dez megabytes para resolver o que
+// os quatro digitos ja resolvem em 96,7% dos casos. Assim sao 84 KB.
+const ambiguos = new Set([...cp4].filter(([, v]) => v.size > 1).map(([k]) => k));
+const r7 = { out: {}, ambiguos: 0 };
+for (const [k, v] of cp7) {
+  if (!ambiguos.has(k.slice(0, 4))) continue;
+  if (v.size === 1) r7.out[k] = [...v][0];
+  else r7.ambiguos++;
+}
+
 // A guarda que importa: se um distrito sair daqui com um nome que lib/crm/zonas.ts nao
 // conhece, o cruzamento falha em silencio — a lead fica com uma zona que nenhum parceiro
 // declara, e ninguem percebe porque. Foi o que aconteceu com o mapa dos distritos, e a
@@ -115,7 +134,8 @@ const ZONAS = new Set([
   'viana do castelo', 'vila real', 'viseu', 'acores', 'madeira',
 ]);
 const desconhecidos = new Set(
-  [...Object.values(r4.out), ...Object.values(rLoc.out)].filter((d) => !ZONAS.has(d)),
+  [...Object.values(r4.out), ...Object.values(r7.out), ...Object.values(rLoc.out)]
+    .filter((d) => !ZONAS.has(d)),
 );
 if (desconhecidos.size) {
   console.error('\nZONAS QUE lib/crm/zonas.ts NAO CONHECE:', [...desconhecidos].join(', '));
@@ -130,7 +150,8 @@ if (desconhecidos.size) {
 for (const d of new Set(distritoPorCodigo.values())) rLoc.out[d] = d;
 
 console.log(`distritos                 ${distritoPorCodigo.size}`);
-console.log(`CP4 -> distrito           ${Object.keys(r4.out).length}  (${r4.ambiguos} em mais de um distrito, fora)`);
+console.log(`CP4 -> distrito           ${Object.keys(r4.out).length}  (${r4.ambiguos} em mais de um distrito)`);
+console.log(`CP7 -> distrito           ${Object.keys(r7.out).length}  (so nos ${ambiguos.size} CP4 que nao chegam)`);
 console.log(`localidade -> distrito    ${Object.keys(rLoc.out).length}  (${rLoc.ambiguos} ambíguas, fora)`);
 
 for (const teste of ['amora', 'cascais', 'odivelas', 'agualva-cacem', 'alverca do ribatejo']) {
@@ -182,6 +203,8 @@ const ts = `/**
 
 const CP4 = ${JSON.stringify(compacto(r4.out))};
 
+const CP7 = ${JSON.stringify(compacto(r7.out))};
+
 const LOCALIDADES = ${JSON.stringify(compacto(rLoc.out))};
 
 function montar(texto: string): Map<string, string> {
@@ -194,6 +217,7 @@ function montar(texto: string): Map<string, string> {
 }
 
 const porCp4 = montar(CP4);
+const porCp7 = montar(CP7);
 const porLocalidade = montar(LOCALIDADES);
 
 /** Minúsculas sem acentos — a mesma normalização de lib/crm/zonas.ts. */
@@ -202,9 +226,23 @@ function normalizar(t: string): string {
     .replace(/\\s+/g, ' ').trim();
 }
 
-/** O distrito de um código postal ("2600-535" ou "2600"), ou null. */
+/**
+ * O distrito de um código postal ("2600-535" ou "2600"), ou null.
+ *
+ * O código completo primeiro, porque há treze prefixos de quatro dígitos que atravessam
+ * fronteiras de distrito — 2495 é Leiria e é Santarém, conforme a rua. Para esses, os
+ * quatro dígitos não podem responder, e responder na mesma seria pior do que calar.
+ */
 export function distritoDoCodigoPostal(cp: string): string | null {
-  const m = /(\\d{4})/.exec(String(cp ?? ''));
+  const texto = String(cp ?? '');
+
+  const completo = /(\\d{4})-(\\d{3})/.exec(texto);
+  if (completo) {
+    const exacto = porCp7.get(\`\${completo[1]}-\${completo[2]}\`);
+    if (exacto) return exacto;
+  }
+
+  const m = /(\\d{4})/.exec(texto);
   return m ? porCp4.get(m[1]) ?? null : null;
 }
 
@@ -250,6 +288,7 @@ export function distritoDaMorada(morada: string): string | null {
 /** Quantas entradas tem cada tabela. Serve aos testes e ao diagnóstico. */
 export const TAMANHOS = {
   codigosPostais: porCp4.size,
+  codigosCompletos: porCp7.size,
   localidades: porLocalidade.size,
 };
 `;
