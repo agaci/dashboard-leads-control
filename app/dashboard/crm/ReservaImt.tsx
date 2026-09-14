@@ -28,6 +28,7 @@ type Contactos = {
   nomeNoGoogle: string | null;
   moradaNoGoogle: string | null;
   emails: EmailAchado[];
+  confianca: 'confere' | 'confirme' | 'suspeito' | null;
   notas: string[];
 };
 
@@ -293,6 +294,15 @@ function Promover({ linha, aoPromover, aoFechar }: {
     setAchado(c);
     if (c.site && !site) setSite(c.site);
     // So preenche o que ainda esta vazio: o que a operadora ja escreveu manda.
+    // **So preenche quando o nome confere.** Nas seis empresas reais que testei, as duas
+    // que cairam em "confirme" eram ambas a empresa errada — "Alcateia Resiliente" deu
+    // "Alcateia de Herois", "Ambiente em Movimento" deu "Ambiente-moveis e Decoracoes".
+    //
+    // A troca e assimetrica: preencher poupa uma colagem; preencher errado e um
+    // telefonema a quem nao devia, e o erro so aparece na chamada. Quando ha duvida, os
+    // valores ficam a vista com um botao para os usar — um clique a mais, depois de
+    // alguem ter olhado.
+    if (c.confianca !== 'confere') return;
     setDados((d) => ({
       ...d,
       telefone: d.telefone || c.telefone || '',
@@ -348,15 +358,56 @@ function Promover({ linha, aoPromover, aoFechar }: {
               relance, se ele acertou na empresa certa. Sem isto, um telefone errado
               entrava na ficha sem ninguem desconfiar. */}
           {achado.nomeNoGoogle && (
-            <p style={{ fontSize: 11.5, color: 'var(--yb-fg)', margin: '0 0 6px', lineHeight: 1.5 }}>
-              O Google diz: <strong>{achado.nomeNoGoogle}</strong>
-              {achado.moradaNoGoogle && (
-                <span style={{ color: 'var(--yb-muted)' }}> &mdash; {achado.moradaNoGoogle}</span>
+            <div style={{
+              margin: '0 0 8px', padding: '7px 9px', borderRadius: 7,
+              borderLeft: `3px solid ${achado.confianca === 'confere' ? 'var(--yb-success)'
+                : achado.confianca === 'suspeito' ? 'var(--yb-error)' : 'var(--yb-aviso)'}`,
+              background: 'var(--yb-card)',
+            }}>
+              <p style={{ fontSize: 11.5, color: 'var(--yb-fg)', margin: 0, lineHeight: 1.5 }}>
+                O Google diz: <strong>{achado.nomeNoGoogle}</strong>
+                {achado.moradaNoGoogle && (
+                  <span style={{ color: 'var(--yb-muted)' }}> &mdash; {achado.moradaNoGoogle}</span>
+                )}
+              </p>
+              <p style={{
+                fontSize: 10.5, margin: '3px 0 0', lineHeight: 1.5,
+                color: achado.confianca === 'confere' ? 'var(--yb-success)'
+                  : achado.confianca === 'suspeito' ? 'var(--yb-error)' : 'var(--yb-aviso)',
+              }}>
+                {achado.confianca === 'confere'
+                  ? 'O nome confere com o do IMT — preenchido em baixo.'
+                  : achado.confianca === 'suspeito'
+                    ? 'Não se parece com esta empresa. Nada foi preenchido.'
+                    : 'Pode ser outra empresa. Nada foi preenchido — confirme antes de usar.'}
+              </p>
+
+              {/* Quando ha duvida os valores ficam aqui, com um botao para os usar. Um
+                  clique a mais, depois de alguem ter olhado — que e o objectivo. */}
+              {achado.confianca !== 'confere' && (achado.telefone || achado.emails.length > 0) && (
+                <p style={{ fontSize: 11, color: 'var(--yb-muted)', margin: '6px 0 0', lineHeight: 1.7 }}>
+                  Encontrou para esse nome:{' '}
+                  {achado.telefone && (
+                    <button type="button"
+                      onClick={() => setDados((d) => ({ ...d, telefone: achado.telefone ?? '' }))}
+                      style={{
+                        background: 'var(--yb-input)', border: '1px solid var(--yb-border)',
+                        borderRadius: 6, padding: '2px 7px', marginRight: 6, cursor: 'pointer',
+                        fontSize: 11, color: 'var(--yb-cyan)',
+                      }}>{achado.telefone} &rarr; usar</button>
+                  )}
+                  {achado.emails[0] && (
+                    <button type="button"
+                      onClick={() => setDados((d) => ({ ...d, email: achado.emails[0].endereco }))}
+                      style={{
+                        background: 'var(--yb-input)', border: '1px solid var(--yb-border)',
+                        borderRadius: 6, padding: '2px 7px', cursor: 'pointer',
+                        fontSize: 11, color: 'var(--yb-cyan)',
+                      }}>{achado.emails[0].endereco} &rarr; usar</button>
+                  )}
+                </p>
               )}
-              <span style={{ display: 'block', fontSize: 10, color: 'var(--yb-subtle)' }}>
-                Confirme que é mesmo esta empresa antes de criar a ficha.
-              </span>
-            </p>
+            </div>
           )}
 
           {achado.emails.length > 1 && (

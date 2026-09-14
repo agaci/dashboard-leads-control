@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   dominioDoSite, emailsDoHtml, jaChega, ligacoesDeContacto, paginasDeContacto,
+  parecenca, confiancaNoNome,
 } from './emails.ts';
 
 // ── extrair ──────────────────────────────────────────────────────────────────
@@ -192,4 +193,48 @@ test('sem ligacoes de contacto, devolve vazio', () => {
   assert.deepEqual(ligacoesDeContacto('<a href="/frota">Frota</a>', 'https://silva.pt'), []);
   assert.deepEqual(ligacoesDeContacto('', 'https://silva.pt'), []);
   assert.deepEqual(ligacoesDeContacto('<a href="/contactos">x</a>', ''), []);
+});
+
+// ── desconfiar do que o Google devolve ───────────────────────────────────────
+
+test('reconhece o mesmo nome escrito de duas maneiras', () => {
+  assert.equal(confiancaNoNome('TORRESTIR - TRANSPORTES, LDA', 'Torrestir'), 'confere');
+  assert.equal(confiancaNoNome('ALENEXPRESSO , UNIPESSOAL LDA', 'AlenExpresso'), 'confere');
+  assert.equal(confiancaNoNome('ALFREDO SIMOES NASCIMENTO-TRANSPORTES MERCADORIAS',
+    'Alfredo Simões Nascimento - Transportes Mercadorias, Lda.'), 'confere');
+});
+
+test('nao afirma que confere quando o Google trocou de empresa', () => {
+  // Duas de cinco, numa amostra real da lista do IMT. O telefone vinha, e era de outra
+  // pessoa. Nenhuma das duas pode passar como "confere".
+  for (const [nosso, google] of [
+    ['Alcateia Resiliente - Unipessoal, Lda', 'Alcateia de Heróis'],
+    ['AMBIENTE EM MOVIMENTO, UNIPESSOAL, LDA', 'Ambiente-móveis E Decorações'],
+  ]) {
+    assert.notEqual(confiancaNoNome(nosso, google), 'confere', `${nosso} vs ${google}`);
+  }
+});
+
+test('sem nome do Google, pede-se para confirmar', () => {
+  assert.equal(confiancaNoNome('Silva, Lda', ''), 'confirme');
+});
+
+test('nomes sem nada em comum sao suspeitos', () => {
+  assert.equal(confiancaNoNome('Transportes Silva, Lda', 'Padaria Costa'), 'suspeito');
+});
+
+test('a forma juridica nao faz dois nomes parecidos', () => {
+  // Se "lda" e "transportes" contassem, duas transportadoras quaisquer pareciam-se.
+  assert.equal(parecenca('Transportes Silva, Lda', 'Transportes Costa, Lda'), 0);
+  assert.equal(parecenca('Silva Unipessoal Lda', 'Costa Unipessoal Lda'), 0);
+});
+
+test('nomes iguais dao 1', () => {
+  assert.equal(parecenca('Silva & Filhos', 'Silva e Filhos'), 1);
+});
+
+test('um nome vazio nao se parece com nada', () => {
+  assert.equal(parecenca('', 'Silva'), 0);
+  assert.equal(parecenca('Silva', ''), 0);
+  assert.equal(parecenca('Lda', 'Lda'), 0);
 });

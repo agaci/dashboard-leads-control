@@ -203,3 +203,68 @@ export function ligacoesDeContacto(html: string, site: string): string[] {
 
   return [...achadas.entries()].sort((a, b) => a[1] - b[1]).map(([u]) => u).slice(0, 4);
 }
+
+/**
+ * Quanto é que dois nomes de empresa se parecem, de 0 a 1.
+ *
+ * **Existe porque o Google acerta na empresa errada com frequência.** Numa amostra de
+ * cinco empresas reais da lista do IMT, encontrou quatro — e duas eram outra coisa:
+ * "Alcateia Resiliente, Lda" devolveu "Alcateia de Heróis", e "Ambiente em Movimento,
+ * Lda" devolveu "Ambiente-móveis e Decorações". O telefone vinha, e era de outra pessoa.
+ *
+ * Mostrar o nome ao lado não chega: quem está a promover trinta empresas não lê com
+ * atenção à trigésima. O sistema tem de dizer que desconfia.
+ *
+ * Compara as palavras com peso, e não letra a letra: o que distingue uma transportadora
+ * de outra é o nome próprio, não a forma jurídica. Por isso "lda", "unipessoal",
+ * "transportes" e companhia não contam — se contassem, duas transportadoras quaisquer
+ * pareciam-se por serem ambas transportadoras.
+ */
+const PALAVRAS_VAZIAS = new Set([
+  'lda', 'ldª', 'limitada', 'sa', 's', 'a', 'unipessoal', 'sociedade', 'sociedades',
+  'e', 'de', 'da', 'do', 'dos', 'das', 'em', 'o', 'os', 'as', 'por', 'com',
+  'transportes', 'transporte', 'transportadora', 'logistica', 'logistico',
+  'mercadorias', 'comercio', 'servicos', 'servico', 'empresa', 'grupo',
+  'nacional', 'internacional', 'international', 'lisboa', 'porto',
+]);
+
+function palavrasUteis(nome: string): string[] {
+  return String(nome ?? '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((p) => p.length > 1 && !PALAVRAS_VAZIAS.has(p));
+}
+
+export function parecenca(a: string, b: string): number {
+  const pa = palavrasUteis(a);
+  const pb = new Set(palavrasUteis(b));
+  if (!pa.length || !pb.size) return 0;
+
+  // Quantas das palavras que importam no primeiro nome aparecem no segundo. Não é
+  // simétrico de propósito: o Google costuma abreviar, e um nome curto que esteja todo
+  // contido no comprido é o mesmo nome.
+  const encontradas = pa.filter((p) => pb.has(p)).length;
+  return encontradas / pa.length;
+}
+
+/**
+ * O que se diz à operadora sobre o nome que o Google devolveu.
+ *
+ * Três bandas e não um limiar cego, porque há um meio-termo verdadeiro: o Google abrevia
+ * nomes com frequência, e "abreviou" e "trocou de empresa" parecem-se de longe.
+ *
+ * Nas cinco empresas reais que testei, as duas trocas deram 0.50 e as três certas deram
+ * 1.00. A separação foi limpa — mas cinco casos não são amostra, e por isso o meio não
+ * afirma nada: pede que se olhe.
+ */
+export type ConfiancaNoNome = 'confere' | 'confirme' | 'suspeito';
+
+export function confiancaNoNome(nomeNosso: string, nomeDoGoogle: string): ConfiancaNoNome {
+  if (!nomeDoGoogle?.trim()) return 'confirme';
+  const p = parecenca(nomeNosso, nomeDoGoogle);
+  if (p >= 0.8) return 'confere';
+  if (p >= 0.5) return 'confirme';
+  return 'suspeito';
+}

@@ -1,4 +1,7 @@
-import { emailsDoHtml, jaChega, ligacoesDeContacto, type EmailAchado } from './emails';
+import {
+  confiancaNoNome, emailsDoHtml, jaChega, ligacoesDeContacto,
+  type ConfiancaNoNome, type EmailAchado,
+} from './emails';
 
 /**
  * Procurar por onde falar com uma empresa da lista do IMT.
@@ -36,12 +39,70 @@ export interface Contactos {
   /** A morada como o Google a conhece, pela mesma razão. */
   moradaNoGoogle: string | null;
   emails: EmailAchado[];
+  /**
+   * Se o nome que o Google devolveu é mesmo o desta empresa.
+   *
+   * Numa amostra de cinco empresas reais do IMT, o Google encontrou quatro — e **duas
+   * eram outra coisa**. "Alcateia Resiliente, Lda" deu "Alcateia de Heróis"; "Ambiente
+   * em Movimento" deu "Ambiente-móveis e Decorações". O telefone vinha, e era de outra
+   * pessoa. Mostrar o nome ao lado não chega: quem promove trinta empresas não lê com
+   * atenção à trigésima.
+   */
+  confianca: ConfiancaNoNome | null;
   /** O que correu bem e o que não. Uma linha por passo. */
   notas: string[];
 }
 
 function vazio(): Contactos {
-  return { telefone: null, site: null, nomeNoGoogle: null, moradaNoGoogle: null, emails: [], notas: [] };
+  return {
+    telefone: null, site: null, nomeNoGoogle: null, moradaNoGoogle: null,
+    emails: [], confianca: null, notas: [],
+  };
+}
+
+/**
+ * Porque é que o Google recusou, e o que fazer a seguir.
+ *
+ * **Lê os campos que o Google dá para isto** — `error.status` e o `reason` dos detalhes —
+ * e não procura palavras no corpo da resposta. A primeira versão fazia isso, com
+ * `/IP|referer/i`, e dizia a toda a gente que a chave estava restrita a um IP errado.
+ * O que ela apanhava era o "ip" de "descr**ip**tion", que vem em todas as respostas de
+ * erro do Google. Uma mensagem confiante e errada é pior do que nenhuma: mandou-se uma
+ * pessoa mexer em restrições que não existiam enquanto a causa real — a API por activar —
+ * ficava escrita à frente dela, por ler.
+ */
+async function explicarFalha(r: Response): Promise<string> {
+  const corpo: any = await r.json().catch(() => null);
+  const erro = corpo?.error;
+  const razao = erro?.details?.find((d: any) => d?.reason)?.reason ?? '';
+  const url = erro?.details
+    ?.flatMap((d: any) => d?.links ?? [])
+    ?.find((l: any) => l?.url)?.url ?? erro?.details?.find((d: any) => d?.metadata?.activationUrl)?.metadata?.activationUrl;
+
+  if (razao === 'SERVICE_DISABLED') {
+    return `A Places API (New) não está activada neste projecto do Google Cloud.${url ? ` Active-a em ${url}` : ''}`;
+  }
+  if (razao === 'API_KEY_HTTP_REFERRER_BLOCKED' || razao === 'API_KEY_IP_ADDRESS_BLOCKED') {
+    return 'A chave está restrita e o pedido veio de um sítio que ela não aceita. Reveja as restrições na consola do Google Cloud.';
+  }
+  if (razao === 'API_KEY_SERVICE_BLOCKED') {
+    return 'A chave existe mas não tem a Places API (New) nas APIs permitidas. Acrescente-a nas restrições da chave.';
+  }
+  if (razao === 'API_KEY_INVALID' || erro?.status === 'UNAUTHENTICATED') {
+    return 'A chave não é válida. Confirme o GOOGLE_PLACES_API_KEY no .env.local do servidor.';
+  }
+  if (razao === 'BILLING_DISABLED') {
+    return 'O projecto do Google Cloud não tem facturação activa, e a Places API exige-a.';
+  }
+  if (r.status === 429 || razao === 'RATE_LIMIT_EXCEEDED') {
+    return 'Quota do Places esgotada. Volte mais tarde ou aumente-a na consola.';
+  }
+
+  // Desconhecido: passa-se o que o Google disse, em vez de inventar uma explicação.
+  const dito = String(erro?.message ?? '').trim();
+  return dito
+    ? `O Google recusou (${r.status}): ${dito.slice(0, 220)}`
+    : `O Places respondeu ${r.status}. Escreva os contactos à mão.`;
 }
 
 /**
@@ -78,17 +139,7 @@ async function doPlaces(nome: string, morada: string): Promise<Partial<Contactos
       }),
     });
 
-    if (!r.ok) {
-      const corpo = await r.text().catch(() => '');
-      // As três falhas que acontecem mesmo, cada uma com o que se faz a seguir.
-      if (r.status === 403 && /IP|referer/i.test(corpo)) {
-        return { notas: ['O Google recusou: a chave está restrita a um IP e o do servidor mudou. Actualize-a na consola do Google Cloud.'] };
-      }
-      if (r.status === 429) {
-        return { notas: ['Quota do Places esgotada por hoje. Volte amanhã ou aumente-a na consola.'] };
-      }
-      return { notas: [`O Places respondeu ${r.status}. Escreva os contactos à mão.`] };
-    }
+    if (!r.ok) return { notas: [await explicarFalha(r)] };
 
     const d: any = await r.json();
     const p = d?.places?.[0];
@@ -186,6 +237,17 @@ export async function procurarContactos(
     out.nomeNoGoogle = g.nomeNoGoogle ?? null;
     out.moradaNoGoogle = g.moradaNoGoogle ?? null;
     out.notas.push(...g.notas);
+
+    if (out.nomeNoGoogle) {
+      out.confianca = confiancaNoNome(nome, out.nomeNoGoogle);
+      // Quando nao confere, o telefone e o site sao de outra empresa. Ficam a vista para
+      // a operadora decidir, mas ela tem de saber disso ANTES de os aceitar.
+      if (out.confianca === 'suspeito') {
+        out.notas.push(`O Google devolveu "${out.nomeNoGoogle}", que não se parece com esta empresa. O telefone e o site são provavelmente de outra.`);
+      } else if (out.confianca === 'confirme') {
+        out.notas.push(`O Google devolveu "${out.nomeNoGoogle}". Confirme que é a mesma empresa antes de aceitar o telefone.`);
+      }
+    }
   }
 
   if (out.site) {
