@@ -43,17 +43,32 @@ const CAIXAS_GERAIS = [
   'apoio', 'suporte', 'support',
 ];
 
-/** Endereços que não servem para falar com ninguém. */
+/**
+ * Endereços que não servem para falar com ninguém.
+ *
+ * Os últimos saem dos marcadores que ficam nos formulários — "o seu email", "nome@..." —
+ * e apanhei-os num site a sério: o yourbox.com.pt devolvia `seu@email.com` a seguir ao
+ * `info@` verdadeiro. Um exemplo de formulário lido como contacto é uma carta a ninguém.
+ */
 const LIXO = [
   'noreply', 'no-reply', 'nao-responder', 'naoresponder', 'donotreply',
   'postmaster', 'webmaster', 'hostmaster', 'abuse', 'mailer-daemon',
   'example', 'exemplo', 'test', 'teste', 'seu-email', 'youremail', 'email',
+  'seu', 'oseu', 'teu', 'nome', 'utilizador', 'user', 'username', 'emailaddress',
 ];
 
-/** Terminações que denunciam um endereço de exemplo ou de quem fez o site. */
+/**
+ * Domínios que denunciam um exemplo, ou o endereço de quem fez o site.
+ *
+ * `email.com` e `mail.com` estão aqui por serem o que se escreve num campo de exemplo —
+ * "seu@email.com". Quem tem mesmo uma caixa nesses domínios não é uma transportadora com
+ * site próprio, e é melhor perder esse caso raro do que escrever para um marcador.
+ */
 const DOMINIOS_FORA = [
   'example.com', 'example.org', 'exemplo.pt', 'sentry.io', 'wixpress.com',
   'sentry.wixpress.com', 'godaddy.com', 'wordpress.com', 'squarespace.com',
+  'email.com', 'mail.com', 'dominio.pt', 'seudominio.pt', 'seusite.pt',
+  'empresa.pt', 'suaempresa.pt', 'yourdomain.com', 'yoursite.com',
 ];
 
 export interface EmailAchado {

@@ -32,18 +32,31 @@ export async function POST(request: NextRequest) {
 
     const site = String(body.site ?? '').trim();
 
-    // O que já se sabe chega, e ninguém pediu para procurar outra vez.
-    if (linha.contactos && !body.forcar && !site) {
+    // Só se guarda — e só se repete — o que serviu para alguma coisa.
+    //
+    // A primeira versão guardava tudo, falhas incluídas. Enquanto a Places API esteve por
+    // activar, a mensagem de erro ficou congelada na linha e era devolvida sem sequer se
+    // perguntar ao Google: a API voltou, e o ecrã continuou a dizer que não. Uma falha é
+    // quase sempre passageira — a chave que falta, a quota do dia, o site em baixo — e
+    // guardá-la é transformar um problema de um minuto num problema para sempre.
+    const util = (c: any) => !!(c?.telefone || c?.site || c?.emails?.length);
+
+    if (util(linha.contactos) && !body.forcar && !site) {
       return Response.json({ success: true, contactos: linha.contactos, deCache: true });
     }
 
     const morada = [linha.morada, linha.codigoPostal, linha.localidade].filter(Boolean).join(', ');
     const contactos = await procurarContactos(linha.nome, morada, site || undefined);
 
-    await col.updateOne(
-      { alvara },
-      { $set: { contactos, contactosEm: new Date(), contactosPor: operador.nome } },
-    );
+    if (util(contactos)) {
+      await col.updateOne(
+        { alvara },
+        { $set: { contactos, contactosEm: new Date(), contactosPor: operador.nome } },
+      );
+    } else {
+      // Limpa o que lá estivesse: uma falha guardada antes não pode sobreviver a esta.
+      await col.updateOne({ alvara }, { $unset: { contactos: '', contactosEm: '', contactosPor: '' } });
+    }
 
     return Response.json({ success: true, contactos, deCache: false });
   } catch (err: any) {

@@ -238,3 +238,20 @@ test('um nome vazio nao se parece com nada', () => {
   assert.equal(parecenca('Silva', ''), 0);
   assert.equal(parecenca('Lda', 'Lda'), 0);
 });
+
+// ── marcadores de formulario ─────────────────────────────────────────────────
+
+test('os marcadores de formulario nao passam por contactos', () => {
+  // Apanhado num site a serio: o yourbox.com.pt devolvia "seu@email.com" a seguir ao
+  // "info@" verdadeiro. Um exemplo de formulario lido como contacto e uma carta a
+  // ninguem.
+  const r = emailsDoHtml('info@yourbox.com.pt seu@email.com', 'https://yourbox.com.pt');
+  assert.deepEqual(r.map((e) => e.endereco), ['info@yourbox.com.pt']);
+});
+
+test('os dominios de exemplo mais comuns ficam de fora', () => {
+  for (const mau of ['nome@dominio.pt', 'a@suaempresa.pt', 'b@yourdomain.com', 'c@mail.com']) {
+    assert.deepEqual(emailsDoHtml(`geral@silva.pt ${mau}`, 'https://silva.pt')
+      .map((e) => e.endereco), ['geral@silva.pt'], mau);
+  }
+});
